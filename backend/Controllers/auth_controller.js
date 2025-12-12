@@ -4,12 +4,10 @@ const jwt = require("jsonwebtoken");
 
 const Conversation = require("../Models/Conversation.js");
 const ObjectId = require("mongoose").Types.ObjectId;
-const cloudinary = require("cloudinary").v2;
-const imageupload = require("../config/imageupload.js");
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
 dotenv.config({ path: "./.env" });
-const JWT_SECRET = process.env.JWT_SECRET;
+const { JWT_SECRET } = require("../secrets.js");
 
 let mailTransporter = nodemailer.createTransport({
   service: "gmail",
@@ -17,12 +15,6 @@ let mailTransporter = nodemailer.createTransport({
     user: process.env.EMAIL,
     pass: process.env.PASSWORD,
   },
-});
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_ClOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const register = async (req, res) => {

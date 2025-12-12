@@ -362,17 +362,6 @@ In the broader context of the project, this file ensures that the backend's depe
 				</blockquote>
 			</details>
 			<details>
-				<summary><b>config</b></summary>
-				<blockquote>
-					<table>
-					<tr>
-						<td><b><a href='https://github.com/pankil-soni/mern-chat-app/blob/master/backend/config/imageupload.js'>imageupload.js</a></b></td>
-						<td>- Imageupload.js configures Cloudinary for image storage and provides a function to upload images<br>- It sets up environment variables for Cloudinary access and offers an asynchronous upload function that handles both preset and auto resource type uploads, returning the image's secure URL or an empty string on failure.</td>
-					</tr>
-					</table>
-				</blockquote>
-			</details>
-			<details>
 				<summary><b>uploads</b></summary>
 				<blockquote>
 					<table>
@@ -440,7 +429,7 @@ In the broader context of the project, this file ensures that the backend's depe
 			<table>
 			<tr>
 				<td><b><a href='https://github.com/pankil-soni/mern-chat-app/blob/master/frontend/package-lock.json'>package-lock.json</a></b></td>
-				<td>- The file `frontend/package-lock.json` is a crucial component within the frontend module of the project's architecture<br>- Its primary function is to maintain a precise record of the exact versions of each dependency used in the frontend application, ensuring consistent environments and behavior across different installations and deployments<br>- This file supports the frontend's stability by locking down the versions of libraries such as Chakra UI for UI components, Cloudinary for media management, and Emotion for styled components, which are integral for the application's user interface and experience design.
+				<td>- The file `frontend/package-lock.json` is a crucial component within the frontend module of the project's architecture<br>- Its primary function is to maintain a precise record of the exact versions of each dependency used in the frontend application, ensuring consistent environments and behavior across different installations and deployments<br>- This file supports the frontend's stability by locking down the versions of libraries such as Chakra UI for UI components, AWS S3 for media management, and Emotion for styled components, which are integral for the application's user interface and experience design.
 
 In the broader context of the entire codebase, this file ensures that the frontend remains reliable and consistent with the specified versions of dependencies, thereby minimizing potential discrepancies that could arise from version mismatches during development or deployment phases<br>- This is particularly important in maintaining the overall health and predictability of the software development lifecycle within the project.</td>
 			</tr>
@@ -677,13 +666,10 @@ Install mern-chat-app using one of the following methods:
    - Setup Environment: Create a **.env** file in the backend folder and add necessary environment variables.
 	    ```
 	    PORT=5000
-	    GENERATIVE_API_KEY = ""
+	    GEMINI_API_KEY = ""
 	    MONGO_URI = ""
 	    EMAIL = ""
 	    PASSWORD= ""
-	    CLOUDINARY_ClOUD_NAME = ""
-	    CLOUDINARY_API_KEY = ""
-	    CLOUDINARY_API_SECRET = ""
 	    JWT_SECRET = ""
 	    AWS_ACCESS_KEY = ""
 	    AWS_SECRET = ""

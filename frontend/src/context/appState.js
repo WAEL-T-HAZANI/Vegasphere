@@ -1,11 +1,9 @@
 import chatContext from "./chatContext";
 import { useState, useEffect } from "react";
 import io from "socket.io-client";
-// 192.168.0.104
-//http://192.168.0.104:5000
-//https://chat-app-u2cq.onrender.com
-// http://localhost:5000
-const hostName = "https://chat-app-u2cq.onrender.com";
+
+const hostName = "http://localhost:5500"
+// const hostName = "https://chat-app-u2cq.onrender.com";
 var socket = io(hostName);
 
 const ChatState = (props) => {

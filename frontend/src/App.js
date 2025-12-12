@@ -1,7 +1,6 @@
 import "./App.css";
 import { useColorMode } from "@chakra-ui/react";
 import Navbar from "./components/Navbar/Navbar";
-import ChatState from "./context/appState";
 import { useContext } from "react";
 import chatContext from "./context/chatContext";
 

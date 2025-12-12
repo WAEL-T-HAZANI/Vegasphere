@@ -3,8 +3,7 @@ const env = require("dotenv");
 env.config({
   path: "../../.env",
 });
-
-const JWT_SECRET = process.env.JWT_SECRET;
+const { JWT_SECRET } = require("../secrets.js");
 
 const fetchuser = (req, res, next) => {
   const token = req.header("auth-token");

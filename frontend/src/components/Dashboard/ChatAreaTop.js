@@ -1,5 +1,4 @@
 import {
-  Box,
   Flex,
   Text,
   Button,
@@ -11,7 +10,7 @@ import {
   Stack,
 } from "@chakra-ui/react";
 import { ArrowBackIcon } from "@chakra-ui/icons";
-import React, { useContext, useEffect } from "react";
+import { useContext, useEffect } from "react";
 import chatContext from "../../context/chatContext";
 import { ProfileModal } from "../miscellaneous/ProfileModal";
 import { useDisclosure } from "@chakra-ui/react";

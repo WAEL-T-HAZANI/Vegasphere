@@ -1,71 +1,20 @@
 const Message = require("../Models/Message.js");
 const Conversation = require("../Models/Conversation.js");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const imageupload = require("../config/imageupload.js");
 const dotenv = require("dotenv");
 dotenv.config({ path: "./.env" });
 const {
   AWS_BUCKET_NAME,
   AWS_SECRET,
   AWS_ACCESS_KEY,
+  GEMINI_MODEL,
 } = require("../secrets.js");
 const { S3Client } = require("@aws-sdk/client-s3");
 const { createPresignedPost } = require("@aws-sdk/s3-presigned-post");
 
-const configuration = new GoogleGenerativeAI(process.env.GENERATIVE_API_KEY);
-const modelId = "gemini-1.5-flash";
+const configuration = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const modelId = GEMINI_MODEL;
 const model = configuration.getGenerativeModel({ model: modelId });
-
-const sendMessage = async (req, res) => {
-  var imageurl = "";
-
-  if (req.file) {
-    imageurl = await imageupload(req.file, false);
-  }
-
-  try {
-    const { conversationId, sender, text } = req.body;
-    if (!conversationId || !sender || !text) {
-      return res.status(400).json({
-        error: "Please fill all the fields",
-      });
-    }
-
-    const conversation = await Conversation.findById(conversationId).populate(
-      "members",
-      "-password"
-    );
-
-    //check if conversation contains bot
-    var isbot = false;
-
-    conversation.members.forEach((member) => {
-      if (member != sender && member.email.includes("bot")) {
-        isbot = true;
-      }
-    });
-
-    if (!isbot) {
-      const newMessage = new Message({
-        conversationId,
-        sender,
-        text,
-        imageurl,
-        seenBy: [sender],
-      });
-
-      await newMessage.save();
-      console.log("newMessage saved");
-
-      conversation.updatedAt = new Date();
-      await conversation.save();
-
-      res.json(newMessage);
-    }
-  } catch (error) {
-    res.status(500).send("Internal Server Error");
-  }
-};
 
 const allMessage = async (req, res) => {
   try {
@@ -306,7 +255,6 @@ const deleteMessageHandler = async (data) => {
 };
 
 module.exports = {
-  sendMessage,
   allMessage,
   getPresignedUrl,
   getAiResponse,
