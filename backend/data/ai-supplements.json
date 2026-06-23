@@ -1,0 +1,834 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-08T10:59:44.962Z",
+  "source": "Curated chat supplements",
+  "stats": {
+    "phrasePairs": 8,
+    "phraseEntries": 157,
+    "wordEntries": 258,
+    "intents": 5
+  },
+  "phrases": {
+    "en_to_ar": {
+      "thanks for your help": "شكراً على مساعدتك",
+      "how are you doing": "كيف حالك",
+      "can we meet tomorrow": "هل يمكننا أن نلتقي غداً",
+      "good morning how are you": "صباح الخير كيف حالك",
+      "see you later": "أراك لاحقاً",
+      "nice to meet you": "تشرفت بمعرفتك",
+      "where are you": "أين أنت",
+      "what time is it": "كم الساعة",
+      "i am fine thank you": "أنا بخير شكراً",
+      "have a good day": "أتمنى لك يوماً سعيداً",
+      "no problem": "لا مشكلة",
+      "you are welcome": "على الرحب والسعة",
+      "i miss you": "اشتقت إليك",
+      "i love you": "أحبك",
+      "happy birthday": "عيد ميلاد سعيد",
+      "good luck": "حظاً سعيداً",
+      "please help me": "من فضلك ساعدني",
+      "i am sorry": "أنا آسف",
+      "excuse me": "عفواً",
+      "i don't understand": "لا أفهم",
+      "talk to you later": "أتحدث معك لاحقاً",
+      "see you tomorrow": "أراك غداً",
+      "what is your name": "ما اسمك",
+      "how much does it cost": "كم يكلف",
+      "what happened": "ماذا حدث",
+      "are you okay": "هل أنت بخير",
+      "long time no see": "منذ وقت طويل",
+      "what's up": "ما الأخبار",
+      "i am busy": "أنا مشغول",
+      "on my way": "أنا في الطريق",
+      "running late": "أنا متأخر",
+      "let's go": "هيا بنا",
+      "wait a minute": "انتظر دقيقة",
+      "i agree": "أوافق",
+      "sounds good": "يبدو جيداً",
+      "congratulations": "مبروك",
+      "well done": "أحسنت",
+      "thank you very much": "شكراً جزيلاً",
+      "good evening": "مساء الخير",
+      "good night": "تصبح على خير",
+      "take care": "اعتن بنفسك",
+      "keep in touch": "ابق على تواصل",
+      "let me know": "أخبرني",
+      "thinking of you": "أفكر بك",
+      "proud of you": "فخور بك",
+      "stay strong": "كن قوياً",
+      "get well soon": "شفاك الله وعافاك",
+      "welcome back": "مرحباً بعودتك",
+      "my pleasure": "على الرحب والسعة",
+      "for sure": "أكيد",
+      "absolutely": "بالتأكيد",
+      "got it": "فهمت",
+      "will do": "سأفعل",
+      "working on it": "أعمل عليه",
+      "almost done": "تقريباً انتهيت",
+      "good idea": "فكرة جيدة",
+      "no worries": "لا تقلق",
+      "everything will be fine": "كل شيء سيكون بخير",
+      "see you there": "أراك هناك",
+      "how was your day": "كيف كان يومك",
+      "that's awesome": "هذا رائع",
+      "perfect": "ممتاز",
+      "great": "عظيم",
+      "lol": "هههه",
+      "wow": "واو"
+    },
+    "ar_to_en": {
+      "شكرا على مساعدتك": "thanks for your help",
+      "كيف حالك": "how are you doing",
+      "هل يمكننا أن نلتقي غدا": "can we meet tomorrow",
+      "صباح الخير كيف حالك": "good morning how are you",
+      "أراك لاحقا": "see you later",
+      "تشرفت بمعرفتك": "nice to meet you",
+      "أين أنت": "where are you",
+      "كم الساعة": "what time is it",
+      "أنا بخير شكرا": "i am fine thank you",
+      "أتمنى لك يوما سعيدا": "have a good day",
+      "لا مشكلة": "no problem",
+      "على الرحب والسعة": "my pleasure",
+      "اشتقت إليك": "i miss you",
+      "أحبك": "i love you",
+      "عيد ميلاد سعيد": "happy birthday",
+      "حظا سعيدا": "good luck",
+      "من فضلك ساعدني": "please help me",
+      "أنا آسف": "i am sorry",
+      "عفوا": "excuse me",
+      "لا أفهم": "i don't understand",
+      "أتحدث معك لاحقا": "talk to you later",
+      "أراك غدا": "see you tomorrow",
+      "ما اسمك": "what is your name",
+      "كم يكلف": "how much does it cost",
+      "ماذا حدث": "what happened",
+      "هل أنت بخير": "are you okay",
+      "منذ وقت طويل": "long time no see",
+      "ما الأخبار": "what's up",
+      "أنا مشغول": "i am busy",
+      "أنا في الطريق": "on my way",
+      "أنا متأخر": "running late",
+      "هيا بنا": "let's go",
+      "انتظر دقيقة": "wait a minute",
+      "أوافق": "i agree",
+      "يبدو جيدا": "sounds good",
+      "مبروك": "congratulations",
+      "أحسنت": "well done",
+      "شكرا جزيلا": "thank you very much",
+      "مساء الخير": "good evening",
+      "تصبح على خير": "good night",
+      "اعتن بنفسك": "take care",
+      "ابق على تواصل": "keep in touch",
+      "أخبرني": "let me know",
+      "أفكر بك": "thinking of you",
+      "فخور بك": "proud of you",
+      "كن قويا": "stay strong",
+      "شفاك الله وعافاك": "get well soon",
+      "مرحبا بعودتك": "welcome back",
+      "أكيد": "for sure",
+      "بالتأكيد": "absolutely",
+      "فهمت": "got it",
+      "سأفعل": "will do",
+      "أعمل عليه": "working on it",
+      "تقريبا انتهيت": "almost done",
+      "فكرة جيدة": "good idea",
+      "لا تقلق": "no worries",
+      "كل شيء سيكون بخير": "everything will be fine",
+      "أراك هناك": "see you there",
+      "كيف كان يومك": "how was your day",
+      "هذا رائع": "that's awesome",
+      "ممتاز": "perfect",
+      "عظيم": "great",
+      "هههه": "lol",
+      "واو": "wow"
+    },
+    "en_to_fr": {
+      "good morning": "bonjour",
+      "thank you": "merci",
+      "how are you": "comment allez-vous",
+      "see you later": "à bientôt",
+      "good night": "bonne nuit",
+      "please": "s'il vous plaît"
+    },
+    "fr_to_en": {
+      "bonjour": "good morning",
+      "merci": "thank you",
+      "comment allezvous": "how are you",
+      "à bientôt": "see you later",
+      "bonne nuit": "good night",
+      "s'il vous plaît": "please"
+    },
+    "en_to_de": {
+      "good morning": "guten morgen",
+      "thank you": "danke",
+      "how are you": "wie geht es dir",
+      "see you later": "bis später"
+    },
+    "de_to_en": {
+      "guten morgen": "good morning",
+      "danke": "thank you",
+      "wie geht es dir": "how are you",
+      "bis später": "see you later"
+    },
+    "en_to_es": {
+      "good morning": "buenos días",
+      "thank you": "gracias",
+      "how are you": "cómo estás",
+      "see you later": "hasta luego"
+    },
+    "es_to_en": {
+      "buenos días": "good morning",
+      "gracias": "thank you",
+      "cómo estás": "how are you",
+      "hasta luego": "see you later"
+    }
+  },
+  "words": {
+    "en_to_ar": {
+      "hello": "مرحبا",
+      "thanks": "شكراً",
+      "please": "من فضلك",
+      "yes": "نعم",
+      "no": "لا",
+      "tomorrow": "غداً",
+      "today": "اليوم",
+      "friend": "صديق",
+      "family": "عائلة",
+      "work": "عمل",
+      "home": "بيت",
+      "food": "طعام",
+      "water": "ماء",
+      "coffee": "قهوة",
+      "morning": "صباح",
+      "evening": "مساء",
+      "night": "ليل",
+      "happy": "سعيد",
+      "sad": "حزين",
+      "love": "حب",
+      "help": "مساعدة",
+      "instrument": "آلة",
+      "music": "موسيقى",
+      "guitar": "جيتار",
+      "piano": "بيانو",
+      "violin": "كمان",
+      "drum": "طبلة",
+      "song": "أغنية",
+      "book": "كتاب",
+      "computer": "حاسوب",
+      "phone": "هاتف",
+      "car": "سيارة",
+      "house": "منزل",
+      "school": "مدرسة",
+      "student": "طالب",
+      "teacher": "معلم",
+      "doctor": "طبيب",
+      "hospital": "مستشفى",
+      "city": "مدينة",
+      "country": "بلد",
+      "world": "عالم",
+      "time": "وقت",
+      "day": "يوم",
+      "week": "أسبوع",
+      "month": "شهر",
+      "year": "سنة",
+      "money": "مال",
+      "job": "وظيفة",
+      "problem": "مشكلة",
+      "question": "سؤال",
+      "answer": "جواب",
+      "idea": "فكرة",
+      "plan": "خطة",
+      "meeting": "اجتماع",
+      "project": "مشروع",
+      "team": "فريق",
+      "company": "شركة",
+      "market": "سوق",
+      "price": "سعر",
+      "buy": "يشتري",
+      "sell": "يبيع",
+      "learn": "يتعلم",
+      "teach": "يعلم",
+      "read": "يقرأ",
+      "write": "يكتب",
+      "speak": "يتكلم",
+      "listen": "يستمع",
+      "watch": "يشاهد",
+      "play": "يلعب",
+      "run": "يجري",
+      "walk": "يمشي",
+      "eat": "يأكل",
+      "drink": "يشرب",
+      "sleep": "ينام",
+      "think": "يفكر",
+      "know": "يعرف",
+      "want": "يريد",
+      "need": "يحتاج",
+      "like": "يحب",
+      "hate": "يكره",
+      "good": "جيد",
+      "bad": "سيء",
+      "big": "كبير",
+      "small": "صغير",
+      "new": "جديد",
+      "old": "قديم",
+      "hot": "حار",
+      "cold": "بارد",
+      "beautiful": "جميل",
+      "important": "مهم",
+      "difficult": "صعب",
+      "easy": "سهل",
+      "fast": "سريع",
+      "slow": "بطيء",
+      "open": "يفتح",
+      "close": "يغلق",
+      "start": "يبدأ",
+      "stop": "يتوقف",
+      "continue": "يستمر",
+      "change": "يتغير",
+      "build": "يبني",
+      "create": "ينشئ",
+      "destroy": "يدمر",
+      "fix": "يصلح",
+      "break": "يكسر",
+      "win": "يفوز",
+      "lose": "يخسر",
+      "find": "يجد",
+      "give": "يعطي",
+      "take": "يأخذ",
+      "send": "يرسل",
+      "receive": "يتلقى",
+      "call": "يتصل",
+      "visit": "يزور",
+      "travel": "يسافر",
+      "arrive": "يصل",
+      "leave": "يغادر",
+      "wait": "ينتظر",
+      "hope": "يأمل",
+      "believe": "يؤمن",
+      "remember": "يتذكر",
+      "forget": "ينسى",
+      "understand": "يفهم",
+      "explain": "يشرح",
+      "show": "يُظهر",
+      "hide": "يخفي",
+      "choose": "يختار",
+      "decide": "يقرر",
+      "try": "يحاول",
+      "succeed": "ينجح",
+      "fail": "يفشل",
+      "grow": "ينمو",
+      "die": "يموت",
+      "live": "يعيش",
+      "born": "يولد",
+      "child": "طفل",
+      "man": "رجل",
+      "woman": "امرأة",
+      "people": "ناس",
+      "person": "شخص",
+      "name": "اسم",
+      "place": "مكان",
+      "thing": "شيء",
+      "way": "طريقة",
+      "life": "حياة",
+      "death": "موت",
+      "health": "صحة",
+      "pain": "ألم",
+      "peace": "سلام",
+      "war": "حرب",
+      "law": "قانون",
+      "government": "حكومة",
+      "president": "رئيس",
+      "king": "ملك",
+      "queen": "ملكة",
+      "god": "إله",
+      "religion": "دين",
+      "church": "كنيسة",
+      "mosque": "مسجد",
+      "science": "علم",
+      "art": "فن",
+      "history": "تاريخ",
+      "language": "لغة",
+      "word": "كلمة",
+      "sentence": "جملة",
+      "story": "قصة",
+      "news": "أخبار",
+      "weather": "طقس",
+      "sun": "شمس",
+      "moon": "قمر",
+      "star": "نجمة",
+      "sky": "سماء",
+      "earth": "أرض",
+      "sea": "بحر",
+      "river": "نهر",
+      "mountain": "جبل",
+      "tree": "شجرة",
+      "flower": "زهرة",
+      "animal": "حيوان",
+      "dog": "كلب",
+      "cat": "قط",
+      "bird": "طائر",
+      "fish": "سمك",
+      "horse": "حصان",
+      "color": "لون",
+      "red": "أحمر",
+      "blue": "أزرق",
+      "green": "أخضر",
+      "yellow": "أصفر",
+      "black": "أسود",
+      "white": "أبيض",
+      "number": "رقم",
+      "one": "واحد",
+      "two": "اثنان",
+      "three": "ثلاثة",
+      "hundred": "مئة",
+      "thousand": "ألف",
+      "million": "مليون"
+    },
+    "ar_to_en": {
+      "مرحبا": "hello",
+      "شكراً": "thanks",
+      "نعم": "yes",
+      "لا": "no",
+      "غداً": "tomorrow",
+      "اليوم": "today",
+      "صديق": "friend",
+      "بيت": "home",
+      "قهوة": "coffee",
+      "مساعدة": "help",
+      "آلة": "instrument",
+      "موسيقى": "music",
+      "كتاب": "book",
+      "حاسوب": "computer",
+      "هاتف": "phone",
+      "سيارة": "car",
+      "مدرسة": "school",
+      "طبيب": "doctor",
+      "مدينة": "city",
+      "وقت": "time",
+      "يوم": "day",
+      "مال": "money",
+      "مشكلة": "problem",
+      "سؤال": "question",
+      "فكرة": "idea",
+      "اجتماع": "meeting",
+      "مشروع": "project",
+      "فريق": "team",
+      "شركة": "company",
+      "سعر": "price",
+      "جيد": "good",
+      "سيء": "bad",
+      "كبير": "big",
+      "صغير": "small",
+      "جديد": "new",
+      "قديم": "old",
+      "جميل": "beautiful",
+      "مهم": "important",
+      "صعب": "difficult",
+      "سهل": "easy",
+      "حياة": "life",
+      "صحة": "health",
+      "سلام": "peace",
+      "حرب": "war",
+      "علم": "science",
+      "فن": "art",
+      "تاريخ": "history",
+      "لغة": "language",
+      "كلمة": "word",
+      "قصة": "story",
+      "أخبار": "news",
+      "طقس": "weather",
+      "شمس": "sun",
+      "قمر": "moon",
+      "أرض": "earth",
+      "بحر": "sea",
+      "شجرة": "tree",
+      "حيوان": "animal",
+      "كلب": "dog",
+      "قط": "cat"
+    }
+  },
+  "intents": [
+    {
+      "id": "payment_request",
+      "category": "question",
+      "patterns": {
+        "en": [
+          "send money",
+          "pay me back",
+          "transfer",
+          "invoice",
+          "payment due"
+        ],
+        "ar": [
+          "ابعث فلوس",
+          "رجعلي فلوس",
+          "حوالة",
+          "فاتورة",
+          "دفع"
+        ]
+      },
+      "replies": {
+        "en": {
+          "default": [
+            "Sure, sending now 💸",
+            "What's the amount?",
+            "Can you send your details?"
+          ],
+          "friendly": [
+            "On it! 💸",
+            "How much do I owe you?",
+            "Send me the link 😊"
+          ],
+          "formal": [
+            "I will process the payment shortly.",
+            "Please share the payment details.",
+            "Acknowledged."
+          ],
+          "short": [
+            "Sending.",
+            "Amount?",
+            "Details?"
+          ],
+          "funny": [
+            "My wallet is crying already 😅",
+            "Payday can't come soon enough",
+            "Rich soon… probably not"
+          ]
+        },
+        "ar": {
+          "default": [
+            "تمام، ببعت هلق 💸",
+            "قدّيش المبلغ؟",
+            "ابعث التفاصيل"
+          ],
+          "friendly": [
+            "على طول! 💸",
+            "قدّيش عليّ؟",
+            "ابعث الرابط 😊"
+          ],
+          "formal": [
+            "سأتمم الدفع قريباً.",
+            "يرجى إرسال تفاصيل الدفع.",
+            "تم الاستلام."
+          ],
+          "short": [
+            "ببعت.",
+            "قدّيش؟",
+            "التفاصيل؟"
+          ],
+          "funny": [
+            "محفظتي عم تبكي 😅",
+            "الراتب لسا بعيد",
+            "غني قريب… يمكن لا"
+          ]
+        }
+      }
+    },
+    {
+      "id": "study_exam",
+      "category": "small_talk",
+      "patterns": {
+        "en": [
+          "exam tomorrow",
+          "studying",
+          "homework",
+          "assignment due",
+          "finals",
+          "test today"
+        ],
+        "ar": [
+          "امتحان بكرة",
+          "ذاكر",
+          "واجب",
+          "تسليم",
+          "اختبار اليوم"
+        ]
+      },
+      "replies": {
+        "en": {
+          "default": [
+            "Good luck! 📚",
+            "You got this!",
+            "Need help studying?"
+          ],
+          "friendly": [
+            "Crush it! 📚✨",
+            "Believe in yourself!",
+            "Want to quiz each other?"
+          ],
+          "formal": [
+            "Best of luck on your examination.",
+            "I wish you success.",
+            "Let me know if you need assistance."
+          ],
+          "short": [
+            "Good luck!",
+            "You got this!",
+            "Need help?"
+          ],
+          "funny": [
+            "RIP sleep 😄",
+            "Coffee is your friend now ☕",
+            "May the curve be with you"
+          ]
+        },
+        "ar": {
+          "default": [
+            "بالتوفيق! 📚",
+            "أنت قادر!",
+            "بدك مساعدة بالمذاكرة؟"
+          ],
+          "friendly": [
+            "كسّرها! 📚✨",
+            "ثق بنفسك!",
+            "بدنا نسأل بعض؟"
+          ],
+          "formal": [
+            "بالتوفيق في امتحانك.",
+            "أتمنى لك النجاح.",
+            "أخبرني إن احتجت مساعدة."
+          ],
+          "short": [
+            "بالتوفيق!",
+            "قادر!",
+            "مساعدة؟"
+          ],
+          "funny": [
+            "وداعاً للنوم 😄",
+            "القهوة صديقك ☕",
+            "لي يكون المعدل رحيم"
+          ]
+        }
+      }
+    },
+    {
+      "id": "tech_issue",
+      "category": "question",
+      "patterns": {
+        "en": [
+          "wifi down",
+          "no internet",
+          "app crashed",
+          "phone died",
+          "not working",
+          "bug"
+        ],
+        "ar": [
+          "النت فاصل",
+          "ما في نت",
+          "التطبيق علّق",
+          "موبايلي فصل",
+          "ما بيشتغل"
+        ]
+      },
+      "replies": {
+        "en": {
+          "default": [
+            "Try restarting it 🔌",
+            "Is it updated?",
+            "What error do you see?"
+          ],
+          "friendly": [
+            "Classic tech 😅 Try a reboot!",
+            "Updates fix everything… usually",
+            "Send a screenshot?"
+          ],
+          "formal": [
+            "Please try restarting the device.",
+            "Verify the software is up to date.",
+            "Describe the error message."
+          ],
+          "short": [
+            "Restart?",
+            "Updated?",
+            "Error?"
+          ],
+          "funny": [
+            "Have you tried turning it off and on? 😄",
+            "IT magic: reboot",
+            "Technology 1, us 0"
+          ]
+        },
+        "ar": {
+          "default": [
+            "جرب تعيد التشغيل 🔌",
+            "محدّث؟",
+            "شو رسالة الخطأ؟"
+          ],
+          "friendly": [
+            "كلاسيك تecnologia 😅 أعد التشغيل!",
+            "التحديث بيحل… غالباً",
+            "ابعث screenshot؟"
+          ],
+          "formal": [
+            "يرجى إعادة تشغيل الجهاز.",
+            "تأكد من تحديث النظام.",
+            "صف رسالة الخطأ."
+          ],
+          "short": [
+            "إعادة تشغيل؟",
+            "محدّث؟",
+            "الخطأ؟"
+          ],
+          "funny": [
+            "جربت تطفيه وتشغله؟ 😄",
+            "سحر IT: reboot",
+            "التكنولوجيا ١ وإحنا ٠"
+          ]
+        }
+      }
+    },
+    {
+      "id": "weather_rain",
+      "category": "question",
+      "patterns": {
+        "en": [
+          "it's raining",
+          "bring umbrella",
+          "storm coming",
+          "so hot outside",
+          "freezing cold"
+        ],
+        "ar": [
+          "عم بتمطر",
+          "جيب مظلة",
+          "عاصفة",
+          "حر كتير",
+          "برد قوي"
+        ]
+      },
+      "replies": {
+        "en": {
+          "default": [
+            "Stay dry! ☔",
+            "Dress warm!",
+            "Be careful out there"
+          ],
+          "friendly": [
+            "Cozy weather for tea ☔☕",
+            "Layer up!",
+            "Drive safe!"
+          ],
+          "formal": [
+            "Please take appropriate precautions.",
+            "Mind the weather conditions.",
+            "Travel safely."
+          ],
+          "short": [
+            "Stay dry!",
+            "Warm up!",
+            "Careful!"
+          ],
+          "funny": [
+            "Nature's free shower 🌧️",
+            "My hair disagrees with this weather",
+            "Beach day cancelled 😄"
+          ]
+        },
+        "ar": {
+          "default": [
+            "ما تتبلل! ☔",
+            "البس دافئ!",
+            "انتبه برّا"
+          ],
+          "friendly": [
+            "جوّه حلو للشاي ☔☕",
+            "البس طبقات!",
+            "سوق بحذر!"
+          ],
+          "formal": [
+            "يرجى أخذ الاحتياطات.",
+            "انتبه لحالة الطقس.",
+            "سافر بأمان."
+          ],
+          "short": [
+            "ما تتبلل!",
+            "دفّي!",
+            "انتبه!"
+          ],
+          "funny": [
+            "دش مجاني من الطبيعة 🌧️",
+            "شعري ما بيمشي مع الجو",
+            "يوم البحر انلغى 😄"
+          ]
+        }
+      }
+    },
+    {
+      "id": "pet_talk",
+      "category": "small_talk",
+      "patterns": {
+        "en": [
+          "my cat",
+          "my dog",
+          "new puppy",
+          "pet sick",
+          "vet appointment"
+        ],
+        "ar": [
+          "قطتي",
+          "كلبي",
+          "جرو جديد",
+          "حيواني مريض",
+          "موعد دكتور"
+        ]
+      },
+      "replies": {
+        "en": {
+          "default": [
+            "Aww! 🐾",
+            "How is the little one?",
+            "Send pics!"
+          ],
+          "friendly": [
+            "Pet tax please! 🐶🐱",
+            "Hope they feel better!",
+            "Cuddles help everything"
+          ],
+          "formal": [
+            "I hope your pet is well.",
+            "Please keep me updated.",
+            "Wishing a speedy recovery."
+          ],
+          "short": [
+            "Aww! 🐾",
+            "How are they?",
+            "Pics?"
+          ],
+          "funny": [
+            "They're the real boss of the house 😄",
+            "Who's walking who?",
+            "Fur everywhere, love anyway"
+          ]
+        },
+        "ar": {
+          "default": [
+            "يا سلام! 🐾",
+            "كيف حال الصغير؟",
+            "ابعث صور!"
+          ],
+          "friendly": [
+            "ضريبة الحيوانات! 🐶🐱",
+            "إن شاء الله بخير!",
+            "الحضن بيشفي"
+          ],
+          "formal": [
+            "أتمنى أن يكون حيوانك بخير.",
+            "أبقني على اطلاع.",
+            "شفاء عاجل."
+          ],
+          "short": [
+            "يا سلام! 🐾",
+            "كيف؟",
+            "صور؟"
+          ],
+          "funny": [
+            "هو المدير الحقيقي 😄",
+            "مين بيمشي مين؟",
+            "وبر everywhere بس حب"
+          ]
+        }
+      }
+    }
+  ]
+}

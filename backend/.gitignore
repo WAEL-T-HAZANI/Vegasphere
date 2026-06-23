@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Runtime uploads (avatars, message media, status files)
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage / test output
+coverage/
+
+# AI dataset build cache + generated DB (rebuild with npm run ai:build-premium)
+scripts/.cache/
+data/vega-dict.db
+data/vega-dict.db-*
+data/vega-dict.db-shm
+data/vega-dict.db-wal

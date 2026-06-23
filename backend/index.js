@@ -1,31 +1,149 @@
+require("dotenv").config({
+  path: require("path").resolve(__dirname, ".env"),
+});
+
 const express = require("express");
-const connectDB = require("./db.js");
 const cors = require("cors");
 const http = require("http");
-const PORT = 5500;
-const { initSocket } = require("./socket/index.js");
+const path = require("path");
+
+const connectDB = require("./database.js");
+const { disconnectDB } = require("./database.js");
+const { initSocket, getIO } = require("./socket/index.js");
+const redisClient = require("./services/redis-client.js");
+const startSchedulers = require("./schedulers.js");
+const errorHandler = require("./middleware/error_handler.js");
+const requestId = require("./middleware/request_id.js");
+const rateLimit = require("./middleware/rate_limit.js");
+const uploadDownloadAttachment = require("./middleware/upload_download.js");
+const {
+  resolveCorsOrigin,
+  JSON_BODY_LIMIT,
+  URLENCODED_BODY_LIMIT,
+  TRUST_PROXY,
+} = require("./config/env.js");
+const { buildHelmetMiddleware } = require("./config/helmet.js");
+const { getMailStatusLine } = require("./services/mailer.js");
+
+const PORT = process.env.PORT || 5500;
+
 const app = express();
-app.use(cors());
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-app.use(express.json({ limit: "50mb" }));
 
-// Routes
+if (TRUST_PROXY) {
+  app.set("trust proxy", 1);
+}
+
+app.use(requestId);
+app.use(rateLimit);
+
+app.use(buildHelmetMiddleware());
+
+app.use(
+  cors({
+    origin: resolveCorsOrigin(),
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "auth-token",
+      "Authorization",
+      "X-Requested-With",
+      "X-Request-Id",
+    ],
+  }),
+);
+
+app.use(express.urlencoded({ extended: true, limit: URLENCODED_BODY_LIMIT }));
+app.use(express.json({ limit: JSON_BODY_LIMIT }));
+
+app.use(
+  "/uploads",
+  uploadDownloadAttachment,
+  express.static(path.resolve(__dirname, "uploads"), {
+    maxAge: "7d",
+    fallthrough: false,
+  }),
+);
+
+if (redisClient) {
+  redisClient.on("error", (err) => {
+    console.warn("Redis connection error:", err.message);
+  });
+}
+
 app.get("/", (req, res) => {
-  res.send("Hello World");
+  res.json({
+    success: true,
+    message: "Vegasphere backend running",
+    data: null,
+  });
 });
-app.use("/auth", require("./Routes/auth_routes.js"));
-app.use("/user", require("./Routes/userRoutes.js"));
-app.use("/message", require("./Routes/message_routes.js"));
-app.use("/conversation", require("./Routes/conversation_routes.js"));
 
-// Server setup
+app.use("/", require("./routes/health.routes.js"));
+app.use("/auth", require("./routes/auth.routes.js"));
+app.use("/user", require("./routes/user.routes.js"));
+app.use("/message", require("./routes/message.routes.js"));
+app.use("/conversation", require("./routes/conversation.routes.js"));
+app.use("/join", require("./routes/join.routes.js"));
+app.use("/search", require("./routes/search.routes.js"));
+app.use("/utility", require("./routes/utility.routes.js"));
+app.use("/status", require("./routes/status.routes.js"));
+app.use("/ai", require("./routes/ai.routes.js"));
+app.use("/calls", require("./routes/call.routes.js"));
+app.use("/networking", require("./routes/networking.routes.js"));
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+    details: {
+      method: req.method,
+      path: req.originalUrl,
+    },
+  });
+});
+
+app.use(errorHandler);
+
 const server = http.createServer(app);
 
-// Socket.io setup
-initSocket(server); // Initialize socket.io logic
+initSocket(server);
 
-// Start server and connect to database
-server.listen(PORT, () => {
+let schedulersStarted = false;
+
+async function shutdown(signal) {
+  console.log(`${signal} received — shutting down gracefully`);
+  server.close(async () => {
+    try {
+      const io = getIO?.();
+      io?.close?.();
+    } catch {
+      /* ignore */
+    }
+    try {
+      if (redisClient) await redisClient.quit();
+    } catch {
+      /* ignore */
+    }
+    try {
+      await disconnectDB();
+    } catch {
+      /* ignore */
+    }
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10_000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+server.listen(PORT, async () => {
   console.log(`🚀 Server started at http://localhost:${PORT}`);
-  connectDB();
+  console.log(getMailStatusLine());
+  await connectDB();
+  if (!schedulersStarted) {
+    startSchedulers();
+    schedulersStarted = true;
+  }
 });

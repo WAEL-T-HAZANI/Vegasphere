@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "WebWorker"],
+    "module": "ES2020",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "skipLibCheck": true,
+    "outDir": "public",
+    "rootDir": "src/service-worker",
+    "noEmit": false,
+    "isolatedModules": true
+  },
+  "include": ["src/service-worker/sw.ts"]
+}
