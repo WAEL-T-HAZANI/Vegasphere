@@ -1,7 +1,15 @@
-# Monorepo: build only the Next.js app in frontend-next.
-# Do not set publish or command here — Netlify's Next.js runtime handles both.
+# Monorepo Next.js on Netlify (frontend-next).
+# - base: where package.json lives
+# - command: full build including service worker compile
+# - publish: .next (subdir of base — must differ from base itself)
+# - plugin: enables App Router SSR on Netlify (without it you get platform 404s)
 [build]
   base = "frontend-next"
+  command = "npm run build"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
