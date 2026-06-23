@@ -5,6 +5,7 @@
  */
 const fs = require("fs");
 const path = require("path");
+const zlib = require("zlib");
 const dictStore = require("./dict-store");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
@@ -218,9 +219,16 @@ function langCode(code) {
 
 function readJson(file) {
   const full = path.join(DATA_DIR, file);
-  if (!fs.existsSync(full)) return null;
-  const raw = fs.readFileSync(full, "utf8");
-  return JSON.parse(raw);
+  const gzFull = `${full}.gz`;
+
+  if (fs.existsSync(full)) {
+    return JSON.parse(fs.readFileSync(full, "utf8"));
+  }
+  if (fs.existsSync(gzFull)) {
+    const raw = zlib.gunzipSync(fs.readFileSync(gzFull)).toString("utf8");
+    return JSON.parse(raw);
+  }
+  return null;
 }
 
 function loadLegacyJsonMaps() {

@@ -18,6 +18,8 @@ coverage/
 
 # AI dataset build cache + generated DB (rebuild with npm run ai:build-premium)
 scripts/.cache/
+# Full phrase map kept locally; repo ships translations.json.gz (under GitLab 100MB limit)
+data/translations.json
 data/vega-dict.db
 data/vega-dict.db-*
 data/vega-dict.db-shm
