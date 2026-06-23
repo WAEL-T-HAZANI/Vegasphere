@@ -1,10 +1,7 @@
+# Monorepo: build only the Next.js app in frontend-next.
+# Do not set publish or command here — Netlify's Next.js runtime handles both.
 [build]
   base = "frontend-next"
-  command = "npm run build"
-  publish = ".netlify_publish"
 
 [build.environment]
   NODE_VERSION = "20"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
