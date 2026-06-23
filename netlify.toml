@@ -1,7 +1,7 @@
 [build]
   base = "frontend-next"
   command = "npm run build"
-  publish = "frontend-next/.netlify_publish"
+  publish = ".netlify_publish"
 
 [build.environment]
   NODE_VERSION = "20"
