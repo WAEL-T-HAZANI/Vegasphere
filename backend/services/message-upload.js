@@ -3,10 +3,11 @@ const path = require("path");
 const multer = require("multer");
 const crypto = require("crypto");
 const { publishLocalUpload } = require("./object-storage.js");
+const { uploadSubdir } = require("./upload-base.js");
 
-const uploadRoot = path.resolve(__dirname, "..", "uploads", "messages");
-const stagedRoot = path.resolve(uploadRoot, ".staged");
-const stagedMetaRoot = path.resolve(stagedRoot, "meta");
+let uploadRoot;
+let stagedRoot;
+let stagedMetaRoot;
 const MAX_MESSAGE_UPLOAD_BYTES = 100 * 1024 * 1024;
 const ALLOWED_MIME_PREFIXES = ["image/", "video/", "audio/"];
 const ALLOWED_MIME_TYPES = new Set([
@@ -51,9 +52,9 @@ const ALLOWED_EXTENSIONS = new Set([
 ]);
 
 function ensureUploadRoot() {
-  fs.mkdirSync(uploadRoot, { recursive: true });
-  fs.mkdirSync(stagedRoot, { recursive: true });
-  fs.mkdirSync(stagedMetaRoot, { recursive: true });
+  uploadRoot = uploadRoot || uploadSubdir("messages");
+  stagedRoot = stagedRoot || uploadSubdir("messages", ".staged");
+  stagedMetaRoot = stagedMetaRoot || uploadSubdir("messages", ".staged", "meta");
 }
 
 function sanitizeBaseName(name) {

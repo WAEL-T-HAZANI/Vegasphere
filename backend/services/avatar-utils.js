@@ -1,15 +1,24 @@
 const fs = require("fs");
 const path = require("path");
+const { uploadSubdir } = require("./upload-base.js");
 
-const avatarUploadRoot = path.resolve(__dirname, "..", "uploads", "avatars");
 const avatarUploadPrefix = "/uploads/avatars/";
-const conversationAvatarUploadRoot = path.resolve(
-  __dirname,
-  "..",
-  "uploads",
-  "conversation-avatars",
-);
 const conversationAvatarUploadPrefix = "/uploads/conversation-avatars/";
+
+let avatarUploadRoot;
+let conversationAvatarUploadRoot;
+
+function getAvatarUploadRoot() {
+  if (!avatarUploadRoot) avatarUploadRoot = uploadSubdir("avatars");
+  return avatarUploadRoot;
+}
+
+function getConversationAvatarUploadRoot() {
+  if (!conversationAvatarUploadRoot) {
+    conversationAvatarUploadRoot = uploadSubdir("conversation-avatars");
+  }
+  return conversationAvatarUploadRoot;
+}
 
 function defaultAvatarUrl(name) {
   const safeName = encodeURIComponent(String(name || "Vegasphere").trim() || "Vegasphere");
@@ -51,8 +60,9 @@ function getLocalAvatarFilePath(rawUrl) {
   if (!pathname.startsWith(avatarUploadPrefix)) return "";
   const fileName = path.basename(pathname);
   if (!fileName) return "";
-  const fullPath = path.resolve(avatarUploadRoot, fileName);
-  if (!fullPath.startsWith(avatarUploadRoot)) return "";
+  const fullPath = path.resolve(getAvatarUploadRoot(), fileName);
+  const root = getAvatarUploadRoot();
+  if (!fullPath.startsWith(root)) return "";
   return fullPath;
 }
 
@@ -80,8 +90,9 @@ function getLocalConversationAvatarFilePath(rawUrl) {
   if (!pathname.startsWith(conversationAvatarUploadPrefix)) return "";
   const fileName = path.basename(pathname);
   if (!fileName) return "";
-  const fullPath = path.resolve(conversationAvatarUploadRoot, fileName);
-  if (!fullPath.startsWith(conversationAvatarUploadRoot)) return "";
+  const fullPath = path.resolve(getConversationAvatarUploadRoot(), fileName);
+  const root = getConversationAvatarUploadRoot();
+  if (!fullPath.startsWith(root)) return "";
   return fullPath;
 }
 
@@ -117,9 +128,13 @@ async function removeStoredConversationAvatarFile(rawUrl) {
 
 module.exports = {
   avatarUploadPrefix,
-  avatarUploadRoot,
+  get avatarUploadRoot() {
+    return getAvatarUploadRoot();
+  },
   conversationAvatarUploadPrefix,
-  conversationAvatarUploadRoot,
+  get conversationAvatarUploadRoot() {
+    return getConversationAvatarUploadRoot();
+  },
   buildAbsoluteAssetUrl,
   defaultAvatarUrl,
   removeLocalAvatarFile,

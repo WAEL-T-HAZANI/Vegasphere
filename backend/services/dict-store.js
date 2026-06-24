@@ -4,11 +4,21 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { DatabaseSync } = require("node:sqlite");
 
 const DB_PATH = path.join(__dirname, "..", "data", "vega-dict.db");
 
 let db = null;
+let sqliteUnavailable = false;
+
+function getDatabaseSync() {
+  if (sqliteUnavailable) return null;
+  try {
+    return require("node:sqlite").DatabaseSync;
+  } catch {
+    sqliteUnavailable = true;
+    return null;
+  }
+}
 /** @type {Map<string, Map<string, string>>} */
 const wordCache = new Map();
 
@@ -24,9 +34,14 @@ function normalizeKey(value) {
 
 function init() {
   if (db) return db;
-  if (!fs.existsSync(DB_PATH)) return null;
-  db = new DatabaseSync(DB_PATH, { readOnly: true });
-  return db;
+  const DatabaseSync = getDatabaseSync();
+  if (!DatabaseSync || !fs.existsSync(DB_PATH)) return null;
+  try {
+    db = new DatabaseSync(DB_PATH, { readOnly: true });
+    return db;
+  } catch {
+    return null;
+  }
 }
 
 function isAvailable() {

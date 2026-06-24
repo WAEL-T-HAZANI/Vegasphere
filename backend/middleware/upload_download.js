@@ -1,7 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+const { getUploadBase } = require("../services/upload-base.js");
 
-const UPLOAD_ROOT = path.resolve(__dirname, "..", "uploads");
+function getUploadRoot() {
+  return getUploadBase();
+}
 
 function sanitizeDownloadName(raw, fallback) {
   const value = String(raw || fallback || "download")
@@ -21,6 +24,7 @@ function uploadDownloadAttachment(req, res, next) {
     .replace(/\.\.+/g, ".");
   if (!relative) return next();
 
+  const UPLOAD_ROOT = getUploadRoot();
   const filePath = path.resolve(UPLOAD_ROOT, relative);
   if (
     filePath !== UPLOAD_ROOT &&

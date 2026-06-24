@@ -1,8 +1,8 @@
-const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
+const { uploadSubdir } = require("./upload-base.js");
 
-const uploadRoot = path.resolve(__dirname, "..", "uploads", "status");
+let uploadRoot;
 const ALLOWED_IMAGE_EXTENSIONS = new Set([
   ".jpg",
   ".jpeg",
@@ -12,7 +12,7 @@ const ALLOWED_IMAGE_EXTENSIONS = new Set([
 ]);
 
 function ensureUploadRoot() {
-  fs.mkdirSync(uploadRoot, { recursive: true });
+  uploadRoot = uploadRoot || uploadSubdir("status");
 }
 
 function sanitizeBaseName(name) {

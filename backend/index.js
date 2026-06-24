@@ -16,6 +16,7 @@ const errorHandler = require("./middleware/error_handler.js");
 const requestId = require("./middleware/request_id.js");
 const rateLimit = require("./middleware/rate_limit.js");
 const uploadDownloadAttachment = require("./middleware/upload_download.js");
+const { getUploadBase } = require("./services/upload-base.js");
 const {
   resolveCorsOrigin,
   JSON_BODY_LIMIT,
@@ -59,7 +60,7 @@ app.use(express.json({ limit: JSON_BODY_LIMIT }));
 app.use(
   "/uploads",
   uploadDownloadAttachment,
-  express.static(path.resolve(__dirname, "uploads"), {
+  express.static(path.resolve(getUploadBase()), {
     maxAge: "7d",
     fallthrough: false,
   }),
