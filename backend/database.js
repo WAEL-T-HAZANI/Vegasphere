@@ -7,6 +7,28 @@ const MONGO_URI =
 let connecting = null;
 let indexesSynced = false;
 
+function parseDbNameFromUri(uri) {
+  try {
+    const normalized = String(uri || "").replace(
+      /^mongodb(\+srv)?:\/\//,
+      "https://",
+    );
+    const path = new URL(normalized).pathname.replace(/^\//, "");
+    const db = path.split("/")[0];
+    return db ? decodeURIComponent(db) : "";
+  } catch {
+    return "";
+  }
+}
+
+function resolveDbName() {
+  const fromEnv = String(process.env.MONGO_DB_NAME || "").trim();
+  if (fromEnv) return fromEnv;
+  const fromUri = parseDbNameFromUri(MONGO_URI);
+  if (fromUri) return fromUri;
+  return "vegasphere";
+}
+
 async function syncUserIndexes() {
   if (indexesSynced || mongoose.connection.readyState !== 1) return;
   indexesSynced = true;
@@ -38,12 +60,15 @@ const connectDB = async () => {
 
     mongoose.set("autoIndex", Boolean(autoIndex));
 
+    const dbName = resolveDbName();
     const connection = await mongoose.connect(MONGO_URI, {
-      dbName: "vegasphere",
+      dbName,
       autoIndex: Boolean(autoIndex),
     });
 
-    console.log(`✅ MongoDB connected: ${connection.connection.host}`);
+    console.log(
+      `✅ MongoDB connected: ${connection.connection.host} (db: ${connection.connection.name})`,
+    );
     await syncUserIndexes();
     connecting = null;
     return connection;
