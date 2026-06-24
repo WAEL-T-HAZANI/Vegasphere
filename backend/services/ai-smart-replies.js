@@ -1,6 +1,5 @@
 const {
   generateSmartReplies,
-  loadEngine,
   getDataSource,
 } = require("./ai-local-engine.js");
 
@@ -10,8 +9,6 @@ const AI_SMART_REPLY_CACHE_MS = Math.max(
 );
 
 const smartReplyCache = new Map();
-
-loadEngine();
 
 function cacheGet(key) {
   const hit = smartReplyCache.get(key);

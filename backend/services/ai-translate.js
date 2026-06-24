@@ -3,12 +3,9 @@ const {
   translateTextLocal,
   getSupportedLanguages,
   getEngineStats,
-  loadEngine,
 } = require("./ai-local-engine.js");
 
 const MAX_TRANSLATE_TEXT_CHARS = 5000;
-
-loadEngine();
 
 async function translateText(req, res) {
   const { text, targetLanguage, sourceLanguage } = req.body || {};

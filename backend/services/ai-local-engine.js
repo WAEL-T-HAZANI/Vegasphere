@@ -232,8 +232,16 @@ function readJson(file) {
 }
 
 function loadLegacyJsonMaps() {
-  const translations = readJson("translations.json");
-  if (translations) ingestPairMaps(translations, "phrase", phraseMaps);
+  const skipPhraseMap =
+    process.env.AI_SKIP_PHRASE_MAP === "1" ||
+    (process.env.NODE_ENV === "production" &&
+      process.env.AI_LOAD_PHRASE_MAP !== "1" &&
+      !dictStore.isAvailable());
+
+  if (!skipPhraseMap) {
+    const translations = readJson("translations.json");
+    if (translations) ingestPairMaps(translations, "phrase", phraseMaps);
+  }
 
   const fallback = readJson("fallbackWords.json");
   if (fallback) ingestPairMaps(fallback, "word", wordMaps);
