@@ -3,27 +3,65 @@ const mongoose = require("mongoose");
 const redisClient = require("../services/redis-client.js");
 const { isReady } = require("../services/redis-factory.js");
 const { ok } = require("../services/api-response.js");
-
+const {
+  isSmtpConfigured,
+  verifySmtpConnection,
+} = require("../services/mailer.js");
+const { isPushConfigured } = require("../services/push-notify.js");
 const router = express.Router();
 
 router.get("/health", (req, res) => {
   return ok(res, { status: "ok", uptimeSec: Math.floor(process.uptime()) });
 });
 
+const HEALTH_PROBE_COLLECTION = "_vegasphere_health";
+
 router.get("/ready", async (req, res) => {
   const mongoReady = mongoose.connection.readyState === 1;
   const redisConfigured = Boolean(process.env.REDIS_URL);
   const redisReady = !redisConfigured || isReady(redisClient);
 
-  const ready = mongoReady && redisReady;
+  let mongoWrite = "skipped";
+  if (mongoReady) {
+    try {
+      await mongoose.connection
+        .collection(HEALTH_PROBE_COLLECTION)
+        .updateOne(
+          { _id: "probe" },
+          { $set: { checkedAt: new Date() } },
+          { upsert: true },
+        );
+      mongoWrite = "up";
+    } catch (error) {
+      mongoWrite = "down";
+      console.warn("MongoDB write probe failed:", error.message);
+    }
+  }
+
+  let smtp = "skipped";
+  if (isSmtpConfigured()) {
+    try {
+      await verifySmtpConnection();
+      smtp = "up";
+    } catch (error) {
+      smtp = "down";
+      console.warn("SMTP ready probe failed:", error.message);
+    }
+  }
+
+  const vapid = isPushConfigured() ? "configured" : "skipped";
+
+  const ready = mongoReady && mongoWrite === "up" && redisReady;
   const data = {
     ready,
     checks: {
       mongo: mongoReady ? "up" : "down",
+      mongoWrite,
+      smtp,
+      vapid,
       redis: redisConfigured ? (redisReady ? "up" : "down") : "skipped",
     },
   };
-
   if (!ready) {
     return res.status(503).json({
       success: false,

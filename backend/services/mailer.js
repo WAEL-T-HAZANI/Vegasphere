@@ -6,6 +6,34 @@ function isSmtpConfigured() {
   );
 }
 
+function resolveMailFrom() {
+  const user = String(process.env.SMTP_USER || "").trim();
+  const raw = String(process.env.MAIL_FROM || "").trim();
+  if (!user) {
+    return raw || '"Vegasphere" <noreply@vegasphere.local>';
+  }
+  if (
+    !raw ||
+    /your@gmail\.com|you@example\.com|noreply@vegasphere\.local/i.test(raw)
+  ) {
+    return `"Vegasphere" <${user}>`;
+  }
+  return raw;
+}
+
+function getMailHealth() {
+  if (!isSmtpConfigured()) {
+    return { configured: false, status: "skipped" };
+  }
+  return {
+    configured: true,
+    host: String(process.env.SMTP_HOST || "").trim(),
+    user: String(process.env.SMTP_USER || "").trim(),
+    from: resolveMailFrom(),
+    status: "unknown",
+  };
+}
+
 function createTransport() {
   if (!isSmtpConfigured()) return null;
   const port = Number(process.env.SMTP_PORT || 587);
@@ -51,6 +79,19 @@ async function verifySmtpConnection() {
   return transporter;
 }
 
+/** Non-blocking startup check; logs result for operators. */
+async function warmUpSmtp() {
+  if (!isSmtpConfigured()) return false;
+  try {
+    await verifySmtpConnection();
+    console.log("[mail] SMTP connection verified");
+    return true;
+  } catch (error) {
+    console.warn("[mail] SMTP verify failed:", error.message);
+    return false;
+  }
+}
+
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -67,8 +108,7 @@ async function sendPasswordResetEmail({ to, resetUrl, userName }) {
   if (!transporter) {
     throw new Error("SMTP is not configured");
   }
-  const from =
-    process.env.MAIL_FROM || `"Vegasphere" <${process.env.SMTP_USER}>`;
+  const from = resolveMailFrom();
   const subject =
     process.env.MAIL_SUBJECT_RESET || "Reset your Vegasphere password";
   const greeting = userName ? `Hi ${userName}` : "Hi";
@@ -102,8 +142,7 @@ async function sendVerificationEmail({ to, verifyUrl, userName }) {
   if (!transporter) {
     throw new Error("SMTP is not configured");
   }
-  const from =
-    process.env.MAIL_FROM || `"Vegasphere" <${process.env.SMTP_USER}>`;
+  const from = resolveMailFrom();
   const subject =
     process.env.MAIL_SUBJECT_VERIFY || "Verify your Vegasphere email";
   const greeting = userName ? `Hi ${userName}` : "Hi";
@@ -134,8 +173,7 @@ async function sendLoginAlertEmail({
 }) {
   const transporter = createTransport();
   if (!transporter) return;
-  const from =
-    process.env.MAIL_FROM || `"Vegasphere" <${process.env.SMTP_USER}>`;
+  const from = resolveMailFrom();
   const subject =
     process.env.MAIL_SUBJECT_LOGIN || "New sign-in to your Vegasphere account";
   const when = signedInAt
@@ -160,8 +198,11 @@ If this was you, you can ignore this email. If not, change your password and sig
 
 module.exports = {
   isSmtpConfigured,
+  getMailHealth,
   getMailStatusLine,
   verifySmtpConnection,
+  warmUpSmtp,
+  resolveMailFrom,
   sendPasswordResetEmail,
   sendVerificationEmail,
   sendLoginAlertEmail,

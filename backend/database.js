@@ -1,9 +1,22 @@
 const mongoose = require("mongoose");
+const User = require("./models/User.js");
 
 const MONGO_URI =
   process.env.MONGO_URI || "mongodb://localhost:27017/vegasphere";
 
 let connecting = null;
+let indexesSynced = false;
+
+async function syncUserIndexes() {
+  if (indexesSynced || mongoose.connection.readyState !== 1) return;
+  indexesSynced = true;
+  try {
+    await User.syncIndexes();
+    console.log("✅ MongoDB user indexes synced");
+  } catch (error) {
+    console.warn("MongoDB user index sync warning:", error.message);
+  }
+}
 
 function getMongoState() {
   const states = ["disconnected", "connected", "connecting", "disconnecting"];
@@ -31,6 +44,7 @@ const connectDB = async () => {
     });
 
     console.log(`✅ MongoDB connected: ${connection.connection.host}`);
+    await syncUserIndexes();
     connecting = null;
     return connection;
   })().catch((error) => {

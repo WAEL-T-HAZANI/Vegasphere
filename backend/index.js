@@ -24,7 +24,7 @@ const {
   TRUST_PROXY,
 } = require("./config/env.js");
 const { buildHelmetMiddleware } = require("./config/helmet.js");
-const { getMailStatusLine } = require("./services/mailer.js");
+const { getMailStatusLine, warmUpSmtp } = require("./services/mailer.js");
 
 const PORT = process.env.PORT || 5500;
 
@@ -139,12 +139,21 @@ async function shutdown(signal) {
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
-server.listen(PORT, async () => {
-  console.log(`🚀 Server started at http://localhost:${PORT}`);
+async function start() {
   console.log(getMailStatusLine());
   await connectDB();
+  await warmUpSmtp();
   if (!schedulersStarted) {
     startSchedulers();
     schedulersStarted = true;
   }
+
+  server.listen(PORT, () => {
+    console.log(`🚀 Server started at http://localhost:${PORT}`);
+  });
+}
+
+start().catch((error) => {
+  console.error("Failed to start server:", error.message);
+  process.exit(1);
 });

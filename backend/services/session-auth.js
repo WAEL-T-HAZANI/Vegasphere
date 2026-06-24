@@ -155,6 +155,7 @@ function publicSessionShape(session, currentSessionId) {
 }
 
 module.exports = {
+  buildSessionLabel,
   createUserSession,
   getRequestIp,
   makeSessionToken,

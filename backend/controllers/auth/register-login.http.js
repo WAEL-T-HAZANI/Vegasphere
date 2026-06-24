@@ -1,16 +1,30 @@
 const { ApiError } = require("../../services/http-error.js");
 const { hashSecret, compareSecret } = require("../../services/password-hash.js");
+const crypto = require("crypto");
 
 const User = require("../../models/User.js");
 const { validateDisplayName } = require("../../services/display-name-policy.js");
 const { validateUsername } = require("../../services/username-policy.js");
 const { defaultAvatarUrl } = require("../../services/avatar-utils.js");
-const { createUserSession } = require("../../services/session-auth.js");
+const {
+  createUserSession,
+  makeSessionToken,
+  buildSessionLabel,
+  getRequestIp,
+} = require("../../services/session-auth.js");
 const { isDestructiveMaintenanceAllowed } = require("../../config/env.js");
+const { isSmtpConfigured } = require("../../services/mailer.js");
 const {
   issueVerificationToken,
   sendVerifyMail,
 } = require("./email-verify.http.js");
+
+function newSessionId() {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return crypto.randomBytes(16).toString("hex");
+}
 
 const register = async (req, res) => {
     console.log("register request received");
@@ -51,30 +65,51 @@ const register = async (req, res) => {
         throw ApiError.badRequest("Username already taken");
       }
     }
-    const imageUrl = defaultAvatarUrl(name);
 
     const secPass = await hashSecret(password);
+    const sessionId = newSessionId();
+    const now = new Date();
 
     const newUser = new User({
       name: String(name).trim(),
       email,
       password: secPass,
-      profilePic: imageUrl,
+      profilePic: defaultAvatarUrl(name),
       about: "Hello World!!",
+      sessions: [
+        {
+          sessionId,
+          label: buildSessionLabel(req),
+          userAgent: String(req?.headers?.["user-agent"] || ""),
+          ip: getRequestIp(req),
+          createdAt: now,
+          lastSeenAt: now,
+          revokedAt: null,
+        },
+      ],
     });
     if (usernameCheck.value) {
       newUser.username = usernameCheck.value;
     }
 
-    await newUser.save();
+    try {
+      await newUser.save();
+    } catch (err) {
+      console.error("register user.save failed:", err?.message || err);
+      throw err;
+    }
 
-    const verifyToken = await issueVerificationToken(newUser);
-    const verifySent = await sendVerifyMail(newUser, verifyToken);
+    let verifySent = false;
+    if (isSmtpConfigured() || process.env.EMAIL_VERIFY_DEBUG === "1") {
+      try {
+        const verifyToken = await issueVerificationToken(newUser);
+        verifySent = await sendVerifyMail(newUser, verifyToken);
+      } catch (err) {
+        console.warn("register verify mail skipped:", err?.message || err);
+      }
+    }
 
-    const { token: authtoken, sessionId } = await createUserSession(
-      newUser,
-      req,
-    );
+    const authtoken = makeSessionToken(newUser._id, sessionId);
     const out = {
       authtoken,
       sessionId,

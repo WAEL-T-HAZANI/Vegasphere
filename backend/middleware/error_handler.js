@@ -54,10 +54,21 @@ const errorHandler = (err, req, res, next) => {
     message = "Only image uploads are allowed";
   }
 
+  if (err.name === "MongoServerError" && err.code === 13) {
+    status = 503;
+    message = "Database write not permitted";
+  }
+
   if (status >= 500) {
     console.error(`[${req.requestId || "-"}]`, err);
-    message = "Internal Server Error";
-    details = null;
+    if (process.env.EXPOSE_API_ERRORS === "1" && err?.message) {
+      message = err.message;
+      details =
+        process.env.NODE_ENV !== "production" ? { stack: err.stack } : null;
+    } else {
+      message = "Internal Server Error";
+      details = null;
+    }
   }
 
   const body = {

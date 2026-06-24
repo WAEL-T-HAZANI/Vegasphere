@@ -13,7 +13,17 @@ try {
 
 const publicKey = process.env.VAPID_PUBLIC_KEY || "";
 const privateKey = process.env.VAPID_PRIVATE_KEY || "";
-const subject = process.env.VAPID_SUBJECT || "mailto:vegasphere@localhost";
+
+function resolveVapidSubject() {
+  const raw = String(process.env.VAPID_SUBJECT || "").trim();
+  const smtpUser = String(process.env.SMTP_USER || "").trim();
+  if (smtpUser && (!raw || /localhost|example\.com/i.test(raw))) {
+    return `mailto:${smtpUser}`;
+  }
+  return raw || "mailto:vegasphere@localhost";
+}
+
+const subject = resolveVapidSubject();
 
 if (webpush && publicKey && privateKey) {
   webpush.setVapidDetails(subject, publicKey, privateKey);

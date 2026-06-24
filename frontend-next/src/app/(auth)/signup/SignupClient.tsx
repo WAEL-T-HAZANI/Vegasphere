@@ -91,7 +91,7 @@ export default function SignupClient({ safeNext }) {
       if (emailError) nextErrors.email = emailError;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       nextErrors.password = t("passwordMinLengthError");
     }
 
