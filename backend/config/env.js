@@ -211,6 +211,17 @@ if (isProd && !iceMeta.liveReady) {
   );
 }
 
+function isEnvTruthy(raw) {
+  let v = String(raw ?? "").trim();
+  while (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1).trim();
+  }
+  return v === "1" || v.toLowerCase() === "true";
+}
+
 /** Destructive maintenance (e.g. purge AI bot chats) — exposed to clients via /auth/me. */
 function isDestructiveMaintenanceAllowed(jwtUser = {}) {
   return (
@@ -248,4 +259,5 @@ module.exports = {
   RATE_LIMIT_MAX,
   TRUST_PROXY,
   isDestructiveMaintenanceAllowed,
+  isEnvTruthy,
 };

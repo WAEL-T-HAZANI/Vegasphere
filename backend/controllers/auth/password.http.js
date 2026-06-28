@@ -1,6 +1,7 @@
 const { ApiError } = require("../../services/http-error.js");
 const crypto = require("crypto");
 const { hashSecret, compareSecret } = require("../../services/password-hash.js");
+const { isEnvTruthy } = require("../../config/env.js");
 
 const User = require("../../models/User.js");
 const {
@@ -51,13 +52,13 @@ const forgotPassword = async (req, res) => {
           "We could not send the reset email right now. Please try again in a few minutes.",
         );
       }
-    } else if (process.env.PASSWORD_RESET_DEBUG !== "1") {
+    } else if (!isEnvTruthy(process.env.PASSWORD_RESET_DEBUG)) {
       console.warn(
         "Password reset: SMTP not configured (set SMTP_HOST, SMTP_USER, SMTP_PASS) or use PASSWORD_RESET_DEBUG=1 for local token.",
       );
     }
 
-    const debug = process.env.PASSWORD_RESET_DEBUG === "1";
+    const debug = isEnvTruthy(process.env.PASSWORD_RESET_DEBUG);
     if (debug) {
       return res.json({
         ...FORGOT_OK,
