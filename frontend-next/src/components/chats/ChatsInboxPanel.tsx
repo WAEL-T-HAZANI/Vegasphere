@@ -57,6 +57,10 @@ function InboxChatList({
   regularMain,
   filteredArchived,
   hiddenChats,
+  archivedExpanded,
+  setArchivedExpanded,
+  hiddenExpanded,
+  setHiddenExpanded,
   activeListFilter,
   hasVisibleChatRows,
   mainList,
@@ -143,18 +147,49 @@ function InboxChatList({
           ) : null}
           {activeListFilter === "all" && filteredArchived?.length ? (
             <>
-              <InboxSectionLabel compact={compact}>{t("chatsArchivedSection")}</InboxSectionLabel>
-              {filteredArchived.map((c, idx) => (
-                <Fragment key={String(c._id ?? idx)}>
-                  {renderRow(c, { suppressTopBorder: idx === 0 })}
-                </Fragment>
-              ))}
+              <li className={cn(compact ? "mx-2 mt-2" : "mx-3 mt-3", "!border-t-0")}>
+                <button
+                  type="button"
+                  onClick={() => setArchivedExpanded((v) => !v)}
+                  className={cn(
+                    INBOX_SECTION_CLASS,
+                    "flex w-full items-center justify-between gap-2 text-start transition hover:bg-brand-200/80 dark:hover:bg-brand-900/55",
+                  )}
+                >
+                  <span>{t("chatsArchivedSection")} ({filteredArchived.length})</span>
+                  <span className="text-[10px] font-bold opacity-70">
+                    {archivedExpanded ? "▲" : "▼"}
+                  </span>
+                </button>
+              </li>
+              {archivedExpanded
+                ? filteredArchived.map((c, idx) => (
+                    <Fragment key={String(c._id ?? idx)}>
+                      {renderRow(c, { suppressTopBorder: idx === 0 })}
+                    </Fragment>
+                  ))
+                : null}
             </>
           ) : null}
           {activeListFilter === "all" && hiddenChats.length > 0 ? (
             <>
-              <InboxSectionLabel compact={compact}>{t("chatsHiddenSection")}</InboxSectionLabel>
-              {hiddenChats.map((c, idx) => {
+              <li className={cn(compact ? "mx-2 mt-2" : "mx-3 mt-3", "!border-t-0")}>
+                <button
+                  type="button"
+                  onClick={() => setHiddenExpanded((v) => !v)}
+                  className={cn(
+                    INBOX_SECTION_CLASS,
+                    "flex w-full items-center justify-between gap-2 text-start transition hover:bg-brand-200/80 dark:hover:bg-brand-900/55",
+                  )}
+                >
+                  <span>{t("chatsHiddenSection")} ({hiddenChats.length})</span>
+                  <span className="text-[10px] font-bold opacity-70">
+                    {hiddenExpanded ? "▲" : "▼"}
+                  </span>
+                </button>
+              </li>
+              {hiddenExpanded
+                ? hiddenChats.map((c, idx) => {
                 const id = c._id;
                 const title =
                   c.name || c.members?.[0]?.name || c.members?.[0]?.email || "Chat";
@@ -189,7 +224,8 @@ function InboxChatList({
                     </div>
                   </li>
                 );
-              })}
+              })
+                : null}
             </>
           ) : null}
         </ul>
@@ -232,6 +268,8 @@ export default function ChatsInboxPanel({ compact = false } = {}) {
   const [searchPeople, setSearchPeople] = useState([]);
   const [searchMessages, setSearchMessages] = useState([]);
   const [listLoading, setListLoading] = useState(true);
+  const [archivedExpanded, setArchivedExpanded] = useState(false);
+  const [hiddenExpanded, setHiddenExpanded] = useState(false);
 
   const activeConversationId = useMemo(() => {
     const match = String(pathname || "").match(/\/chats\/([^/?#]+)/);
@@ -516,13 +554,17 @@ export default function ChatsInboxPanel({ compact = false } = {}) {
               const next = { ...c };
               if (action === "mute") next.isMutedForMe = true;
               if (action === "unmute") next.isMutedForMe = false;
-              if (action === "archive") next.isArchivedForMe = true;
-              if (action === "unarchive") next.isArchivedForMe = false;
-              if (action === "pin") next.isPinnedForMe = true;
-              if (action === "unpin") next.isPinnedForMe = false;
-              if (action === "hide") {
-                return [];
-              }
+        if (action === "archive") {
+          next.isArchivedForMe = true;
+          setArchivedExpanded(true);
+        }
+        if (action === "unarchive") next.isArchivedForMe = false;
+        if (action === "pin") next.isPinnedForMe = true;
+        if (action === "unpin") next.isPinnedForMe = false;
+        if (action === "hide") {
+          setHiddenExpanded(true);
+          return [];
+        }
               return [next];
             }),
           ),
@@ -640,6 +682,10 @@ export default function ChatsInboxPanel({ compact = false } = {}) {
       regularMain={regularMain}
       filteredArchived={filteredArchived}
       hiddenChats={hiddenChats}
+      archivedExpanded={archivedExpanded}
+      setArchivedExpanded={setArchivedExpanded}
+      hiddenExpanded={hiddenExpanded}
+      setHiddenExpanded={setHiddenExpanded}
       activeListFilter={activeListFilter}
       hasVisibleChatRows={hasVisibleChatRows}
       mainList={mainList}

@@ -36,11 +36,14 @@ function getMailHealth() {
 
 function createTransport() {
   if (!isSmtpConfigured()) return null;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const secure =
-    process.env.SMTP_SECURE === "1" || process.env.SMTP_SECURE === "true";
   const host = String(process.env.SMTP_HOST).trim();
   const isGmail = /gmail\.com/i.test(host);
+  let port = Number(process.env.SMTP_PORT || (isGmail ? 587 : 587));
+  let secure =
+    process.env.SMTP_SECURE === "1" || process.env.SMTP_SECURE === "true";
+  if (isGmail && port === 465) {
+    secure = true;
+  }
   return nodemailer.createTransport({
     host,
     port,
@@ -50,7 +53,14 @@ function createTransport() {
       user: String(process.env.SMTP_USER).trim(),
       pass: String(process.env.SMTP_PASS).replace(/\s+/g, ""),
     },
-    ...(isGmail && !secure ? { tls: { minVersion: "TLSv1.2" } } : {}),
+    ...(isGmail
+      ? {
+          tls: { minVersion: "TLSv1.2", rejectUnauthorized: true },
+          connectionTimeout: 20_000,
+          greetingTimeout: 20_000,
+          socketTimeout: 30_000,
+        }
+      : {}),
   });
 }
 
@@ -158,7 +168,50 @@ If you did not create an account, you can ignore this email.`;
 <p><a href="${verifyUrl.replace(/"/g, "")}">Verify your email</a></p>
 <p>This link expires in 24 hours.</p>`;
 
-  await transporter.sendMail({ from, to, subject, text, html });
+  await transporter.sendMail({
+    from,
+    to,
+    subject,
+    text,
+    html,
+    headers: {
+      "X-Entity-Ref-ID": `verify-${Date.now()}`,
+    },
+  });
+}
+
+/**
+ * @param {{ reporterName?: string, reporterEmail?: string, targetName?: string, targetEmail?: string, reason: string }} opts
+ */
+async function sendUserReportEmail({
+  reporterName,
+  reporterEmail,
+  targetName,
+  targetEmail,
+  reason,
+}) {
+  const adminTo = String(process.env.REPORT_ADMIN_EMAIL || process.env.SMTP_USER || "").trim();
+  if (!adminTo) return false;
+  const transporter = createTransport();
+  if (!transporter) return false;
+  const from = resolveMailFrom();
+  const subject = process.env.MAIL_SUBJECT_REPORT || "Vegasphere user report";
+  const text = `User report received
+
+Reporter: ${reporterName || "—"} (${reporterEmail || "—"})
+Reported user: ${targetName || "—"} (${targetEmail || "—"})
+
+Reason:
+${reason}`;
+
+  const html = `<p><strong>User report received</strong></p>
+<p>Reporter: ${escapeHtml(reporterName || "—")} (${escapeHtml(reporterEmail || "")})</p>
+<p>Reported user: ${escapeHtml(targetName || "—")} (${escapeHtml(targetEmail || "")})</p>
+<p><strong>Reason:</strong></p>
+<p>${escapeHtml(reason).replace(/\n/g, "<br>")}</p>`;
+
+  await transporter.sendMail({ from, to: adminTo, subject, text, html });
+  return true;
 }
 
 /**
@@ -206,4 +259,5 @@ module.exports = {
   sendPasswordResetEmail,
   sendVerificationEmail,
   sendLoginAlertEmail,
+  sendUserReportEmail,
 };

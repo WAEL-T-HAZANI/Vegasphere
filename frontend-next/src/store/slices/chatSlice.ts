@@ -335,18 +335,28 @@ const chatSlice = createSlice({
     },
 
     syncPinsForConversation(state, action) {
-      const { conversationId, pinnedMessageId } = action.payload || {};
+      const { conversationId, pinnedMessageId, pinnedMessageIds } =
+        action.payload || {};
       if (!conversationId) return;
 
       const cid = normalizeId(conversationId);
       const messages = state.messagesByConversation[cid];
       if (!messages?.length) return;
 
-      const pinId = normalizeId(pinnedMessageId);
+      const pinSet = new Set(
+        (Array.isArray(pinnedMessageIds) && pinnedMessageIds.length
+          ? pinnedMessageIds
+          : pinnedMessageId
+            ? [pinnedMessageId]
+            : []
+        )
+          .map((id) => normalizeId(id))
+          .filter(Boolean),
+      );
 
       state.messagesByConversation[cid] = messages.map((message) => ({
         ...message,
-        isPinned: Boolean(pinId && normalizeId(message._id) === pinId),
+        isPinned: pinSet.has(normalizeId(message._id)),
       }));
     },
   },

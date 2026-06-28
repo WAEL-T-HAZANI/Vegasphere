@@ -126,6 +126,9 @@ export function useChatOutgoing({
         setForwardStatus(t("chatCannotPostHint"));
         return { ok: false, error: t("chatCannotPostHint") };
       }
+      if (sendBlocked && !options.isRetry) {
+        return { ok: false, error: t("chatCannotPostHint") };
+      }
       if (options.isRetry) {
         dispatch(
           markOptimisticMessageStatus({
@@ -223,12 +226,27 @@ export function useChatOutgoing({
   const retryMessage = useCallback(
     async (msg) => {
       if (!msg?.clientTempId || !user?._id) return;
+      const isGc = activeConv?.isGroup || activeConv?.isChannel;
+      if ((isGc && !canPostInConv) || sendBlocked) {
+        setForwardStatus(t("chatCannotPostHint"));
+        return;
+      }
       await deliverOutgoing(
         buildRetrySendPayload(msg, conversationId, user._id),
         { clientTempId: msg.clientTempId, isRetry: true },
       );
     },
-    [conversationId, user?._id, deliverOutgoing],
+    [
+      conversationId,
+      user?._id,
+      deliverOutgoing,
+      activeConv?.isGroup,
+      activeConv?.isChannel,
+      canPostInConv,
+      sendBlocked,
+      setForwardStatus,
+      t,
+    ],
   );
 
   const send = useCallback(async () => {
@@ -259,7 +277,7 @@ export function useChatOutgoing({
       if (ids.length) payload.mentionedUserIds = ids;
     }
     if (replyTo?._id) payload.replyTo = replyTo._id;
-    await deliverOutgoing(payload);
+
     setText("");
     onAfterSend?.();
     setEmojiComposerOpen(false);
@@ -271,6 +289,8 @@ export function useChatOutgoing({
       localStorage.removeItem(draftKey(cid));
       notifyDraftChange(cid);
     } catch {}
+
+    void deliverOutgoing(payload);
   }, [
     text,
     user?._id,

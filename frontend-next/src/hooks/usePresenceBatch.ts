@@ -7,7 +7,8 @@ import type { PresenceMap } from "@/types";
 
 export { presenceStateForUser } from "@/lib/presence";
 
-const PRESENCE_POLL_INTERVAL_MS = 45_000;
+const PRESENCE_POLL_INTERVAL_MS = 15_000;
+const PRESENCE_EVENT = "vegasphere-presence-changed";
 
 function normalizeUserIds(ids: Array<string | undefined | null> | undefined) {
   return [...new Set((ids || []).map(String).filter(Boolean))].sort();
@@ -52,10 +53,24 @@ export function usePresenceBatch(
   useEffect(() => {
     if (!enabled || userIds.length === 0) return undefined;
 
+    const onPresenceEvent = (event) => {
+      const userId = String(event?.detail?.userId || "");
+      const online = Boolean(event?.detail?.online);
+      if (!userId || !userIds.includes(userId)) return;
+      setPresenceById((prev) => ({
+        ...prev,
+        [userId]: { ...(prev[userId] || {}), online },
+      }));
+    };
+
+    window.addEventListener(PRESENCE_EVENT, onPresenceEvent);
     const intervalId = setInterval(fetchPresence, PRESENCE_POLL_INTERVAL_MS);
 
-    return () => clearInterval(intervalId);
-  }, [enabled, userIds.length, fetchPresence]);
+    return () => {
+      window.removeEventListener(PRESENCE_EVENT, onPresenceEvent);
+      clearInterval(intervalId);
+    };
+  }, [enabled, userIds.length, userIdQuery, fetchPresence]);
 
   return {
     presenceById,

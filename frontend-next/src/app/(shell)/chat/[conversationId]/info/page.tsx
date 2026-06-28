@@ -7,7 +7,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
-  Download,
   MessageCircle,
   Pencil,
   Save,
@@ -19,7 +18,6 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { api } from "@/lib/api";
 import { formatApiError } from "@/lib/apiError";
 import { showAppToast } from "@/lib/appToast";
-import { triggerBrowserDownload } from "@/lib/messageFormat";
 import DashboardPageLayout from "@/components/layout/DashboardPageLayout";
 import { cn } from "@/lib/classNames";
 import {
@@ -162,41 +160,6 @@ export default function ChatInfoPage() {
     typeof conv?.memberCount === "number"
       ? conv.memberCount
       : members.length;
-
-  const startEdit = () => {
-    setEditName(displayName);
-    setEditDescription(description);
-    setEditInfo(true);
-  };
-
-  const exportChat = async () => {
-    if (!cid) return;
-    try {
-      const { data } = await api.get<Blob>(`/message/export/${cid}`, {
-        responseType: "blob",
-      });
-      const blob =
-        data instanceof Blob
-          ? data
-          : new Blob([JSON.stringify(data, null, 2)], {
-              type: "application/json",
-            });
-      const url = URL.createObjectURL(blob);
-      triggerBrowserDownload(url, `vegasphere-export-${cid.slice(-8)}.json`);
-      URL.revokeObjectURL(url);
-      showAppToast({
-        id: "chat-export-ok",
-        titleKey: "exportConversationDone",
-        body: "",
-      });
-    } catch (e) {
-      showAppToast({
-        id: "chat-export-fail",
-        titleKey: "exportConversationFailed",
-        body: formatApiError(e, t, "exportConversationFailed"),
-      });
-    }
-  };
 
   const saveInfo = async () => {
     if (!cid || !editName.trim()) return;
@@ -461,16 +424,6 @@ export default function ChatInfoPage() {
                 <MessageCircle className="h-4 w-4 shrink-0" aria-hidden />
                 {isChannel ? t("channelInfoOpenChat") : t("groupInfoOpenChat")}
               </Link>
-              {canEditInfo && isGroupOrChannel ? (
-                <button
-                  type="button"
-                  onClick={startEdit}
-                  className="vs-btn-outline inline-flex min-h-10 w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
-                >
-                  <Pencil className="h-4 w-4 shrink-0" aria-hidden />
-                  {isChannel ? t("channelInfoEdit") : t("groupInfoEdit")}
-                </button>
-              ) : null}
             </div>
           </div>
         )
@@ -616,29 +569,6 @@ export default function ChatInfoPage() {
             conversation={conv}
             onConversationChange={setConv}
           />
-        ) : null}
-
-        {isGroupAdmin && isGroupOrChannel ? (
-          <section className="vs-settings-card">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 text-start">
-                <div className="text-sm font-semibold text-ink">
-                  {t("exportConversation")}
-                </div>
-                <div className="mt-1 text-sm text-muted">
-                  {t("chatExportHint")}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="vs-btn-outline inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm sm:w-auto"
-                onClick={() => void exportChat()}
-              >
-                <Download className="h-4 w-4 shrink-0" aria-hidden />
-                {t("exportConversation")}
-              </button>
-            </div>
-          </section>
         ) : null}
 
         {isGroupOrChannel ? (

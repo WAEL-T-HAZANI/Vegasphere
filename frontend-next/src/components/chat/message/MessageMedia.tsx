@@ -19,6 +19,7 @@ function videoPreviewSrc(url) {
 export default function MessageMedia({
   message: m,
   isMine,
+  isGroupChat = false,
   t,
   showVideo,
   showImage,
@@ -70,7 +71,8 @@ export default function MessageMedia({
         >
           <div
             className={cn(
-              "relative h-40 w-full overflow-hidden rounded-lg",
+              "relative w-full overflow-hidden rounded-lg",
+              isGroupChat ? "min-h-[12rem] max-h-80" : "h-40 min-w-[12rem]",
               isMine ? "bg-black/25" : "bg-black/10 dark:bg-black/35",
             )}
           >
@@ -139,7 +141,8 @@ export default function MessageMedia({
         >
           <span
             className={cn(
-              "relative block h-40 min-w-[12rem] w-full overflow-hidden rounded-lg",
+              "relative block w-full max-w-full overflow-hidden rounded-lg",
+              isGroupChat ? "min-h-[12rem] max-h-80" : "h-40 min-w-[12rem]",
               isMine ? "bg-white/10" : "bg-black/5 dark:bg-white/10",
             )}
           >
@@ -174,7 +177,8 @@ export default function MessageMedia({
                   loading="eager"
                   decoding="async"
                   className={cn(
-                    "h-full w-full object-cover transition-opacity duration-200",
+                    "h-full w-full transition-opacity duration-200",
+                    isGroupChat ? "object-contain" : "object-cover",
                     mediaLoading ? "opacity-0" : "opacity-100",
                   )}
                   onLoad={onMediaLoad}

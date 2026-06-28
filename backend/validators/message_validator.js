@@ -83,6 +83,7 @@ const deleteMessageSchema = z.object({
 const forwardMessageSchema = z.object({
   messageId: objectId,
   toConversationId: objectId,
+  plaintext: z.string().max(8000).optional(),
 });
 
 const pinMessageSchema = z.object({

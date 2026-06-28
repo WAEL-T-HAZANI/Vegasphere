@@ -11,7 +11,7 @@ import {
   storeConversationKey,
   generateConversationKey,
 } from "@/lib/e2eClient";
-import { setConversations } from "@/store/slices/chatSlice";
+import { patchConversationInList, setConversations } from "@/store/slices/chatSlice";
 import { useTranslation } from "react-i18next";
 import { formatApiError } from "@/lib/apiError";
 import { showAppToast } from "@/lib/appToast";
@@ -94,9 +94,14 @@ export function useChatE2e({
           ),
         },
       ];
-      await api.post(`/conversation/${cid}/e2e-enable`, { wrappedKeys });
+      const { data: convData } = await api.post(`/conversation/${cid}/e2e-enable`, {
+        wrappedKeys,
+      });
       storeConversationKey(cid, convKey);
       setE2eConvKey(convKey);
+      if (convData) {
+        dispatch(patchConversationInList(convData));
+      }
       const { data } = await api.get("/conversation/");
       dispatch(setConversations(data || []));
     } catch (e) {
@@ -110,5 +115,24 @@ export function useChatE2e({
     }
   };
 
-  return { e2eConvKey, setE2eConvKey, enableE2e };
+  return { e2eConvKey, setE2eConvKey, enableE2e, disableE2e: async () => {
+    if (!userId || !dmE2eActive) return;
+    setE2eBusy(true);
+    try {
+      const { data } = await api.post(`/conversation/${cid}/e2e-disable`);
+      setE2eConvKey(null);
+      dispatch(patchConversationInList(data));
+      const { data: list } = await api.get("/conversation/");
+      dispatch(setConversations(list || []));
+      showAppToast({ id: `e2e-off-${cid}`, body: t("privacyE2eDisabled") || "Encryption turned off" });
+    } catch (e) {
+      showAppToast({
+        id: `e2e-off-fail-${Date.now()}`,
+        conversationId: cid,
+        body: formatApiError(e, t, "errorOccurred"),
+      });
+    } finally {
+      setE2eBusy(false);
+    }
+  } };
 }

@@ -15,7 +15,7 @@ const {
 const { populateConversation } = require("./helpers.js");
 
 function assertCanManageConversationAvatar(conv, uid) {
-  if (!conv || !conv.isGroup) {
+  if (!conv || (!conv.isGroup && !conv.isChannel)) {
     throw ApiError.badRequest("Only for groups and channels");
   }
   if (!isConversationMember(conv, uid)) {

@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const { ApiError } = require("../../services/http-error.js");
 const User = require("../../models/User.js");
 const UserReport = require("../../models/UserReport.js");
+const { sendUserReportEmail } = require("../../services/mailer.js");
 
 const reportUser = async (req, res) => {
   const targetId = String(req.params.id || "").trim();
@@ -11,7 +12,10 @@ const reportUser = async (req, res) => {
   if (targetId === String(req.user.id)) {
     throw ApiError.badRequest("Cannot report yourself");
   }
-  const target = await User.findById(targetId).select("_id");
+  const [target, reporter] = await Promise.all([
+    User.findById(targetId).select("_id name email username"),
+    User.findById(req.user.id).select("name email"),
+  ]);
   if (!target) throw ApiError.notFound("User not found");
 
   const reason = String(req.body?.reason || "")
@@ -26,6 +30,19 @@ const reportUser = async (req, res) => {
     targetId,
     reason,
   });
+
+  try {
+    await sendUserReportEmail({
+      reporterName: reporter?.name,
+      reporterEmail: reporter?.email,
+      targetName: target?.name || target?.username,
+      targetEmail: target?.email,
+      reason,
+    });
+  } catch (err) {
+    console.warn("sendUserReportEmail failed:", err?.message || err);
+  }
+
   res.status(201).json({ ok: true });
 };
 

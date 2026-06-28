@@ -24,18 +24,33 @@ const sendChatInvite = async (req, res) => {
     ) {
       throw ApiError.forbidden("Blocked");
     }
-    const updateResult = await User.updateOne({
-      _id: targetId,
-      pendingChatInvitesFrom: { $ne: fromId },
-    }, {
-      $addToSet: { pendingChatInvitesFrom: fromId },
-    });
-    if (updateResult.modifiedCount > 0) {
-      await createChatInviteNotification({
+    const existingConv = await Conversation.findOne({
+      isGroup: { $ne: true },
+      isChannel: { $ne: true },
+      members: { $all: [fromId, targetId] },
+      $expr: { $eq: [{ $size: "$members" }, 2] },
+    }).select("_id");
+
+    if (existingConv) {
+      await User.findByIdAndUpdate(targetId, {
+        $pull: { pendingChatInvitesFrom: fromId },
+      });
+      await resolveChatInviteNotifications({
         recipientId: targetId,
         actorId: fromId,
+        status: "accepted",
       });
+      return res.json({ ok: true, conversationId: String(existingConv._id) });
     }
+
+    await User.updateOne(
+      { _id: targetId },
+      { $addToSet: { pendingChatInvitesFrom: fromId } },
+    );
+    await createChatInviteNotification({
+      recipientId: targetId,
+      actorId: fromId,
+    });
     res.json({ ok: true });
   
 };

@@ -36,12 +36,11 @@ async function sendVerifyMail(user, rawToken) {
       });
       return true;
     } catch (err) {
-      // Mail delivery is best-effort: a failed send must not break signup.
       console.error("sendVerifyMail failed:", err?.message || err);
       if (process.env.EMAIL_VERIFY_DEBUG === "1") {
         return { debugVerifyToken: rawToken, verifyUrl };
       }
-      return false;
+      throw err;
     }
   }
   if (process.env.EMAIL_VERIFY_DEBUG === "1") {

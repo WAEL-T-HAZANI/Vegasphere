@@ -39,6 +39,9 @@ const reactMessageHandler = async (data) => {
   if (bucket.users.includes(uid)) {
     bucket.users = bucket.users.filter((id) => id !== uid);
   } else {
+    for (const row of next) {
+      row.users = row.users.filter((id) => id !== uid);
+    }
     bucket.users.push(uid);
   }
 

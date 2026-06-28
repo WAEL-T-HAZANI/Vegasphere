@@ -21,6 +21,8 @@ type UseChatConversationMessageActionsParams = {
   setEditTarget: (_msg: Message | null) => void;
   setDeleteTarget: (_msg: Message | null) => void;
   setDeleteForEveryone: (_v: boolean) => void;
+  messagesById?: Record<string, Message>;
+  decryptedById?: Record<string, string>;
 };
 
 export function useChatConversationMessageActions({
@@ -34,6 +36,8 @@ export function useChatConversationMessageActions({
   setEditTarget,
   setDeleteTarget,
   setDeleteForEveryone,
+  messagesById = {},
+  decryptedById = {},
 }: UseChatConversationMessageActionsParams) {
   const onReact = useCallback(
     async (m: Message, reaction: string) => {
@@ -242,9 +246,15 @@ export function useChatConversationMessageActions({
       onStatus("");
       try {
         for (const messageId of forwardIds) {
+          const msg = messagesById[String(messageId)];
+          const plain =
+            msg && Number(msg.e2eVersion) > 0
+              ? String(decryptedById[String(messageId)] || "").trim()
+              : String(msg?.text || "").trim();
           await api.post("/message/forward", {
             messageId,
             toConversationId,
+            ...(plain ? { plaintext: plain } : {}),
           });
         }
         onStatus(t("forwardSent"));
@@ -267,7 +277,7 @@ export function useChatConversationMessageActions({
         statusTimerRef.current = window.setTimeout(() => onStatus(""), 2200);
       }
     },
-    [dispatch, t],
+    [dispatch, t, messagesById, decryptedById],
   );
 
   const onCancelSchedule = useCallback(

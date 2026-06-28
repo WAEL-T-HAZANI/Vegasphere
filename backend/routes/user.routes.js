@@ -49,12 +49,14 @@ const {
   listIgnoredUsers,
   uploadAvatar,
   removeAvatar,
+  downloadContactVcard,
   deleteMyAccount,
   reportUser,
   listNotifications,
   markNotificationRead,
   markAllNotificationsRead,
   dismissNotification,
+  dismissAllNotifications,
 } = require("../controllers/users/index.js");
 
 const {
@@ -74,6 +76,13 @@ router.get(
   fetchuser,
   validate(idParamSchema, "params"),
   getPublicProfile,
+);
+
+router.get(
+  "/:id/contact.vcf",
+  fetchuser,
+  validate(idParamSchema, "params"),
+  downloadContactVcard,
 );
 
 router.get(
@@ -129,6 +138,8 @@ router.get("/ignored", fetchuser, listIgnoredUsers);
 router.get("/notifications", fetchuser, listNotifications);
 
 router.patch("/notifications/read-all", fetchuser, markAllNotificationsRead);
+
+router.delete("/notifications", fetchuser, dismissAllNotifications);
 
 router.patch(
   "/notifications/:id/read",

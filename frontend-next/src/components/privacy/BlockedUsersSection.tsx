@@ -7,7 +7,7 @@ import { formatApiError } from "@/lib/apiError";
 import { showAuthErrorToast, showAuthSuccessToast } from "@/lib/authToast";
 import { cn } from "@/lib/classNames";
 
-export default function BlockedUsersSection({ embedded = false }) {
+export default function BlockedUsersSection({ embedded = false, refreshKey = 0 }) {
   const { t } = useTranslation();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export default function BlockedUsersSection({ embedded = false }) {
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   const unblock = async (id) => {
     try {

@@ -77,7 +77,10 @@ export default function GroupsPage() {
         router.push(buildChatHref(data._id, { isGroup: true }, { from: "groups" }));
       }
     } catch (error) {
-      setMsg(formatApiError(error, t, "errorOccurred"));
+      showAppToast({
+        id: "group-create-err",
+        body: formatApiError(error, t, "errorOccurred"),
+      });
     } finally {
       setBusy(false);
     }

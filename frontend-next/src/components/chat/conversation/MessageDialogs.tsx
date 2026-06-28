@@ -110,3 +110,35 @@ export function DeleteMessageDialog({
     </Dialog.Root>
   );
 }
+
+export function DeleteAccountDialog({ open, onOpenChange, onConfirm, busy = false }) {
+  const { t } = useTranslation();
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[92] bg-black/40" />
+        <Dialog.Content className="vs-dialog-content fixed left-1/2 top-1/2 z-[93] w-[min(92vw,400px)] -translate-x-1/2 -translate-y-1/2 p-4">
+          <Dialog.Title className="text-lg font-semibold text-red-800 dark:text-red-200">
+            {t("privacyDeleteAccount")}
+          </Dialog.Title>
+          <p className="mt-2 text-sm text-muted">{t("privacyDeleteAccountConfirm")}</p>
+          <div className="mt-4 flex justify-end gap-2">
+            <Dialog.Close asChild>
+              <button type="button" className={cn("vs-btn-outline-sm", "!w-auto")} disabled={busy}>
+                {t("cancel")}
+              </button>
+            </Dialog.Close>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onConfirm?.()}
+              className="vs-btn-danger"
+            >
+              {busy ? t("loading") : t("privacyDeleteAccount")}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}

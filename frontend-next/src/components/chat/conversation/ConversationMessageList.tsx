@@ -4,6 +4,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import * as ScrollArea from "@radix-ui/react-scroll-area";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/classNames";
 import ChatMessageBubble from "@/components/chat/message/ChatMessageBubble";
 
@@ -15,6 +16,7 @@ const ConversationMessageList = forwardRef(function ConversationMessageList(
   {
     visibleThreadRows,
     isEmpty = false,
+    threadLoading = false,
     i18nLanguage,
     t,
     pinnedMessages,
@@ -304,7 +306,12 @@ const ConversationMessageList = forwardRef(function ConversationMessageList(
             {t("loadOlderMessagesHint")}
           </div>
         ) : null}
-        {isEmpty && !hasMoreOlder ? (
+        {threadLoading ? (
+          <div className="flex min-h-[12rem] flex-col items-center justify-center py-10 text-center">
+            <Loader2 className="h-8 w-8 animate-spin vega-brand-text" aria-hidden />
+            <p className="mt-3 text-sm text-muted">{t("loading")}</p>
+          </div>
+        ) : isEmpty && !hasMoreOlder ? (
           <div className="flex min-h-[12rem] flex-col items-center justify-center py-10 text-center">
             <p className="text-sm font-semibold text-ink">{t("chatNoMessagesYet")}</p>
             <p className="mt-2 max-w-xs text-sm text-muted">{t("chatNoMessagesHint")}</p>

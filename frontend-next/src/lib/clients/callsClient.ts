@@ -20,3 +20,9 @@ export function cancelCallInvite(inviteId: string) {
 export function getIceServers<T = unknown>() {
   return api.get<T>("/calls/ice-servers");
 }
+
+export function canRingUser(userId: string) {
+  return api.get<{ allowed?: boolean; reason?: string | null }>(
+    `/calls/can-ring/${encodeURIComponent(userId)}`,
+  );
+}

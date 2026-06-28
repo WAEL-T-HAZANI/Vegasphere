@@ -555,6 +555,15 @@ const getIceServersHandler = (req, res) => {
   });
 };
 
+const canRingUser = async (req, res) => {
+  const targetId = String(req.params.id || "").trim();
+  if (!targetId) {
+    return res.json({ allowed: false, reason: "invalid" });
+  }
+  const allowed = await canInitiateCallToUser(req.user.id, targetId);
+  res.json({ allowed, reason: allowed ? null : "blocked" });
+};
+
 const { wrapHttpHandlers } = require("../../services/async-handler.js");
 
 module.exports = wrapHttpHandlers(
@@ -569,6 +578,7 @@ module.exports = wrapHttpHandlers(
     sendDueCallInviteReminders,
     expireStaleRingingCalls,
     getIceServersHandler,
+    canRingUser,
   },
   ["noteCallSignal", "sendDueCallInviteReminders", "expireStaleRingingCalls"],
 );

@@ -26,6 +26,7 @@ import SettingsSectionHeading from "@/components/settings/SettingsSectionHeading
 import { setUser, logout } from "@/store/slices/authSlice";
 import { cn } from "@/lib/classNames";
 import EmailChangeSection from "@/components/privacy/EmailChangeSection";
+import { DeleteAccountDialog } from "@/components/chat/conversation/MessageDialogs";
 import EmailVerificationSection from "@/components/privacy/EmailVerificationSection";
 import TwoStepSection from "@/components/privacy/TwoStepSection";
 import AccountPrivacySection from "@/components/privacy/AccountPrivacySection";
@@ -67,6 +68,7 @@ export default function PrivacyPage() {
   const [sessionsBusy, setSessionsBusy] = useState(false);
   const [sessionActionId, setSessionActionId] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
 
   const [lastSeenVisibility, setLastSeenVisibility] = useState("everyone");
   const [onlineVisibility, setOnlineVisibility] = useState("everyone");
@@ -285,8 +287,6 @@ export default function PrivacyPage() {
 
   const deleteAccount = async () => {
     if (deleting) return;
-    const ok = typeof window !== "undefined" ? window.confirm(t("privacyDeleteAccountConfirm")) : false;
-    if (!ok) return;
     setDeleting(true);
     try {
       await userClient.deleteAccount();
@@ -299,6 +299,7 @@ export default function PrivacyPage() {
       showAuthErrorToast(formatApiError(err, t), "auth-error");
     } finally {
       setDeleting(false);
+      setDeleteAccountOpen(false);
     }
   };
 
@@ -555,7 +556,7 @@ export default function PrivacyPage() {
               />
               <button
                 type="button"
-                onClick={deleteAccount}
+                onClick={() => setDeleteAccountOpen(true)}
                 disabled={deleting}
                 className="inline-flex w-full items-center justify-center rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-red-600/25 transition hover:bg-red-700 disabled:opacity-60 dark:bg-red-800 dark:hover:bg-red-900"
               >
@@ -564,6 +565,12 @@ export default function PrivacyPage() {
                   : t("privacyDeleteAccountAction")}
               </button>
             </motion.section>
+        <DeleteAccountDialog
+          open={deleteAccountOpen}
+          onOpenChange={setDeleteAccountOpen}
+          onConfirm={deleteAccount}
+          busy={deleting}
+        />
       </AccountPageShell>
     </ProtectedPageGate>
   );

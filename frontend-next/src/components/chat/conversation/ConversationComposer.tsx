@@ -41,6 +41,7 @@ export default function ConversationComposer(props) {
     e2eConvKey,
     canEnableE2e,
     onEnableE2e,
+    onDisableE2e,
     voiceMsg,
     forwardStatus,
     user,
@@ -170,6 +171,19 @@ export default function ConversationComposer(props) {
               {t("e2eEnableButton")}
             </button>
           </div>
+        ) : dmE2eActive && onDisableE2e ? (
+          <div className="vs-composer-panel mb-2 flex flex-col items-center gap-2 border-brand-300/50 sm:flex-row sm:justify-between">
+            <p className="text-center text-xs font-semibold text-ink sm:text-start">
+              {t("privacyE2eEnabled") || "End-to-end encryption is on"}
+            </p>
+            <button
+              type="button"
+              onClick={() => void onDisableE2e?.()}
+              className="vs-btn-outline-sm min-h-9 shrink-0 px-4"
+            >
+              {t("e2eDisableButton") || "Turn off encryption"}
+            </button>
+          </div>
         ) : showE2eSetupHint ? (
           <div className="vs-composer-panel mb-2 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
             <p className="text-center text-xs text-muted sm:text-start">
@@ -276,7 +290,7 @@ export default function ConversationComposer(props) {
         ) : null}
         {voiceRecording ? (
           <div
-            className="mb-2 flex items-center gap-2 rounded-2xl border border-red-300/70 bg-red-50/90 px-3 py-2 dark:border-red-500/40 dark:bg-red-950/35"
+            className="mb-2 flex items-center gap-2 rounded-2xl border border-brand-300/60 bg-brand-50/90 px-3 py-2 dark:border-brand-700/45 dark:bg-brand-950/35"
             dir={rtl ? "rtl" : "ltr"}
           >
             <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" aria-hidden />

@@ -15,6 +15,29 @@ const {
   ensureSelfConversation,
 } = require("./helpers.js");
 
+function emitConversationE2eSync(conv) {
+  try {
+    const io = require("../../socket/index.js").getIO();
+    if (!io || !conv?._id) return;
+    const payload = {
+      conversationId: String(conv._id),
+      e2eEnabled: Boolean(conv.e2eEnabled),
+      e2eWrappedKeys: Array.isArray(conv.e2eWrappedKeys)
+        ? conv.e2eWrappedKeys
+        : [],
+      e2eIssuerId: conv.e2eIssuerId,
+      e2eIssuerPublicKey: conv.e2eIssuerPublicKey || "",
+    };
+    io.to(String(conv._id)).emit("conversation-e2e-sync", payload);
+    for (const member of conv.members || []) {
+      const uid = String(member?._id || member || "");
+      if (uid) io.to(uid).emit("conversation-e2e-sync", payload);
+    }
+  } catch {
+    /* non-fatal */
+  }
+}
+
 const { isDestructiveMaintenanceAllowed } = require("../../config/env.js");
 
 function isMaintenanceAllowed(req) {
@@ -306,6 +329,7 @@ const getConversationList = async (req, res) => {
         isMutedForMe: muted.has(id),
         isPinnedForMe: pinned.has(id),
       };
+      row.effectiveMemberRights = getEffectiveMemberRights(c, userId);
       if (c.isGroup || c.isChannel) {
         const viewerIsAdmin = isConversationAdmin(c, userId);
         row.viewerIsAdmin = viewerIsAdmin;
@@ -380,6 +404,7 @@ const listHiddenConversations = async (req, res) => {
         isMutedForMe: muted.has(id),
         isHiddenForMe: true,
         isPinnedForMe: pinned.has(id),
+        effectiveMemberRights: getEffectiveMemberRights(c, userId),
       };
     });
     res.status(200).json(enriched);
@@ -436,6 +461,35 @@ const enableDmE2e = async (req, res) => {
     conv.e2eIssuerPublicKey = me.e2ePublicKey;
     await conv.save();
     await conv.populate("members", "-password -phoneHash");
+    emitConversationE2eSync(conv);
+    return res.status(200).json(conv);
+  
+};
+
+const disableDmE2e = async (req, res) => {
+    const convId = req.params.id;
+    const uid = String(req.user.id);
+    const conv = await Conversation.findById(convId);
+    if (!conv) {
+      throw ApiError.notFound("No conversation found");
+    }
+    if (conv.isGroup || conv.isChannel) {
+      throw ApiError.badRequest("E2E is only for direct chats");
+    }
+    const memberIds = (conv.members || []).map((m) => m.toString());
+    if (memberIds.length !== 2 || !memberIds.includes(uid)) {
+      throw ApiError.badRequest("Invalid conversation");
+    }
+    if (!conv.e2eEnabled) {
+      throw ApiError.badRequest("E2E is not enabled");
+    }
+    conv.e2eEnabled = false;
+    conv.e2eWrappedKeys = [];
+    conv.e2eIssuerId = undefined;
+    conv.e2eIssuerPublicKey = "";
+    await conv.save();
+    await conv.populate("members", "-password -phoneHash");
+    emitConversationE2eSync(conv);
     return res.status(200).json(conv);
   
 };
@@ -447,5 +501,6 @@ module.exports = {
   getConversationList,
   listHiddenConversations,
   enableDmE2e,
+  disableDmE2e,
   purgeAiChatbotConversations,
 };

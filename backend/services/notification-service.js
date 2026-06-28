@@ -61,7 +61,10 @@ async function createChatInviteNotification({ recipientId, actorId }) {
     "data.status": "pending",
   });
 
-  if (existing) return existing;
+  if (existing) {
+    emitNotificationEvent(recipient, "notification-created", serializeNotification(existing));
+    return existing;
+  }
 
   const doc = await Notification.create({
     recipientId: recipient,

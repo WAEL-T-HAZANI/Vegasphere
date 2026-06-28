@@ -131,7 +131,8 @@ export default function ChannelsPage() {
         router.push(buildChatHref(data._id, { isChannel: true }, { from: "channels" }));
       }
     } catch (error) {
-      setMsg(formatApiError(error, t, "errorOccurred"));
+      const body = formatApiError(error, t, "errorOccurred");
+      showAppToast({ id: "channel-create-err", body });
     } finally {
       setBusy(false);
     }

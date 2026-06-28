@@ -103,8 +103,32 @@ const dismissNotification = async (req, res) => {
   res.json(payload);
 };
 
+const dismissAllNotifications = async (req, res) => {
+  const now = new Date();
+  const result = await Notification.updateMany(
+    {
+      recipientId: req.user.id,
+      dismissedAt: null,
+    },
+    {
+      $set: { dismissedAt: now, readAt: now },
+    },
+  );
+
+  emitNotificationEvent(req.user.id, "notifications-updated", {
+    at: now.toISOString(),
+    cleared: true,
+  });
+
+  res.json({
+    ok: true,
+    modifiedCount: result.modifiedCount || 0,
+  });
+};
+
 module.exports = {
   dismissNotification,
+  dismissAllNotifications,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,

@@ -7,6 +7,7 @@ const {
   removeStoredAvatarFile,
 } = require("../../services/avatar-utils.js");
 const { publishLocalUpload } = require("../../services/object-storage.js");
+const { emitProfileUpdated } = require("../../services/profile-notify.js");
 const {
   applyPresencePrivacy,
   canViewerSeeUserField,
@@ -109,6 +110,10 @@ const uploadAvatar = async (req, res) => {
     if (previous && previous !== absoluteUrl) {
       await removeStoredAvatarFile(previous);
     }
+    emitProfileUpdated(req.user.id, {
+      profilePic: absoluteUrl,
+      name: user.name,
+    });
     return res.status(201).json({
       ok: true,
       url: absoluteUrl,
@@ -129,8 +134,54 @@ const removeAvatar = async (req, res) => {
     if (previous && previous !== fallback) {
       await removeStoredAvatarFile(previous);
     }
+    emitProfileUpdated(req.user.id, {
+      profilePic: fallback,
+      name: user.name,
+    });
     return res.json({ ok: true, url: fallback });
   
+};
+
+const downloadContactVcard = async (req, res) => {
+  const targetId = String(req.params.id || "").trim();
+  if (!targetId) throw ApiError.badRequest("User id required");
+
+  const viewerId = req.user?.id;
+  const [target, viewer] = await Promise.all([
+    User.findById(targetId).select("name username email blockedUsers"),
+    viewerId ? User.findById(viewerId).select("blockedUsers") : null,
+  ]);
+  if (!target) throw ApiError.notFound("User not found");
+
+  const targetBlocksViewer = (target.blockedUsers || []).some(
+    (b) => String(b) === String(viewerId),
+  );
+  const viewerBlocksTarget = (viewer?.blockedUsers || []).some(
+    (b) => String(b) === String(targetId),
+  );
+  if (targetBlocksViewer || viewerBlocksTarget) {
+    throw ApiError.forbidden("Blocked");
+  }
+
+  const displayName = String(target.name || target.username || "Contact").trim();
+  const safeName = displayName.replace(/[^\w\s-]/g, "").trim() || "contact";
+  const lines = [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    `FN:${displayName}`,
+    target.email ? `EMAIL;TYPE=INTERNET:${target.email}` : "",
+    target.username ? `NICKNAME:${target.username}` : "",
+    "END:VCARD",
+  ]
+    .filter(Boolean)
+    .join("\r\n");
+
+  res.setHeader("Content-Type", "text/vcard; charset=utf-8");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${safeName}.vcf"`,
+  );
+  return res.send(lines);
 };
 
 module.exports = {
@@ -138,4 +189,5 @@ module.exports = {
   getOnlineStatus,
   uploadAvatar,
   removeAvatar,
+  downloadContactVcard,
 };

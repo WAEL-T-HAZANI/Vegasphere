@@ -168,9 +168,10 @@ export default function ChatConversationScreen() {
   const canPostInConv = useMemo(() => {
     if (!activeConv?.isGroup && !activeConv?.isChannel) return true;
     if (!user?._id) return false;
-    const rights =
-      activeConv?.effectiveMemberRights ??
-      getEffectiveMemberRightsForPeer(activeConv, user._id);
+    if (activeConv?.effectiveMemberRights) {
+      return activeConv.effectiveMemberRights.canPostMessages !== false;
+    }
+    const rights = getEffectiveMemberRightsForPeer(activeConv, user._id);
     return rights.canPostMessages !== false;
   }, [activeConv, user?._id]);
 
@@ -228,7 +229,7 @@ export default function ChatConversationScreen() {
     activeConv.e2eEnabled,
   );
 
-  const { e2eConvKey, enableE2e } = useChatE2e({
+  const { e2eConvKey, enableE2e, disableE2e } = useChatE2e({
     dmE2eActive,
     userId: user?._id,
     cid,
@@ -363,7 +364,7 @@ export default function ChatConversationScreen() {
     [messages, t],
   );
 
-  const { hasMoreOlder, loadOlder, reloadThread, loadingOlderRef } =
+  const { hasMoreOlder, loadOlder, reloadThread, loadingOlderRef, threadLoading } =
     useConversationMessages({
       cid,
       conversationId,
@@ -942,6 +943,8 @@ export default function ChatConversationScreen() {
     setEditTarget,
     setDeleteTarget,
     setDeleteForEveryone,
+    messagesById,
+    decryptedById,
   });
 
   const saveEdit = (newText) => saveEditMessage(newText, editTarget);
@@ -972,30 +975,13 @@ export default function ChatConversationScreen() {
 
   const openMaybeViewOnceMedia = useCallback(
     async (msgOrMedia) => {
-      const message = msgOrMedia?._id
-        ? msgOrMedia
-        : msgOrMedia?.messageId
-          ? messagesById[String(msgOrMedia.messageId)]
-          : null;
-
-      if (
-        message?._id &&
-        message.viewOnce &&
-        String(message.senderId?._id || message.senderId) !== String(user?._id)
-      ) {
-        try {
-          await api.post("/message/view-once-open", { messageId: message._id });
-        } catch {
-        }
-      }
-
       if (msgOrMedia?._id) {
         openGalleryForMessage(msgOrMedia);
       } else {
         dispatch(openMediaViewer(msgOrMedia));
       }
     },
-    [messagesById, user?._id, dispatch, openGalleryForMessage],
+    [dispatch, openGalleryForMessage],
   );
 
   useEffect(() => {
@@ -1111,6 +1097,7 @@ export default function ChatConversationScreen() {
         ref={messageListRef}
         visibleThreadRows={visibleThreadRows}
         isEmpty={visibleMessages.length === 0}
+        threadLoading={threadLoading}
         i18nLanguage={i18n.language}
         t={t}
         pinnedMessages={pinnedMessages}
@@ -1192,6 +1179,7 @@ export default function ChatConversationScreen() {
         e2eConvKey={e2eConvKey}
         canEnableE2e={canEnableE2e}
         onEnableE2e={enableE2e}
+        onDisableE2e={disableE2e}
         voiceMsg={voiceMsg}
         forwardStatus={forwardStatus}
         user={user}

@@ -66,7 +66,11 @@ const forwardMessage = async (req, res) => {
     const origEv = Number(orig.e2eVersion) || 0;
     const targetE2e = Boolean(conv.e2eEnabled);
     const carryE2e = targetE2e && origEv > 0;
-    const fwdText = origEv > 0 ? E2E_LIST_PREVIEW : orig.text;
+    const plainFromClient = String(req.body.plaintext || "").trim();
+    let fwdText = orig.text;
+    if (origEv > 0 && !carryE2e) {
+      fwdText = plainFromClient || E2E_LIST_PREVIEW;
+    }
     const latestMessageText = getLatestMessageText({
       messageType: orig.messageType,
       text: fwdText,

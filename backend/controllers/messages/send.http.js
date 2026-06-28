@@ -135,7 +135,7 @@ const uploadMessageAttachment = async (req, res) => {
       ok: true,
       kind,
       uploadToken: staged.token,
-      url: staged.url,
+      url: `/uploads/messages/${staged.storedName}`,
       fileName: staged.fileName,
       fileType: staged.fileType,
       fileSize: staged.fileSize,

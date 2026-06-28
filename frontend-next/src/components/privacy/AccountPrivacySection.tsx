@@ -1,7 +1,9 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
+import { api } from "@/lib/api";
 import BlockedUsersSection from "@/components/privacy/BlockedUsersSection";
 import IgnoredUsersSection from "@/components/privacy/IgnoredUsersSection";
 import PrivacyToggle from "@/components/privacy/PrivacyToggle";
@@ -42,6 +44,16 @@ export default function AccountPrivacySection({
   savingPrivacy,
   persistPrivacy,
 }) {
+  const [peopleRefreshKey, setPeopleRefreshKey] = useState(0);
+  const bumpPeopleLists = useCallback(() => {
+    setPeopleRefreshKey((v) => v + 1);
+  }, []);
+
+  const blockFromIgnored = useCallback(async (id: string) => {
+    await api.post(`/user/block/${id}`);
+    bumpPeopleLists();
+  }, [bumpPeopleLists]);
+
   const saveSelect = async (patch, applyLocal) => {
     applyLocal();
     await persistPrivacy(patch);
@@ -279,7 +291,7 @@ export default function AccountPrivacySection({
                 {t("privacyBlockedDetail")}
               </p>
             </div>
-            <BlockedUsersSection embedded />
+            <BlockedUsersSection embedded refreshKey={peopleRefreshKey} />
           </div>
           <div className="flex min-h-[12rem] flex-col gap-2 rounded-2xl border border-brand-200/40 bg-surface/50 p-3 dark:border-brand-800/30 dark:bg-brand-900/10">
             <div>
@@ -288,7 +300,10 @@ export default function AccountPrivacySection({
                 {t("privacyIgnoredHint")}
               </p>
             </div>
-            <IgnoredUsersSection />
+            <IgnoredUsersSection
+              refreshKey={peopleRefreshKey}
+              onBlockFromIgnored={blockFromIgnored}
+            />
           </div>
         </div>
       </motion.section>

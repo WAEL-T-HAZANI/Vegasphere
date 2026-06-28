@@ -86,11 +86,16 @@ export default function StatusPage() {
   useEffect(() => {
     const socket = getSocket();
     if (!socket || !user?._id) return undefined;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     const onStatusUpdated = () => {
-      void refresh();
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        void refresh();
+      }, 300);
     };
     socket.on("status-updated", onStatusUpdated);
     return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
       socket.off("status-updated", onStatusUpdated);
     };
   }, [user?._id, refresh]);

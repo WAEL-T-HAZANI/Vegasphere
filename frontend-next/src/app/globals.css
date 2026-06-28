@@ -544,7 +544,7 @@ body {
   }
   @media (max-width: 767px) {
     .vs-composer-tools-scroll {
-      @apply flex w-full min-w-0 max-w-full items-center gap-1 overflow-x-auto overscroll-x-contain scroll-smooth snap-x snap-mandatory touch-pan-x;
+      @apply flex w-fit max-w-full min-w-0 items-center gap-1 overflow-x-auto overscroll-x-contain scroll-smooth snap-x snap-mandatory touch-pan-x;
       @apply rounded-2xl border border-brand-200/45 bg-brand-50/35 px-1 py-1 ring-1 ring-brand-700/[0.03];
       @apply [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
       @apply dark:border-brand-800/55 dark:bg-black/35 dark:ring-white/[0.04];
@@ -622,12 +622,12 @@ body {
   }
   .vs-dropdown-sub-trigger:focus,
   .vs-dropdown-sub-trigger[data-highlighted],
-  .vs-dropdown-sub-trigger[data-state=open] {
+  .vs-dropdown-sub-trigger[data-state="open"] {
     @apply bg-brand-100/75 text-brand-900;
   }
   :is(.dark) .vs-dropdown-sub-trigger:focus,
   :is(.dark) .vs-dropdown-sub-trigger[data-highlighted],
-  :is(.dark) .vs-dropdown-sub-trigger[data-state=open] {
+  :is(.dark) .vs-dropdown-sub-trigger[data-state="open"] {
     @apply bg-brand-900/40 text-brand-100;
   }
   .vs-dropdown-icon-trigger {
@@ -683,8 +683,16 @@ body {
   .vs-chat-message-viewport {
     @apply bg-canvas;
     background-image:
-      radial-gradient(900px 400px at 15% 0%, rgb(var(--vega-brand) / 0.06), transparent),
-      radial-gradient(900px 400px at 85% 100%, rgb(var(--vega-brand) / 0.04), transparent);
+      radial-gradient(
+        900px 400px at 15% 0%,
+        rgb(var(--vega-brand) / 0.06),
+        transparent
+      ),
+      radial-gradient(
+        900px 400px at 85% 100%,
+        rgb(var(--vega-brand) / 0.04),
+        transparent
+      );
   }
   :is(.dark) .vs-chat-message-viewport {
     @apply bg-black;
@@ -792,29 +800,37 @@ body {
     word-break: break-word;
   }
 
-  /* Landing + legal copy — one step bolder, colors unchanged */
+  /* Landing + legal copy — bolder body text */
   .vega-marketing-body {
-    font-weight: 500;
+    font-weight: 600;
+    color: rgb(var(--vega-ink));
   }
 
   .vega-marketing-body .font-light {
-    font-weight: 500;
-  }
-
-  .vega-marketing-body .font-medium {
     font-weight: 600;
   }
 
-  .vega-marketing-body .font-semibold {
+  .vega-marketing-body .font-medium {
     font-weight: 700;
   }
 
-  .vega-marketing-body .vega-ar-copy {
-    font-weight: 500;
+  .vega-marketing-body .font-semibold {
+    font-weight: 800;
   }
 
-  .dark .vega-marketing-body .vega-muted {
-    font-weight: 500;
+  .vega-marketing-body .vega-muted,
+  .vega-marketing-body .text-muted {
+    font-weight: 600;
+    color: rgb(var(--vega-muted));
+  }
+
+  .vega-marketing-body .vega-ar-copy {
+    font-weight: 600;
+  }
+
+  .dark .vega-marketing-body .vega-muted,
+  .dark .vega-marketing-body .text-muted {
+    font-weight: 600;
   }
 }
 
@@ -863,8 +879,39 @@ body {
 .vs-settings-page .text-muted,
 .vs-profile-page .text-muted,
 .vs-calls-page .text-muted,
-.vs-chats-page .text-muted {
+.vs-chats-page .text-muted,
+.vs-networking-page .text-muted,
+.vs-shell-page .text-muted {
   color: rgb(var(--settings-muted));
+  font-weight: 600;
+}
+
+html:not(.dark) .vs-shell-page .text-muted,
+html:not(.dark) .vs-settings-page .text-muted,
+html:not(.dark) .vs-account-page .text-muted {
+  color: rgb(var(--settings-muted) / 0.95);
+}
+
+.vs-shell-page .text-ink,
+.vs-settings-page .text-ink,
+.vs-account-page .text-ink {
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .vs-shell-page {
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .vs-shell-page > * {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
 }
 
 .vs-profile-page .vs-label {
@@ -905,7 +952,9 @@ body {
   .vega-glass {
     @apply border vega-hairline bg-[rgb(var(--vega-paper)/0.88)];
   }
-  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  @supports (
+    (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))
+  ) {
     .vega-glass {
       @apply bg-[rgb(var(--vega-paper)/0.72)] backdrop-blur-md;
     }
@@ -1108,11 +1157,7 @@ body {
     color: rgb(var(--vega-paper));
   }
   .dark .vega-tab-active {
-    background: linear-gradient(
-      135deg,
-      rgb(139 30 63) 0%,
-      rgb(153 27 27) 100%
-    );
+    background: linear-gradient(135deg, rgb(139 30 63) 0%, rgb(153 27 27) 100%);
     color: #fff;
   }
 
@@ -1335,7 +1380,8 @@ body {
 @keyframes vega-ambient-orb-1 {
   0% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-58vw, -42vh, 0) scale(0.9);
+    transform: translate3d(-50%, -50%, 0) translate3d(-58vw, -42vh, 0)
+      scale(0.9);
   }
   7% {
     opacity: 0.78;
@@ -1347,11 +1393,13 @@ body {
   }
   36% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-56vw, 46vh, 0) scale(0.92);
+    transform: translate3d(-50%, -50%, 0) translate3d(-56vw, 46vh, 0)
+      scale(0.92);
   }
   37% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(50vw, -44vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(50vw, -44vh, 0)
+      scale(0.88);
   }
   44% {
     opacity: 0.74;
@@ -1367,7 +1415,8 @@ body {
   }
   71% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-48vw, 44vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(-48vw, 44vh, 0)
+      scale(0.88);
   }
   78% {
     opacity: 0.72;
@@ -1379,7 +1428,8 @@ body {
   }
   100% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-58vw, -42vh, 0) scale(0.9);
+    transform: translate3d(-50%, -50%, 0) translate3d(-58vw, -42vh, 0)
+      scale(0.9);
   }
 }
 
@@ -1398,7 +1448,8 @@ body {
   }
   38% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-52vw, -38vh, 0) scale(0.9);
+    transform: translate3d(-50%, -50%, 0) translate3d(-52vw, -38vh, 0)
+      scale(0.9);
   }
   39% {
     opacity: 0;
@@ -1418,7 +1469,8 @@ body {
   }
   73% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-14vw, -46vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(-14vw, -46vh, 0)
+      scale(0.88);
   }
   80% {
     opacity: 0.7;
@@ -1445,11 +1497,13 @@ body {
   }
   34% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-48vw, 36vh, 0) scale(0.92);
+    transform: translate3d(-50%, -50%, 0) translate3d(-48vw, 36vh, 0)
+      scale(0.92);
   }
   35% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-36vw, -44vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(-36vw, -44vh, 0)
+      scale(0.88);
   }
   42% {
     opacity: 0.73;
@@ -1480,7 +1534,8 @@ body {
 @keyframes vega-ambient-orb-4 {
   0% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-42vw, 38vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(-42vw, 38vh, 0)
+      scale(0.88);
   }
   9% {
     opacity: 0.74;
@@ -1508,7 +1563,8 @@ body {
   }
   74% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-54vw, 44vh, 0) scale(0.92);
+    transform: translate3d(-50%, -50%, 0) translate3d(-54vw, 44vh, 0)
+      scale(0.92);
   }
   75% {
     opacity: 0;
@@ -1520,14 +1576,16 @@ body {
   }
   100% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-42vw, 38vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(-42vw, 38vh, 0)
+      scale(0.88);
   }
 }
 
 @keyframes vega-ambient-orb-5 {
   0% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-16vw, -46vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(-16vw, -46vh, 0)
+      scale(0.88);
   }
   8% {
     opacity: 0.73;
@@ -1555,7 +1613,8 @@ body {
   }
   70% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(40vw, -44vh, 0) scale(0.92);
+    transform: translate3d(-50%, -50%, 0) translate3d(40vw, -44vh, 0)
+      scale(0.92);
   }
   71% {
     opacity: 0;
@@ -1567,7 +1626,8 @@ body {
   }
   100% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-16vw, -46vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(-16vw, -46vh, 0)
+      scale(0.88);
   }
 }
 
@@ -1586,11 +1646,13 @@ body {
   }
   35% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-46vw, -40vh, 0) scale(0.92);
+    transform: translate3d(-50%, -50%, 0) translate3d(-46vw, -40vh, 0)
+      scale(0.92);
   }
   36% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-10vw, 46vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(-10vw, 46vh, 0)
+      scale(0.88);
   }
   43% {
     opacity: 0.72;
@@ -1606,7 +1668,8 @@ body {
   }
   70% {
     opacity: 0;
-    transform: translate3d(-50%, -50%, 0) translate3d(-44vw, -12vh, 0) scale(0.88);
+    transform: translate3d(-50%, -50%, 0) translate3d(-44vw, -12vh, 0)
+      scale(0.88);
   }
   77% {
     opacity: 0.7;
@@ -1625,7 +1688,12 @@ body {
     opacity: 0.18;
   }
   50% {
-    transform: translate3d(calc(50px * var(--vega-amp)), calc(24px * var(--vega-amp)), 0) scale(1.08);
+    transform: translate3d(
+        calc(50px * var(--vega-amp)),
+        calc(24px * var(--vega-amp)),
+        0
+      )
+      scale(1.08);
     opacity: 0.42;
   }
 }
@@ -1637,7 +1705,12 @@ body {
     opacity: 0.16;
   }
   50% {
-    transform: translate3d(calc(-42px * var(--vega-amp)), calc(-22px * var(--vega-amp)), 0) scale(1.1);
+    transform: translate3d(
+        calc(-42px * var(--vega-amp)),
+        calc(-22px * var(--vega-amp)),
+        0
+      )
+      scale(1.1);
     opacity: 0.38;
   }
 }
@@ -1649,7 +1722,12 @@ body {
     opacity: 0.12;
   }
   50% {
-    transform: translate3d(calc(32px * var(--vega-amp)), calc(-28px * var(--vega-amp)), 0) scale(1.04);
+    transform: translate3d(
+        calc(32px * var(--vega-amp)),
+        calc(-28px * var(--vega-amp)),
+        0
+      )
+      scale(1.04);
     opacity: 0.32;
   }
 }

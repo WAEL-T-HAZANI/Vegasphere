@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Search as SearchIcon } from "lucide-react";
@@ -57,6 +57,8 @@ export default function NetworkingPage() {
   const [recommendations, setRecommendations] = useState<NetworkingMatch[]>([]);
   const [posts, setPosts] = useState<NetworkingPostItem[]>([]);
   const [popularTags, setPopularTags] = useState<string[]>([]);
+  const [profileRevision, setProfileRevision] = useState(0);
+  const profileBootstrappedRef = useRef(false);
 
   const [headline, setHeadline] = useState("");
   const [skills, setSkills] = useState("");
@@ -74,32 +76,39 @@ export default function NetworkingPage() {
 
   const meId = me?._id ? String(me._id) : "";
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data } = await networkingClient.listNetworking<NetworkingPayload>({
-        q: q.trim(),
-        tag: activeTag.trim(),
-      });
-      setProfile(data?.profile || null);
-      setRecommendations(Array.isArray(data?.recommendations) ? data.recommendations : []);
-      setPosts(Array.isArray(data?.posts) ? data.posts : []);
-      setPopularTags(Array.isArray(data?.popularTags) ? data.popularTags : []);
-      setMsg("");
-    } catch (error) {
-      setMsg(formatApiError(error, t, "errorOccurred"));
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTag, q, t]);
+  const load = useCallback(
+    async ({ syncProfile = false }: { syncProfile?: boolean } = {}) => {
+      setLoading(true);
+      try {
+        const { data } = await networkingClient.listNetworking<NetworkingPayload>({
+          q: q.trim(),
+          tag: activeTag.trim(),
+        });
+        if (syncProfile) {
+          setProfile(data?.profile || null);
+          setProfileRevision((v) => v + 1);
+        }
+        setRecommendations(Array.isArray(data?.recommendations) ? data.recommendations : []);
+        setPosts(Array.isArray(data?.posts) ? data.posts : []);
+        setPopularTags(Array.isArray(data?.popularTags) ? data.popularTags : []);
+        setMsg("");
+      } catch (error) {
+        setMsg(formatApiError(error, t, "errorOccurred"));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeTag, q, t],
+  );
 
   useEffect(() => {
     if (!meId) return;
     const timer = window.setTimeout(() => {
-      void load();
+      void load({ syncProfile: !profileBootstrappedRef.current });
+      profileBootstrappedRef.current = true;
     }, 260);
     return () => window.clearTimeout(timer);
-  }, [load, meId]);
+  }, [load, meId, q, activeTag]);
 
   useEffect(() => {
     if (!profile) return;
@@ -108,7 +117,7 @@ export default function NetworkingPage() {
     setInterests(joinNetworkingTags(profile.networkingInterests as string[] | undefined));
     setLookingFor(String(profile.networkingLookingFor || ""));
     setOpenToCollaborate(Boolean(profile.networkingOpenToCollaborate));
-  }, [profile]);
+  }, [profile, profileRevision]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -174,8 +183,9 @@ export default function NetworkingPage() {
         openToCollaborate,
       });
       setProfile(data as Record<string, unknown>);
+      setProfileRevision((v) => v + 1);
       showAppToast({ id: "networking-profile", body: t("networkingProfileSaved") });
-      await load();
+      await load({ syncProfile: false });
     } catch (error) {
       setMsg(formatApiError(error, t, "errorOccurred"));
     } finally {
@@ -185,28 +195,38 @@ export default function NetworkingPage() {
 
   const publishPost = async (event: React.FormEvent) => {
     event.preventDefault();
+    const title = postTitle.trim();
+    const summary = postSummary.trim();
+    if (title.length < 3) {
+      setMsg(t("networkingPostTitleTooShort"));
+      return;
+    }
+    if (summary.length < 10) {
+      setMsg(t("networkingPostSummaryTooShort"));
+      return;
+    }
     setBusy(true);
     setMsg("");
     try {
       if (editingPostId) {
         await networkingClient.updateNetworkingPost(editingPostId, {
-          title: postTitle.trim(),
-          summary: postSummary.trim(),
+          title,
+          summary,
           tags: splitNetworkingTags(postTags),
           roleNeeded: postRoleNeeded.trim(),
         });
         showAppToast({ id: "networking-post-edit", body: t("networkingPostUpdated") });
       } else {
         await networkingClient.createNetworkingPost({
-          title: postTitle.trim(),
-          summary: postSummary.trim(),
+          title,
+          summary,
           tags: splitNetworkingTags(postTags),
           roleNeeded: postRoleNeeded.trim(),
         });
         showAppToast({ id: "networking-post", body: t("networkingPostCreated") });
       }
       resetPostForm();
-      await load();
+      await load({ syncProfile: false });
     } catch (error) {
       setMsg(formatApiError(error, t, "errorOccurred"));
     } finally {
@@ -220,7 +240,7 @@ export default function NetworkingPage() {
     try {
       await networkingClient.closeNetworkingPost(postId);
       showAppToast({ id: "networking-post-close", body: t("networkingPostClosed") });
-      await load();
+      await load({ syncProfile: false });
     } catch (error) {
       setMsg(formatApiError(error, t, "errorOccurred"));
     } finally {
@@ -239,7 +259,7 @@ export default function NetworkingPage() {
           ? t("networkingInterestedDone")
           : t("networkingInterestedRemoved"),
       });
-      await load();
+      await load({ syncProfile: false });
     } catch (error) {
       setMsg(formatApiError(error, t, "errorOccurred"));
     } finally {
@@ -305,7 +325,7 @@ export default function NetworkingPage() {
         prev.filter((item) => String(item.user?._id || "") !== id),
       );
       showAppToast({ id: "networking-block", body: t("blockUserDone") });
-      await load();
+      await load({ syncProfile: false });
     } catch (error) {
       setMsg(formatApiError(error, t, "errorOccurred"));
     } finally {
@@ -318,7 +338,7 @@ export default function NetworkingPage() {
     try {
       await userClient.ignoreUser(id);
       showAppToast({ id: "networking-ignore", body: t("contactIgnoreDone") });
-      await load();
+      await load({ syncProfile: false });
     } catch (error) {
       setMsg(formatApiError(error, t, "errorOccurred"));
     } finally {

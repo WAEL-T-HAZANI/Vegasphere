@@ -168,7 +168,7 @@ export default function MessageBubbleActionsMenu({
               <VegaDropdownItem onSelect={() => onStar?.(m)}>
                 {isStarred ? t("removeSavedMessage") : t("saveMessage")}
               </VegaDropdownItem>
-              {m.text?.trim() && Number(m.e2eVersion) === 0 && !isPoll ? (
+              {hasText && Number(m.e2eVersion) === 0 && !isPoll ? (
                 <VegaDropdownItem
                   onSelect={async () => {
                     const text = String(rawText || "").trim();
@@ -179,9 +179,10 @@ export default function MessageBubbleActionsMenu({
                     try {
                       const ui = (i18n.language || "en").split("-")[0].toLowerCase();
                       const targetLanguage = ui === "ar" ? "en" : "ar";
+                      const sourceLanguage = ui === "ar" ? "ar" : "en";
                       const { data } = await api.post("/ai/translate", {
                         text,
-                        sourceLanguage: "auto",
+                        sourceLanguage,
                         targetLanguage,
                       });
                       setTranslation(String(data?.translatedText || ""));

@@ -6,9 +6,12 @@ import { PhoneCall, Video } from "lucide-react";
 import { cn } from "@/lib/classNames";
 import { buildAutocallHref } from "@/lib/callLaunch";
 import { primeCallRingtone } from "@/lib/callRingtone";
+import { callsClient } from "@/lib/clients";
+import { showAppToast } from "@/lib/appToast";
 
 export default function ConversationCallButtons({
   conversationId,
+  peerUserId = "",
   canCall = true,
   compact = false,
   className = "",
@@ -18,7 +21,25 @@ export default function ConversationCallButtons({
 
   if (!canCall || !conversationId) return null;
 
-  const start = (mode) => {
+  const start = async (mode: "audio" | "video") => {
+    if (peerUserId) {
+      try {
+        const { data } = await callsClient.canRingUser(peerUserId);
+        if (!data?.allowed) {
+          showAppToast({
+            id: `call-blocked-${peerUserId}`,
+            body: t("callPrivacyBlocked"),
+          });
+          return;
+        }
+      } catch {
+        showAppToast({
+          id: `call-check-fail-${peerUserId}`,
+          body: t("errorOccurred"),
+        });
+        return;
+      }
+    }
     primeCallRingtone();
     router.push(buildAutocallHref(conversationId, mode));
   };
@@ -31,7 +52,7 @@ export default function ConversationCallButtons({
     <div className={cn("flex items-center gap-1.5", className)}>
       <button
         type="button"
-        onClick={() => start("audio")}
+        onClick={() => void start("audio")}
         className={btnClass}
         title={t("callStartVoice")}
         aria-label={t("callStartVoice")}
@@ -41,7 +62,7 @@ export default function ConversationCallButtons({
       </button>
       <button
         type="button"
-        onClick={() => start("video")}
+        onClick={() => void start("video")}
         className={btnClass}
         title={t("callStartVideo")}
         aria-label={t("callStartVideo")}

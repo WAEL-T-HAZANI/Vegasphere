@@ -15,6 +15,8 @@ import { api } from "@/lib/api";
 import { triggerBrowserDownload } from "@/lib/messageFormat";
 import { removeMessageFromConversation } from "@/store/slices/chatSlice";
 
+const VIEW_ONCE_MAX_MS = 6000;
+
 export default function MediaViewerHost() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
@@ -26,34 +28,63 @@ export default function MediaViewerHost() {
   const [scale, setScale] = useState(1);
   const contentRef = useRef(null);
   const openedViewOnceRef = useRef(new Set());
+  const viewOnceTimerRef = useRef(null);
+
+  const consumeViewOnce = useCallback(
+    (mid) => {
+      if (!mid || openedViewOnceRef.current.has(mid)) return;
+      openedViewOnceRef.current.add(mid);
+      api
+        .post("/message/view-once-open", { messageId: mid })
+        .then((res) => res?.data)
+        .then((data) => {
+          if (
+            (data?.removeForUser || data?.removeForEveryone) &&
+            data?.conversationId &&
+            data?.messageId
+          ) {
+            dispatch(
+              removeMessageFromConversation({
+                conversationId: String(data.conversationId),
+                messageId: String(data.messageId),
+              }),
+            );
+          }
+        })
+        .catch(() => {});
+    },
+    [dispatch],
+  );
+
+  const closeViewer = useCallback(() => {
+    if (media?.viewOnce && media?.messageId) {
+      consumeViewOnce(String(media.messageId));
+    }
+    dispatch(closeMediaViewer());
+  }, [consumeViewOnce, dispatch, media?.messageId, media?.viewOnce]);
 
   useEffect(() => {
     if (!open) setScale(1);
   }, [open, index]);
 
   useEffect(() => {
+    if (viewOnceTimerRef.current) {
+      clearTimeout(viewOnceTimerRef.current);
+      viewOnceTimerRef.current = null;
+    }
     if (!open || !media?.viewOnce || !media?.messageId) return;
     const mid = String(media.messageId);
-    if (!mid || openedViewOnceRef.current.has(mid)) return;
-    openedViewOnceRef.current.add(mid);
-
-    // Mark opened on server; if server says remove-for-user, remove locally and close viewer.
-    api
-      .post("/message/view-once-open", { messageId: mid })
-      .then((res) => res?.data)
-      .then((data) => {
-        if ((data?.removeForUser || data?.removeForEveryone) && data?.conversationId && data?.messageId) {
-          dispatch(
-            removeMessageFromConversation({
-              conversationId: String(data.conversationId),
-              messageId: String(data.messageId),
-            })
-          );
-          dispatch(closeMediaViewer());
-        }
-      })
-      .catch(() => {});
-  }, [open, media?.viewOnce, media?.messageId, dispatch]);
+    viewOnceTimerRef.current = setTimeout(() => {
+      consumeViewOnce(mid);
+      dispatch(closeMediaViewer());
+    }, VIEW_ONCE_MAX_MS);
+    return () => {
+      if (viewOnceTimerRef.current) {
+        clearTimeout(viewOnceTimerRef.current);
+        viewOnceTimerRef.current = null;
+      }
+    };
+  }, [open, media?.viewOnce, media?.messageId, consumeViewOnce, dispatch]);
 
   const goPrev = useCallback(() => {
     dispatch(mediaViewerNavigate(-1));
@@ -66,7 +97,7 @@ export default function MediaViewerHost() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
-      if (e.key === "Escape") dispatch(closeMediaViewer());
+      if (e.key === "Escape") closeViewer();
       if (e.key === "ArrowLeft") goPrev();
       if (e.key === "ArrowRight") goNext();
     };
@@ -90,7 +121,7 @@ export default function MediaViewerHost() {
     <Dialog.Root
       open={open}
       onOpenChange={(v) => {
-        if (!v) dispatch(closeMediaViewer());
+        if (!v) closeViewer();
       }}
     >
       <Dialog.Portal>
@@ -140,11 +171,13 @@ export default function MediaViewerHost() {
                 type="button"
                 className="rounded-lg p-2 text-white/80 hover:bg-white/10"
                 onClick={() => {
+                  if (media?.viewOnce) return;
                   void triggerBrowserDownload(media?.url, media?.title || "", {
                     fileType: isVideo ? "video/mp4" : "image/jpeg",
                   });
                 }}
                 aria-label={t("downloadFile")}
+                disabled={Boolean(media?.viewOnce)}
               >
                 <Download className="h-4 w-4" />
               </button>

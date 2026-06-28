@@ -69,8 +69,17 @@ export function useWebRtcCall(myUserId) {
   const buildMediaConstraints = useCallback(
     (wantVideo) => ({
       audio: selectedAudioInputId
-        ? { deviceId: { exact: selectedAudioInputId } }
-        : true,
+        ? {
+            deviceId: { exact: selectedAudioInputId },
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        : {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
       video: wantVideo
         ? selectedVideoInputId
           ? { deviceId: { exact: selectedVideoInputId } }
@@ -222,7 +231,7 @@ export function useWebRtcCall(myUserId) {
         if (disconnectTimerRef.current) {
           clearTimeout(disconnectTimerRef.current);
         }
-        const delay = st === "failed" ? 400 : 2800;
+        const delay = st === "failed" ? 800 : 8000;
         disconnectTimerRef.current = setTimeout(() => {
           disconnectTimerRef.current = null;
           if (callStateRef.current !== "active") return;
@@ -241,7 +250,11 @@ export function useWebRtcCall(myUserId) {
         }
       };
       pc.ontrack = (e) => {
-        if (e.streams[0]) setRemoteStream(e.streams[0]);
+        const stream = e.streams?.[0] || new MediaStream([e.track]);
+        setRemoteStream((prev) => {
+          if (prev && stream.id === prev.id) return prev;
+          return stream;
+        });
       };
       return pc;
     },
@@ -545,7 +558,7 @@ export function useWebRtcCall(myUserId) {
     try {
       const dm = await navigator.mediaDevices.getDisplayMedia({
         video: true,
-        audio: false,
+        audio: true,
       });
       const vt = dm.getVideoTracks()[0];
       if (!vt) {

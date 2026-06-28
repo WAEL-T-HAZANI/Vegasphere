@@ -8,10 +8,12 @@ import { showAuthErrorToast, showAuthSuccessToast } from "@/lib/authToast";
 
 type IgnoredUsersSectionProps = {
   onBlockFromIgnored?: (id: string) => Promise<void>;
+  refreshKey?: number;
 };
 
 export default function IgnoredUsersSection({
   onBlockFromIgnored,
+  refreshKey = 0,
 }: IgnoredUsersSectionProps) {
   const { t } = useTranslation();
   const [list, setList] = useState([]);
@@ -34,7 +36,7 @@ export default function IgnoredUsersSection({
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, refreshKey]);
 
   const unignore = async (id: string) => {
     setBusyIgnore(String(id));

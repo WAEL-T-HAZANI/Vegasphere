@@ -7,6 +7,7 @@ const {
   getConversationList,
   listHiddenConversations,
   enableDmE2e,
+  disableDmE2e,
   purgeAiChatbotConversations,
 } = require("./direct.http.js");
 const {
@@ -67,6 +68,7 @@ module.exports = wrapHttpHandlers(
     restoreConversationTopic,
     listHiddenConversations,
     enableDmE2e,
+    disableDmE2e,
     purgeAiChatbotConversations,
     getJoinPreview,
     joinWithInviteToken,

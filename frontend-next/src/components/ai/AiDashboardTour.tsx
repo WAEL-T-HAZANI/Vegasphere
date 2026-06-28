@@ -282,7 +282,7 @@ export default function AiDashboardTour({ open, onClose }: AiDashboardTourProps)
       <div
         className={cn(
           "absolute z-[10001] rounded-2xl border border-brand-200/50 bg-surface p-4 shadow-2xl",
-          "pointer-events-auto opacity-100 dark:border-white/10 dark:bg-gray-950",
+          "pointer-events-auto opacity-100 dark:border-white/10 dark:bg-surface",
           hole ? "transition-[top,left,transform] duration-300 ease-out" : "transition-opacity duration-300",
         )}
         style={dialogStyle}

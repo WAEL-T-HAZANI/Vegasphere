@@ -9,7 +9,10 @@ const blockUser = async (req, res) => {
     }
     const user = await User.findByIdAndUpdate(
       userId,
-      { $addToSet: { blockedUsers: targetId } },
+      {
+        $addToSet: { blockedUsers: targetId },
+        $pull: { ignoredUserIds: targetId },
+      },
       { new: true, runValidators: false },
     );
     if (!user) {
@@ -73,7 +76,7 @@ const unignoreUser = async (req, res) => {
 const listIgnoredUsers = async (req, res) => {
     const u = await User.findById(req.user.id)
       .select("ignoredUserIds")
-      .populate("ignoredUserIds", "name email profilePic");
+      .populate("ignoredUserIds", "name email profilePic username");
     res.json(Array.isArray(u?.ignoredUserIds) ? u.ignoredUserIds : []);
   
 };

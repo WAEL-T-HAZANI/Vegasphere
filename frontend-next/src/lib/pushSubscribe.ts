@@ -79,12 +79,14 @@ export async function subscribeToWebPush(): Promise<PushSubscribeResult> {
     }
 
     let sub = await reg.pushManager.getSubscription();
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(data.publicKey),
-      });
+    if (sub?.endpoint) {
+      await api.post("/user/push/subscribe", sub.toJSON());
+      return { ok: true, subscribed: true };
     }
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+    });
     await api.post("/user/push/subscribe", sub.toJSON());
     return { ok: true, subscribed: true };
   } catch (error) {

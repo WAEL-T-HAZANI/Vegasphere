@@ -21,14 +21,14 @@ export default function AppToaster() {
   return (
     <Toaster
       key={rtl ? "rtl" : "ltr"}
-      position={rtl ? "bottom-left" : "bottom-right"}
-      gutter={12}
+      position={rtl ? "top-left" : "top-right"}
+      gutter={10}
       containerClassName="vs-toast-host"
       containerStyle={{
-        top: "auto",
-        bottom: "max(6.5rem, calc(5.5rem + env(safe-area-inset-bottom, 0px)))",
-        left: "max(1rem, env(safe-area-inset-left, 0px))",
-        right: "max(1rem, env(safe-area-inset-right, 0px))",
+        top: "max(1rem, env(safe-area-inset-top, 0px))",
+        bottom: "auto",
+        left: rtl ? "max(1rem, env(safe-area-inset-left, 0px))" : "auto",
+        right: rtl ? "auto" : "max(1rem, env(safe-area-inset-right, 0px))",
       }}
       toastOptions={{
         className: "",

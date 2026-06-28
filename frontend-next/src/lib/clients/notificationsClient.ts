@@ -23,3 +23,7 @@ export function dismissNotification(notificationId: string) {
     `/user/notifications/${encodeURIComponent(notificationId)}`,
   );
 }
+
+export function deleteAllNotifications() {
+  return api.delete<{ ok: boolean; modifiedCount?: number }>("/user/notifications");
+}

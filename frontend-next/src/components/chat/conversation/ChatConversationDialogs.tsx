@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { canUnsendForEveryone } from "@/lib/messageFormat";
 
 const ForwardMessageDialog = dynamic(
   () => import("@/components/chat/conversation/ForwardMessageDialog"),
@@ -71,9 +72,7 @@ export default function ChatConversationDialogs({
         showDeleteForEveryone={Boolean(
           bulkDeleteCount <= 1 &&
             deleteTarget &&
-            Number(deleteTarget.e2eVersion) === 0 &&
-            String(deleteTarget.senderId?._id || deleteTarget.senderId) ===
-              String(user?._id),
+            canUnsendForEveryone(deleteTarget, user?._id),
         )}
         deleteForEveryone={deleteForEveryone}
         onDeleteForEveryoneChange={setDeleteForEveryone}

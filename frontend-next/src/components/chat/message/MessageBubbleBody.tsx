@@ -13,7 +13,9 @@ import { cn } from "@/lib/classNames";
 import {
   mapHrefFromLocation,
   EMOJI_PICKER,
+  triggerBrowserDownload,
 } from "@/lib/messageFormat";
+import { api } from "@/lib/api";
 import ReadReceipt from "@/components/chat/message/ReadReceipt";
 import ReplyPreview from "@/components/chat/message/ReplyPreview";
 import MessagePoll from "@/components/chat/message/MessagePoll";
@@ -171,6 +173,7 @@ function MessageBubbleBody({
       <MessageMedia
         message={m}
         isMine={isMine}
+        isGroupChat={isGroupChat}
         t={t}
         showVideo={showVideo}
         showImage={showImage}
@@ -331,10 +334,7 @@ function MessageBubbleBody({
       ) : null}
 
       {hasContact ? (
-        <a
-          href={`/user/${encodeURIComponent(String(contactPayload.contactUserId))}`}
-          className={cn("vs-msg-special-card", cardTone)}
-        >
+        <div className={cn("vs-msg-special-card", cardTone)}>
           <div className={cn("vs-msg-special-label", labelTone)}>
             <UserRound className="h-3 w-3 shrink-0" aria-hidden />
             {t("shareContact")}
@@ -396,15 +396,56 @@ function MessageBubbleBody({
                   : String(contactPayload?.email || "").trim()}
               </span>
             </span>
-            <span
-              className={cn("vs-msg-icon-tile h-9 w-9", iconTone)}
-              aria-hidden
-              title={t("navProfile")}
-            >
-              <ExternalLink className="h-4 w-4" />
-            </span>
           </div>
-        </a>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <a
+              href={`/user/${encodeURIComponent(String(contactPayload.contactUserId))}`}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold",
+                isMine
+                  ? "bg-white/15 text-white hover:bg-white/20"
+                  : "bg-brand-100 text-brand-800 hover:bg-brand-200 dark:bg-brand-900/40 dark:text-brand-100",
+              )}
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              {t("navProfile")}
+            </a>
+            <button
+              type="button"
+              onClick={async () => {
+                const uid = String(contactPayload.contactUserId || "");
+                if (!uid) return;
+                try {
+                  const { data } = await api.get(`/user/${uid}/contact.vcf`, {
+                    responseType: "blob",
+                  });
+                  const blob =
+                    data instanceof Blob
+                      ? data
+                      : new Blob([String(data)], { type: "text/vcard" });
+                  const url = URL.createObjectURL(blob);
+                  const fname = String(
+                    contactPayload?.name || contactPayload?.username || "contact",
+                  )
+                    .replace(/[^\w\s-]/g, "")
+                    .trim();
+                  triggerBrowserDownload(url, `${fname || "contact"}.vcf`);
+                  URL.revokeObjectURL(url);
+                } catch {
+                  /* ignore */
+                }
+              }}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold",
+                isMine
+                  ? "bg-white/15 text-white hover:bg-white/20"
+                  : "bg-brand-100 text-brand-800 hover:bg-brand-200 dark:bg-brand-900/40 dark:text-brand-100",
+              )}
+            >
+              {t("downloadContact") || "Save contact"}
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {m.deletedForEveryone || locallyExpired ? (

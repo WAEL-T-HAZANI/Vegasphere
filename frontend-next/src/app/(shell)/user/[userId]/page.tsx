@@ -10,6 +10,7 @@ import {
   AtSign,
   Calendar,
   ChevronLeft,
+  ChevronRight,
   MessageCircle,
   UserRound,
 } from "lucide-react";
@@ -60,6 +61,7 @@ function resolveStatusImageUrl(raw) {
 
 export default function PublicUserProfilePage() {
   const { t, i18n } = useTranslation();
+  const rtl = i18n.dir() === "rtl";
   const params = useParams();
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -209,7 +211,7 @@ export default function PublicUserProfilePage() {
                   aria-label={t("back")}
                   title={t("back")}
                 >
-                  <ChevronLeft className="h-5 w-5" aria-hidden />
+                  <ChevronLeft className={cn("h-5 w-5", rtl && "rotate-180")} aria-hidden />
                 </button>
                 <div className="min-w-0">
                   <div className="truncate text-lg font-semibold text-ink">{t("viewProfile")}</div>

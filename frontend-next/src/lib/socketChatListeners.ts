@@ -9,7 +9,9 @@ import {
   applyMessageReaction,
   bumpLocalUnread,
   syncPinsForConversation,
+  patchConversationInList,
 } from "@/store/slices/chatSlice";
+import { setUser } from "@/store/slices/authSlice";
 import { showAppToast } from "@/lib/appToast";
 import { playVegasphereNotifySound } from "@/lib/notificationSound";
 import i18n from "@/i18n/client";
@@ -277,7 +279,25 @@ export function attachSocketChatListeners(socket, { dispatch, getState, userId }
       syncPinsForConversation({
         conversationId: data.conversationId,
         pinnedMessageId: data.pinnedMessageId ?? null,
+        pinnedMessageIds: Array.isArray(data.pinnedMessageIds)
+          ? data.pinnedMessageIds
+          : undefined,
       })
+    );
+  };
+
+  const onE2eSync = (data) => {
+    if (!data?.conversationId) return;
+    dispatch(
+      patchConversationInList({
+        _id: data.conversationId,
+        e2eEnabled: Boolean(data.e2eEnabled),
+        e2eWrappedKeys: Array.isArray(data.e2eWrappedKeys)
+          ? data.e2eWrappedKeys
+          : [],
+        e2eIssuerId: data.e2eIssuerId,
+        e2eIssuerPublicKey: data.e2eIssuerPublicKey || "",
+      }),
     );
   };
   const onNewMessageNotification = (msg) => {
@@ -345,7 +365,40 @@ export function attachSocketChatListeners(socket, { dispatch, getState, userId }
   socket.on("message-deleted", onDeleted);
   socket.on("message-reacted", onReacted);
   socket.on("message-pin-sync", onPinSync);
+  socket.on("conversation-e2e-sync", onE2eSync);
   socket.on("new-message-notification", onNewMessageNotification);
+
+  const onProfileUpdated = (payload) => {
+    const updatedId = String(payload?.userId || "");
+    const profilePic = String(payload?.profilePic || "");
+    if (!updatedId) return;
+    const state = getState();
+    const me = String(state.auth.user?._id || "");
+    if (me && me === updatedId && profilePic) {
+      dispatch(setUser({ ...state.auth.user, profilePic }));
+    }
+    scheduleConvRefresh();
+  };
+  socket.on("profile-updated", onProfileUpdated);
+
+  const onPresenceChanged = (payload) => {
+    const userId = String(payload?.userId || "");
+    if (!userId || typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("vegasphere-presence-changed", {
+        detail: {
+          userId,
+          online: payload?.eventName === "receiver-online",
+        },
+      }),
+    );
+  };
+  socket.on("receiver-online", (payload) =>
+    onPresenceChanged({ ...payload, eventName: "receiver-online" }),
+  );
+  socket.on("receiver-offline", (payload) =>
+    onPresenceChanged({ ...payload, eventName: "receiver-offline" }),
+  );
 
   return () => {
     socket.off("receive-message", onReceive);
@@ -358,7 +411,11 @@ export function attachSocketChatListeners(socket, { dispatch, getState, userId }
     socket.off("message-deleted", onDeleted);
     socket.off("message-reacted", onReacted);
     socket.off("message-pin-sync", onPinSync);
+    socket.off("conversation-e2e-sync", onE2eSync);
     socket.off("new-message-notification", onNewMessageNotification);
+    socket.off("profile-updated", onProfileUpdated);
+    socket.off("receiver-online");
+    socket.off("receiver-offline");
     if (refetchTimer) clearTimeout(refetchTimer);
   };
 }

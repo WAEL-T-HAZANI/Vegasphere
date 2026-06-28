@@ -92,7 +92,11 @@ export default function SmartReplyBar({
     }
     if (triggerKey) return `${triggerKey}::${tone}::${lang}`;
     if (normalized.messages.length || normalized.texts.length) {
-      return `auto::${tone}::${lang}::${normalized.subject}`;
+      const ctx = normalized.messages
+        .slice(-8)
+        .map((m) => `${m.sender}:${m.text}`)
+        .join("|");
+      return `auto::${tone}::${lang}::${normalized.subject}::${ctx}`;
     }
     return "";
   }, [autoGenerate, manualRun, triggerKey, tone, i18n.language, normalized]);
@@ -119,7 +123,9 @@ export default function SmartReplyBar({
 
     let cancelled = false;
     const reqId = ++requestIdRef.current;
+    const debounceMs = autoGenerate ? 900 : 0;
 
+    const timer = window.setTimeout(() => {
     (async () => {
       setLoading(true);
       setUsedFallback(false);
@@ -142,7 +148,7 @@ export default function SmartReplyBar({
           payload.conversationKind = conversationKind;
         }
         const { data } = await aiClient.getSmartReplies(payload, {
-          timeout: 5000,
+          timeout: 8000,
         });
         if (cancelled || requestIdRef.current !== reqId) return;
         const next = data?.suggestions || data?.replies || [];
@@ -166,9 +172,11 @@ export default function SmartReplyBar({
         }
       }
     })();
+    }, debounceMs);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [
     fetchKey,

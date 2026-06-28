@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchClient } from "@/lib/clients";
 import { formatApiError } from "@/lib/apiError";
@@ -28,6 +28,8 @@ export function useGlobalSearch({ t, debounceMs = 280 }: UseGlobalSearchOptions)
   const focusUserId = String(searchParams.get("focusUserId") || "").trim();
 
   const [q, setQ] = useState(() => String(searchParams.get("q") || ""));
+  const typingRef = useRef(false);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [conversations, setConversations] = useState<SearchConversationHit[]>([]);
   const [messages, setMessages] = useState<SearchMessageHit[]>([]);
@@ -50,10 +52,20 @@ export function useGlobalSearch({ t, debounceMs = 280 }: UseGlobalSearchOptions)
   }, [router, searchParams]);
 
   useEffect(() => {
+    if (typingRef.current) return;
     const qp = String(searchParams.get("q") || "");
     if (qp !== q) setQ(qp);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  const setQuery = useCallback((value: string) => {
+    typingRef.current = true;
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      typingRef.current = false;
+    }, debounceMs + 120);
+    setQ(value);
+  }, [debounceMs]);
 
   const syncUrl = useCallback(
     (query: string) => {
@@ -111,6 +123,8 @@ export function useGlobalSearch({ t, debounceMs = 280 }: UseGlobalSearchOptions)
   }, [q, debounceMs, runSearch]);
 
   const clearQuery = useCallback(() => {
+    typingRef.current = false;
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     setQ("");
     setError("");
   }, []);
@@ -126,7 +140,7 @@ export function useGlobalSearch({ t, debounceMs = 280 }: UseGlobalSearchOptions)
 
   return {
     q,
-    setQ,
+    setQ: setQuery,
     clearQuery,
     trimmed,
     isSearching,

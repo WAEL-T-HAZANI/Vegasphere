@@ -48,9 +48,12 @@ function conversationHaystack(conversation, userId) {
  * Supports Latin, Arabic (with/without tashkeel), CJK, and mixed queries.
  */
 const globalSearch = async (req, res) => {
-    const q = String(req.query.q || "")
+    let q = String(req.query.q || "")
       .trim()
       .slice(0, 80);
+    if (q.startsWith("@")) {
+      q = q.slice(1).trim();
+    }
     if (!isSearchQueryLongEnough(q)) {
       return res.json({ users: [], conversations: [], messages: [] });
     }

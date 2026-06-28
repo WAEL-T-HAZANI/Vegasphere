@@ -57,6 +57,7 @@ export default function CallScreenOverlay({
   const { t } = useTranslation();
   const localRef = useRef(null);
   const remoteRef = useRef(null);
+  const remoteAudioRef = useRef(null);
   const [devicesOpen, setDevicesOpen] = useState(false);
 
   const showSpeakerOutput = supportsAudioSinkSelection();
@@ -71,10 +72,23 @@ export default function CallScreenOverlay({
     const el = remoteRef.current;
     if (!el) return;
     el.srcObject = remoteStream || null;
+    el.muted = true;
+    if (remoteStream) {
+      void el.play?.().catch(() => {});
+    }
   }, [remoteStream]);
 
   useEffect(() => {
-    const el = remoteRef.current;
+    const el = remoteAudioRef.current;
+    if (!el) return;
+    el.srcObject = remoteStream || null;
+    if (remoteStream) {
+      void el.play?.().catch(() => {});
+    }
+  }, [remoteStream]);
+
+  useEffect(() => {
+    const el = remoteAudioRef.current;
     if (!el || !selectedAudioOutputId || !showSpeakerOutput) return;
     el.setSinkId(selectedAudioOutputId).catch(() => {});
   }, [remoteStream, selectedAudioOutputId, showSpeakerOutput]);
@@ -128,6 +142,7 @@ export default function CallScreenOverlay({
           <Dialog.Title className="sr-only">
             {t("webrtcBeta")} — {peerDisplayName || t("someoneTypingAnonymous")}
           </Dialog.Title>
+          <audio ref={remoteAudioRef} autoPlay playsInline className="sr-only" aria-hidden />
 
           <div className="flex shrink-0 flex-col items-center gap-1 pt-2 text-center">
             <h2 className="text-lg font-semibold text-white md:text-xl">

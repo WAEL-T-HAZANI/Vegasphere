@@ -62,6 +62,10 @@ function serializeStatus(item, viewerId) {
     out.viewerCount = viewers.length;
     out.replyCount = replies.length;
     out.replies = replies.map(serializeReply);
+    out.reactions = reactions.map((r) => ({
+      emoji: String(r.emoji || ""),
+      userId: String(r.userId?._id || r.userId || ""),
+    }));
   } else if (myReplies.length) {
     out.myReplies = myReplies.map(serializeReply);
   }

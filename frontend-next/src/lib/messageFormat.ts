@@ -1,6 +1,20 @@
 // @ts-nocheck
 import { API_ORIGIN } from "@/lib/constants";
 
+export const DELETE_FOR_EVERYONE_MS = 48 * 60 * 60 * 1000;
+
+export function canUnsendForEveryone(message, myUserId) {
+  if (!message || !myUserId) return false;
+  if (Number(message.e2eVersion) > 0) return false;
+  if (message.deletedForEveryone) return false;
+  if (message.scheduledStatus === "pending") return false;
+  const sender = String(message.senderId?._id || message.senderId || "");
+  if (sender !== String(myUserId)) return false;
+  const created = new Date(message.createdAt || 0).getTime();
+  if (!Number.isFinite(created)) return false;
+  return Date.now() - created <= DELETE_FOR_EVERYONE_MS;
+}
+
 export function voiceFileExtension(mime) {
   const m = String(mime || "").toLowerCase();
   if (m.includes("ogg")) return "ogg";

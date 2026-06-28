@@ -57,7 +57,7 @@ export default function PrivacySelectField({
         </button>
       </DropdownTrigger>
       <DropdownPortal>
-        <VegaDropdownContent select align={rtl ? "start" : "end"}>
+        <VegaDropdownContent select scroll align={rtl ? "start" : "end"}>
           {options.map((option) => {
             const selected = option.value === value;
             return (

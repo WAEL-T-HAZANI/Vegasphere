@@ -107,6 +107,7 @@ const listMyStatus = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate("userId", "name profilePic")
       .populate("replies.userId", "name profilePic")
+      .populate("reactions.userId", "name profilePic")
       .lean();
 
     res.json(items.map((item) => serializeStatus(item, uid)));

@@ -30,6 +30,7 @@ export function useConversationMessages({
   const oldestIdRef = useRef(null);
   const loadingOlderRef = useRef(false);
   const convHydratedRef = useRef(false);
+  const [threadLoading, setThreadLoading] = useState(false);
 
   const reloadThread = useCallback(async () => {
     if (!userId || !conversationId) return;
@@ -96,13 +97,17 @@ export function useConversationMessages({
 
   useEffect(() => {
     if (!userId || !conversationId) return;
+    convHydratedRef.current = false;
     let cancelled = false;
+    setThreadLoading(true);
     (async () => {
       try {
         await reloadThread();
         if (cancelled) return;
       } catch {
         if (!cancelled) router.push("/chats");
+      } finally {
+        if (!cancelled) setThreadLoading(false);
       }
     })();
     return () => {
@@ -112,7 +117,7 @@ export function useConversationMessages({
 
   useEffect(() => {
     if (!userId || !cid) return undefined;
-    if (convHydratedRef.current && activeConv) return undefined;
+    convHydratedRef.current = false;
     let cancelled = false;
     (async () => {
       try {
@@ -142,5 +147,6 @@ export function useConversationMessages({
     reloadThread,
     oldestIdRef,
     loadingOlderRef,
+    threadLoading,
   };
 }

@@ -470,6 +470,8 @@ function getLastIncomingMessage(messages) {
     return text;
   }
   const last = messages[messages.length - 1];
+  const lastSender = String(last?.sender || last?.role || "").toLowerCase();
+  if (["me", "user", "assistant"].includes(lastSender)) return "";
   return normalizeText(last?.text || last?.content);
 }
 

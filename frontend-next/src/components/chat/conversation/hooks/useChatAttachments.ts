@@ -64,6 +64,7 @@ function isAllowedAttachment(file) {
   const ext = getFileExtension(file?.name);
   if (!ALLOWED_EXTENSIONS.has(ext)) return false;
   if (!mime) return true;
+  if (mime === "application/octet-stream") return true;
   return (
     ALLOWED_MIME_TYPES.has(mime) ||
     ALLOWED_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix))

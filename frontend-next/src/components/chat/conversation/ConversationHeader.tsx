@@ -268,6 +268,7 @@ export default function ConversationHeader({
         >
           <ConversationCallButtons
             conversationId={cid}
+            peerUserId={peerUserId || ""}
             canCall={canCall}
             compact
             className={cn("gap-1", rtl && "flex-row-reverse")}

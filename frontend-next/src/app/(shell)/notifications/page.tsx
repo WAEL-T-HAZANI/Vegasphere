@@ -207,6 +207,19 @@ export default function NotificationsPage() {
     }
   };
 
+  const deleteAll = async () => {
+    if (!items.length) return;
+    try {
+      setBusyId("delete-all");
+      await notificationsClient.deleteAllNotifications();
+      await loadNotifications();
+    } catch (error) {
+      setMessage(formatApiError(error, t, "errorOccurred"));
+    } finally {
+      setBusyId("");
+    }
+  };
+
   const dismiss = async (item: AppNotification) => {
     const id = String(item._id || "");
     if (!id) return;
@@ -267,7 +280,15 @@ export default function NotificationsPage() {
           />
         }
       >
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => void deleteAll()}
+            disabled={!items.length || busyId === "delete-all"}
+            className="vs-btn-outline-sm px-4 py-2 disabled:opacity-50"
+          >
+            {busyId === "delete-all" ? "…" : t("notificationsDeleteAll")}
+          </button>
           <button
             type="button"
             onClick={() => void markAllRead()}

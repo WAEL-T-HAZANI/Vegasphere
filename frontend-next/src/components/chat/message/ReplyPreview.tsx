@@ -26,7 +26,7 @@ export default function ReplyPreview({
         "mb-2 flex w-full items-center gap-2 rounded-2xl border px-2.5 py-2 text-left transition",
         isMine
           ? "border-white/20 bg-white/10 hover:bg-white/15"
-          : "border-brand-500/20 bg-brand-500/5 hover:bg-brand-500/10 dark:border-brand-700/40 dark:bg-gradient-to-br dark:from-brand-900/35 dark:to-red-950/22 dark:hover:from-brand-900/45 dark:hover:to-red-950/30"
+          : "border-brand-500/20 bg-brand-500/5 hover:bg-brand-500/10 dark:border-white/10 dark:bg-white/[0.06] dark:hover:bg-white/[0.09]"
       )}
     >
       <span

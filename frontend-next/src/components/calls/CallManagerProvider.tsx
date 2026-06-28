@@ -16,6 +16,7 @@ import {
   stripCallSearchParams,
 } from "@/lib/callContext";
 import { setSidebarOpen } from "@/store/slices/uiSlice";
+import { callsClient } from "@/lib/clients";
 import { useWebRtcCall } from "@/components/calls/hooks/useWebRtcCall";
 import { useWebRtcGroupMesh } from "@/components/calls/hooks/useWebRtcGroupMesh";
 import CallScreenOverlay from "@/components/calls/CallScreenOverlay";
@@ -113,18 +114,37 @@ export default function CallManagerProvider() {
     if (dmCallRef.current.callState !== "idle") return;
     if (groupCallRef.current.callState !== "idle") return;
 
-    autocallStartedRef.current = true;
-    const wantVideo = mode === "video";
+    const peerUserId = targets.peerUserId;
 
-    if (targets.isGroup && targets.groupPeerIds.length > 0) {
-      groupCallRef.current.startGroupCall(targets.groupPeerIds, wantVideo, chatId);
-      return;
-    }
+    void (async () => {
+      if (peerUserId) {
+        try {
+          const { data } = await callsClient.canRingUser(peerUserId);
+          if (!data?.allowed) {
+            const params = stripCallSearchParams(searchParams, { stripFrom: true });
+            const qs = params.toString();
+            router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+            return;
+          }
+        } catch {
+          return;
+        }
+      }
 
-    if (targets.peerUserId) {
-      dmCallRef.current.startOutgoing(targets.peerUserId, wantVideo, chatId);
-    }
-  }, [myUserId, chatId, wantsAutocall, mode, targets]);
+      if (autocallStartedRef.current) return;
+      autocallStartedRef.current = true;
+      const wantVideo = mode === "video";
+
+      if (targets.isGroup && targets.groupPeerIds.length > 0) {
+        groupCallRef.current.startGroupCall(targets.groupPeerIds, wantVideo, chatId);
+        return;
+      }
+
+      if (targets.peerUserId) {
+        dmCallRef.current.startOutgoing(targets.peerUserId, wantVideo, chatId);
+      }
+    })();
+  }, [myUserId, chatId, wantsAutocall, mode, targets, pathname, router, searchParams]);
 
   useEffect(() => {
     const anyActive =
