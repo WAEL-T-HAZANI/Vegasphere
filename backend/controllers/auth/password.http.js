@@ -62,6 +62,7 @@ const forgotPassword = async (req, res) => {
     if (debug) {
       return res.json({
         ...FORGOT_OK,
+        resetCode: rawToken,
         debugResetToken: rawToken,
       });
     }

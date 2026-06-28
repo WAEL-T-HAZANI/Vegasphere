@@ -14,6 +14,7 @@ import AuthField from "@/components/ui/AuthField";
 
 type ForgotDone = {
   message?: string;
+  resetCode?: string;
   debugResetToken?: string;
 };
 
@@ -55,7 +56,7 @@ export default function ForgotPasswordPage() {
   };
 
   if (done) {
-    const tok = done.debugResetToken;
+    const tok = done.resetCode || done.debugResetToken;
     const href = tok
       ? `/reset-password?token=${encodeURIComponent(tok)}`
       : "/reset-password";
