@@ -83,9 +83,6 @@ export default function ForgotPasswordPage() {
         {tok ? (
           <div className="rounded-2xl border vega-hairline bg-[rgb(var(--vega-paper)/0.5)] p-5">
             <p className="text-xs vega-muted">{t("forgotPasswordDevTokenHint")}</p>
-            <pre className="mt-3 max-h-32 overflow-auto break-all rounded-xl border vega-hairline bg-[rgb(var(--vega-paper))] px-3 py-2 text-xs vega-muted">
-              {tok}
-            </pre>
             <Link href={href} className="vega-btn-accent mt-4 inline-flex h-11 w-full">
               {t("continueToReset")}
             </Link>

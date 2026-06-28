@@ -35,6 +35,8 @@ function ResetPasswordInner() {
     if (urlToken) setToken(urlToken);
   }, [urlToken]);
 
+  const tokenFromLink = Boolean(urlToken);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -114,24 +116,50 @@ function ResetPasswordInner() {
     >
       <AuthFormHeader
         title={t("resetPasswordTitle")}
-        subtitle={t("resetPasswordHint")}
+        subtitle={
+          tokenFromLink
+            ? t("resetPasswordHintFromLink")
+            : t("resetPasswordHint")
+        }
       />
 
       <form onSubmit={onSubmit} noValidate className="space-y-4">
-        <AuthField
-          icon={KeyRound}
-          id="rp-token"
-          label={t("resetPasswordTokenLabel")}
-          type="text"
-          autoComplete="off"
-          value={token}
-          onChange={(v) => {
-            setToken(v);
-            if (tokenError) setTokenError("");
-          }}
-          mono
-          error={tokenError}
-        />
+        {tokenFromLink ? (
+          <AuthField
+            icon={KeyRound}
+            id="rp-token"
+            label={t("resetPasswordTokenLockedLabel")}
+            type="password"
+            autoComplete="off"
+            value={token}
+            onChange={() => {}}
+            readOnly
+            disabled
+            passwordToggle={false}
+            copyProtected
+          />
+        ) : (
+          <AuthField
+            icon={KeyRound}
+            id="rp-token"
+            label={t("resetPasswordTokenLabel")}
+            type="password"
+            autoComplete="off"
+            value={token}
+            onChange={(v) => {
+              setToken(v);
+              if (tokenError) setTokenError("");
+            }}
+            passwordToggle={false}
+            error={tokenError}
+          />
+        )}
+
+        {tokenFromLink && tokenError ? (
+          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+            {tokenError}
+          </p>
+        ) : null}
 
         <AuthField
           icon={Lock}

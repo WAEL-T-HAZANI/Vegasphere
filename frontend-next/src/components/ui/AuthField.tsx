@@ -22,6 +22,10 @@ export type AuthFieldProps = {
   error?: string;
   /** Show eye toggle for password fields (default: true when type is password). */
   passwordToggle?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
+  /** Block copy/cut/context menu on the input (locked secrets). */
+  copyProtected?: boolean;
   compact?: boolean;
 };
 
@@ -38,12 +42,16 @@ export default function AuthField({
   inputMode,
   error,
   passwordToggle,
+  readOnly = false,
+  disabled = false,
+  copyProtected = false,
   compact = false,
 }: AuthFieldProps) {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   const isPasswordField = type === "password";
-  const showToggle = passwordToggle ?? isPasswordField;
+  const showToggle =
+    !readOnly && !disabled && (passwordToggle ?? isPasswordField);
   const [visible, setVisible] = useState(false);
   const inputType = isPasswordField && showToggle && visible ? "text" : type;
 
@@ -71,6 +79,11 @@ export default function AuthField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        readOnly={readOnly}
+        disabled={disabled}
+        onCopy={copyProtected ? (e) => e.preventDefault() : undefined}
+        onCut={copyProtected ? (e) => e.preventDefault() : undefined}
+        onContextMenu={copyProtected ? (e) => e.preventDefault() : undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         dir={isPasswordField ? "ltr" : undefined}
@@ -105,6 +118,7 @@ export default function AuthField({
           compact && "py-2.5",
           mono ? "font-mono text-xs sm:text-sm" : undefined,
           isPasswordField && (isRtl ? "text-end" : "text-start"),
+          copyProtected && "select-none",
         )}
       />
 
