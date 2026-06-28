@@ -8,6 +8,7 @@ const {
   verifySmtpConnection,
 } = require("../services/mailer.js");
 const { isPushConfigured } = require("../services/push-notify.js");
+const { isEnvTruthy } = require("../config/env.js");
 const router = express.Router();
 
 router.get("/health", (req, res) => {
@@ -59,6 +60,9 @@ router.get("/ready", async (req, res) => {
       mongoWrite,
       smtp,
       vapid,
+      passwordResetDebug: isEnvTruthy(process.env.PASSWORD_RESET_DEBUG)
+        ? "on"
+        : "off",
       redis: redisConfigured ? (redisReady ? "up" : "down") : "skipped",
     },
   };
