@@ -51,7 +51,8 @@ async function sendMailWithRetry(transporter, mailOptions, attempts = 2) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
     try {
-      return await transporter.sendMail(mailOptions);
+      const info = await transporter.sendMail(mailOptions);
+      return info;
     } catch (err) {
       lastErr = err;
       if (i < attempts - 1) {
@@ -160,6 +161,7 @@ async function sendPasswordResetEmail({ to, resetUrl, userName }) {
     throw new Error("SMTP is not configured");
   }
   const from = resolveMailFrom();
+  const smtpUser = stripEnvQuotes(process.env.SMTP_USER);
   const subject =
     process.env.MAIL_SUBJECT_RESET || "Reset your Vegasphere password";
   const greeting = userName ? `Hi ${userName}` : "Hi";
@@ -176,17 +178,19 @@ If you did not request this, you can ignore this email.`;
 <p>This link expires in one hour.</p>
 <p>If you did not request this, you can ignore this email.</p>`;
 
-  await sendMailWithRetry(transporter, {
+  const info = await sendMailWithRetry(transporter, {
     from,
     to,
     subject,
     text,
     html,
+    envelope: smtpUser ? { from: smtpUser, to } : undefined,
     headers: {
       "Auto-Submitted": "auto-generated",
       "X-Entity-Ref-ID": `reset-${Date.now()}`,
     },
   });
+  return info;
 }
 
 /**

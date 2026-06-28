@@ -34,15 +34,21 @@ const forgotPassword = async (req, res) => {
     let mailSent = false;
     if (isSmtpConfigured()) {
       try {
-        await sendPasswordResetEmail({
+        const info = await sendPasswordResetEmail({
           to: user.email,
           resetUrl,
           userName: user.name,
         });
         mailSent = true;
-        console.log("[mail] password reset email sent");
+        console.log(
+          "[mail] password reset email sent",
+          info?.messageId ? `id=${info.messageId}` : "",
+        );
       } catch (err) {
         console.error("[mail] password reset email failed:", formatSmtpError(err));
+        throw ApiError.serviceUnavailable(
+          "We could not send the reset email right now. Please try again in a few minutes.",
+        );
       }
     } else if (process.env.PASSWORD_RESET_DEBUG !== "1") {
       console.warn(
