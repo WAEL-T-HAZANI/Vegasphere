@@ -155,7 +155,7 @@ function escapeHtml(s) {
 /**
  * @param {{ to: string, resetUrl: string, userName?: string }} opts
  */
-async function sendPasswordResetEmail({ to, resetUrl, userName }) {
+async function sendPasswordResetEmail({ to, resetUrl, resetToken, userName }) {
   const transporter = createTransport();
   if (!transporter) {
     throw new Error("SMTP is not configured");
@@ -165,17 +165,32 @@ async function sendPasswordResetEmail({ to, resetUrl, userName }) {
   const subject =
     process.env.MAIL_SUBJECT_RESET || "Reset your Vegasphere password";
   const greeting = userName ? `Hi ${userName}` : "Hi";
+  let token = String(resetToken || "").trim();
+  if (!token) {
+    try {
+      token = new URL(resetUrl).searchParams.get("token") || "";
+    } catch {
+      token = "";
+    }
+  }
+  const tokenBlock = token
+    ? `\n\nYour reset code (valid for 1 hour):\n${token}\n`
+    : "";
   const text = `${greeting},
 
 Reset your password by opening this link (valid for 1 hour):
 ${resetUrl}
+${tokenBlock}
+If the button does not work, copy the reset code above into the reset page on Vegasphere.
 
 If you did not request this, you can ignore this email.`;
 
   const safeName = userName ? escapeHtml(userName) : "";
+  const safeToken = token ? escapeHtml(token) : "";
   const html = `<p>${userName ? `Hi ${safeName}` : "Hi"},</p>
 <p><a href="${resetUrl.replace(/"/g, "")}">Reset your password</a></p>
-<p>This link expires in one hour.</p>
+${token ? `<p>Or copy this reset code:</p><p style="font-family:monospace;word-break:break-all;">${safeToken}</p>` : ""}
+<p>This link and code expire in one hour.</p>
 <p>If you did not request this, you can ignore this email.</p>`;
 
   const info = await sendMailWithRetry(transporter, {

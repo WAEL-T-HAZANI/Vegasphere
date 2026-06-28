@@ -37,6 +37,7 @@ const forgotPassword = async (req, res) => {
         const info = await sendPasswordResetEmail({
           to: user.email,
           resetUrl,
+          resetToken: rawToken,
           userName: user.name,
         });
         mailSent = true;

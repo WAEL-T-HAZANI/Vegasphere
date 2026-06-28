@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
@@ -18,16 +18,24 @@ import { showAuthErrorToast, showAuthSuccessToast } from "@/lib/authToast";
 import AuthFormHeader from "@/components/marketing/AuthFormHeader";
 import AuthField from "@/components/ui/AuthField";
 
-export default function ResetPasswordClient({ initialToken }) {
+function ResetPasswordInner() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlToken = String(searchParams.get("token") || "").trim();
 
-  const [token, setToken] = useState(initialToken || "");
+  const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
   const [tokenError, setTokenError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+
+  useEffect(() => {
+    if (urlToken) setToken(urlToken);
+  }, [urlToken]);
+
+  const tokenFromLink = Boolean(urlToken);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +43,7 @@ export default function ResetPasswordClient({ initialToken }) {
     const trimmedToken = token.trim();
     const nextTokenError = !trimmedToken ? t("resetPasswordTokenRequired") : "";
     const nextPasswordError =
-      password.length < 6 ? t("passwordMinLengthError") : "";
+      password.length < 8 ? t("passwordMinLengthError") : "";
 
     if (nextTokenError || nextPasswordError) {
       setTokenError(nextTokenError);
@@ -108,24 +116,34 @@ export default function ResetPasswordClient({ initialToken }) {
     >
       <AuthFormHeader
         title={t("resetPasswordTitle")}
-        subtitle={t("resetPasswordHint")}
+        subtitle={
+          tokenFromLink
+            ? t("resetPasswordHintFromLink")
+            : t("resetPasswordHint")
+        }
       />
 
       <form onSubmit={onSubmit} noValidate className="space-y-4">
-        <AuthField
-          icon={KeyRound}
-          id="rp-token"
-          label={t("resetPasswordTokenLabel")}
-          type="text"
-          autoComplete="off"
-          value={token}
-          onChange={(v) => {
-            setToken(v);
-            if (tokenError) setTokenError("");
-          }}
-          mono
-          error={tokenError}
-        />
+        {!tokenFromLink ? (
+          <AuthField
+            icon={KeyRound}
+            id="rp-token"
+            label={t("resetPasswordTokenLabel")}
+            type="text"
+            autoComplete="off"
+            value={token}
+            onChange={(v) => {
+              setToken(v);
+              if (tokenError) setTokenError("");
+            }}
+            mono
+            error={tokenError}
+          />
+        ) : tokenError ? (
+          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+            {tokenError}
+          </p>
+        ) : null}
 
         <AuthField
           icon={Lock}
@@ -166,5 +184,19 @@ export default function ResetPasswordClient({ initialToken }) {
         </Link>
       </div>
     </motion.div>
+  );
+}
+
+export default function ResetPasswordClient() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-10 w-10 animate-spin vega-brand-text" />
+        </div>
+      }
+    >
+      <ResetPasswordInner />
+    </Suspense>
   );
 }
