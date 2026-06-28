@@ -35,8 +35,6 @@ function ResetPasswordInner() {
     if (urlToken) setToken(urlToken);
   }, [urlToken]);
 
-  const tokenFromLink = Boolean(urlToken);
-
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -116,34 +114,24 @@ function ResetPasswordInner() {
     >
       <AuthFormHeader
         title={t("resetPasswordTitle")}
-        subtitle={
-          tokenFromLink
-            ? t("resetPasswordHintFromLink")
-            : t("resetPasswordHint")
-        }
+        subtitle={t("resetPasswordHint")}
       />
 
       <form onSubmit={onSubmit} noValidate className="space-y-4">
-        {!tokenFromLink ? (
-          <AuthField
-            icon={KeyRound}
-            id="rp-token"
-            label={t("resetPasswordTokenLabel")}
-            type="text"
-            autoComplete="off"
-            value={token}
-            onChange={(v) => {
-              setToken(v);
-              if (tokenError) setTokenError("");
-            }}
-            mono
-            error={tokenError}
-          />
-        ) : tokenError ? (
-          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-            {tokenError}
-          </p>
-        ) : null}
+        <AuthField
+          icon={KeyRound}
+          id="rp-token"
+          label={t("resetPasswordTokenLabel")}
+          type="text"
+          autoComplete="off"
+          value={token}
+          onChange={(v) => {
+            setToken(v);
+            if (tokenError) setTokenError("");
+          }}
+          mono
+          error={tokenError}
+        />
 
         <AuthField
           icon={Lock}

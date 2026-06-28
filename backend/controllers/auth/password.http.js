@@ -58,7 +58,7 @@ const forgotPassword = async (req, res) => {
     }
 
     const debug = process.env.PASSWORD_RESET_DEBUG === "1";
-    if (!mailSent && debug) {
+    if (debug) {
       return res.json({
         ...FORGOT_OK,
         debugResetToken: rawToken,
