@@ -6,9 +6,20 @@ function isSmtpConfigured() {
   );
 }
 
+function stripEnvQuotes(value) {
+  let v = String(value || "").trim();
+  while (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1).trim();
+  }
+  return v;
+}
+
 function resolveMailFrom() {
-  const user = String(process.env.SMTP_USER || "").trim();
-  const raw = String(process.env.MAIL_FROM || "").trim();
+  const user = stripEnvQuotes(process.env.SMTP_USER);
+  let raw = stripEnvQuotes(process.env.MAIL_FROM);
   if (!user) {
     return raw || '"Vegasphere" <noreply@vegasphere.local>';
   }
@@ -18,7 +29,37 @@ function resolveMailFrom() {
   ) {
     return `"Vegasphere" <${user}>`;
   }
+  const addrMatch = raw.match(/<([^>]+)>/);
+  const addr = (addrMatch ? addrMatch[1] : raw).trim().toLowerCase();
+  const isGmail = /gmail\.com/i.test(String(process.env.SMTP_HOST || ""));
+  if (isGmail && addr !== user.toLowerCase()) {
+    const nameMatch = raw.match(/^"([^"]+)"/);
+    const display = nameMatch?.[1] || "Vegasphere";
+    return `"${display}" <${user}>`;
+  }
   return raw;
+}
+
+function formatSmtpError(err) {
+  const parts = [err?.message || String(err)];
+  if (err?.responseCode) parts.push(`code=${err.responseCode}`);
+  if (err?.response) parts.push(String(err.response).slice(0, 240));
+  return parts.join(" | ");
+}
+
+async function sendMailWithRetry(transporter, mailOptions, attempts = 2) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await transporter.sendMail(mailOptions);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+    }
+  }
+  throw lastErr;
 }
 
 function getMailHealth() {
@@ -135,12 +176,16 @@ If you did not request this, you can ignore this email.`;
 <p>This link expires in one hour.</p>
 <p>If you did not request this, you can ignore this email.</p>`;
 
-  await transporter.sendMail({
+  await sendMailWithRetry(transporter, {
     from,
     to,
     subject,
     text,
     html,
+    headers: {
+      "Auto-Submitted": "auto-generated",
+      "X-Entity-Ref-ID": `reset-${Date.now()}`,
+    },
   });
 }
 
@@ -168,13 +213,14 @@ If you did not create an account, you can ignore this email.`;
 <p><a href="${verifyUrl.replace(/"/g, "")}">Verify your email</a></p>
 <p>This link expires in 24 hours.</p>`;
 
-  await transporter.sendMail({
+  await sendMailWithRetry(transporter, {
     from,
     to,
     subject,
     text,
     html,
     headers: {
+      "Auto-Submitted": "auto-generated",
       "X-Entity-Ref-ID": `verify-${Date.now()}`,
     },
   });
@@ -260,4 +306,5 @@ module.exports = {
   sendVerificationEmail,
   sendLoginAlertEmail,
   sendUserReportEmail,
+  formatSmtpError,
 };

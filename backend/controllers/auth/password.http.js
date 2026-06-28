@@ -6,6 +6,7 @@ const User = require("../../models/User.js");
 const {
   sendPasswordResetEmail,
   isSmtpConfigured,
+  formatSmtpError,
 } = require("../../services/mailer.js");
 const { hashResetToken, FORGOT_OK } = require("./helpers.js");
 
@@ -39,8 +40,9 @@ const forgotPassword = async (req, res) => {
           userName: user.name,
         });
         mailSent = true;
+        console.log("[mail] password reset email sent");
       } catch (err) {
-        console.error("Password reset email failed:", err.message);
+        console.error("[mail] password reset email failed:", formatSmtpError(err));
       }
     } else if (process.env.PASSWORD_RESET_DEBUG !== "1") {
       console.warn(
