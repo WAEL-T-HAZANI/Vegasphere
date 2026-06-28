@@ -472,7 +472,7 @@
   "forgotPassword": "Forgot password?",
   "forgotPasswordBack": "Back to sign in",
   "forgotPasswordCheckInbox": "Check your inbox and spam folder. The link expires in one hour.",
-  "forgotPasswordDevTokenHint": "Reset code received. Tap continue to choose a new password.",
+  "forgotPasswordDevTokenHint": "Use continue right away on this device. Do not request another reset or this code will stop working.",
   "forgotPasswordHint": "Enter your account email.",
   "forgotPasswordSubmit": "Send reset request",
   "forgotPasswordTitle": "Reset password",

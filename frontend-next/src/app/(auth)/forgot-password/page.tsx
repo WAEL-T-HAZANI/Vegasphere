@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
@@ -9,6 +10,7 @@ import { api } from "@/lib/api";
 import { formatApiError, formatApiMessage } from "@/lib/apiError";
 import { validateEmailField } from "@/lib/authValidation";
 import { showAuthErrorToast, showAuthSuccessToast } from "@/lib/authToast";
+import { writeResetTokenToStorage } from "@/lib/resetTokenStorage";
 import AuthFormHeader from "@/components/marketing/AuthFormHeader";
 import AuthField from "@/components/ui/AuthField";
 
@@ -20,6 +22,7 @@ type ForgotDone = {
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation();
+  const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,9 +60,12 @@ export default function ForgotPasswordPage() {
 
   if (done) {
     const tok = done.resetCode || done.debugResetToken;
-    const href = tok
-      ? `/reset-password?token=${encodeURIComponent(tok)}`
-      : "/reset-password";
+
+    const continueToReset = () => {
+      if (!tok) return;
+      writeResetTokenToStorage(tok);
+      router.push("/reset-password");
+    };
 
     return (
       <motion.div
@@ -83,9 +89,13 @@ export default function ForgotPasswordPage() {
         {tok ? (
           <div className="rounded-2xl border vega-hairline bg-[rgb(var(--vega-paper)/0.5)] p-5">
             <p className="text-xs vega-muted">{t("forgotPasswordDevTokenHint")}</p>
-            <Link href={href} className="vega-btn-accent mt-4 inline-flex h-11 w-full">
+            <button
+              type="button"
+              onClick={continueToReset}
+              className="vega-btn-accent mt-4 inline-flex h-11 w-full"
+            >
               {t("continueToReset")}
-            </Link>
+            </button>
           </div>
         ) : null}
 

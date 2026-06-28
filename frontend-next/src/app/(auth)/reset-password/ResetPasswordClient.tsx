@@ -17,6 +17,10 @@ import { formatApiError, formatApiMessage, mapResetApiError } from "@/lib/apiErr
 import { showAuthErrorToast, showAuthSuccessToast } from "@/lib/authToast";
 import AuthFormHeader from "@/components/marketing/AuthFormHeader";
 import AuthField from "@/components/ui/AuthField";
+import {
+  clearResetTokenFromStorage,
+  readResetTokenFromStorage,
+} from "@/lib/resetTokenStorage";
 
 function ResetPasswordInner() {
   const { t } = useTranslation();
@@ -25,6 +29,7 @@ function ResetPasswordInner() {
   const urlToken = String(searchParams.get("token") || "").trim();
 
   const [token, setToken] = useState("");
+  const [tokenLocked, setTokenLocked] = useState(false);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
@@ -32,10 +37,13 @@ function ResetPasswordInner() {
   const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
-    if (urlToken) setToken(urlToken);
+    const fromUrl = urlToken;
+    const fromStorage = readResetTokenFromStorage();
+    const resolved = fromUrl || fromStorage;
+    if (!resolved) return;
+    setToken(resolved);
+    setTokenLocked(true);
   }, [urlToken]);
-
-  const tokenFromLink = Boolean(urlToken);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +75,7 @@ function ResetPasswordInner() {
           : "";
 
       if (message) {
+        clearResetTokenFromStorage();
         setOk(true);
         showAuthSuccessToast(
           formatApiMessage(message, t, "resetPasswordSuccessToast"),
@@ -117,14 +126,14 @@ function ResetPasswordInner() {
       <AuthFormHeader
         title={t("resetPasswordTitle")}
         subtitle={
-          tokenFromLink
+          tokenLocked
             ? t("resetPasswordHintFromLink")
             : t("resetPasswordHint")
         }
       />
 
       <form onSubmit={onSubmit} noValidate className="space-y-4">
-        {tokenFromLink ? (
+        {tokenLocked ? (
           <AuthField
             icon={KeyRound}
             id="rp-token"
@@ -155,7 +164,7 @@ function ResetPasswordInner() {
           />
         )}
 
-        {tokenFromLink && tokenError ? (
+        {tokenLocked && tokenError ? (
           <p className="text-sm text-red-600 dark:text-red-400" role="alert">
             {tokenError}
           </p>

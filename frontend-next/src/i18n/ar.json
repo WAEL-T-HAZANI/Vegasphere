@@ -481,7 +481,7 @@
   "forgotPassword": "نسيت كلمة المرور؟",
   "forgotPasswordBack": "العودة لتسجيل الدخول",
   "forgotPasswordCheckInbox": "تحقق من صندوق الوارد والبريد غير الهام. الرابط صالح لمدة ساعة.",
-  "forgotPasswordDevTokenHint": "تم استلام رمز إعادة التعيين. اضغط متابعة لاختيار كلمة مرور جديدة.",
+  "forgotPasswordDevTokenHint": "اضغط متابعة فوراً على هذا الجهاز. لا تطلب إعادة تعيين مرة أخرى وإلا سيتوقف هذا الرمز عن العمل.",
   "forgotPasswordHint": "أدخل بريدك الإلكتروني.",
   "forgotPasswordSubmit": "إرسال طلب إعادة التعيين",
   "forgotPasswordTitle": "إعادة تعيين كلمة المرور",
