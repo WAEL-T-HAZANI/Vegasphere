@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
 import { formatApiError } from "@/lib/apiError";
-import { showAuthErrorToast, showAuthSuccessToast } from "@/lib/authToast";
+import { showAppToast } from "@/lib/appToast";
 
 export default function ReportUserSection() {
   const { t } = useTranslation();
@@ -15,7 +15,7 @@ export default function ReportUserSection() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const q = query.trim();
+    const q = query.trim().replace(/^@+/, "");
     if (q.length < 2 || target) {
       setResults([]);
       return;
@@ -36,23 +36,28 @@ export default function ReportUserSection() {
     const id = String(target?._id || "");
     const text = reason.trim();
     if (!id) {
-      showAuthErrorToast(t("privacyReportPickUser"), "auth-error");
+      showAppToast({ id: "report-pick-user", body: t("privacyReportPickUser") });
       return;
     }
     if (text.length < 4) {
-      showAuthErrorToast(t("privacyReportReasonShort"), "auth-error");
+      showAppToast({ id: "report-reason-short", body: t("privacyReportReasonShort") });
       return;
     }
     setBusy(true);
     try {
-      await api.post(`/user/report/${id}`, { reason: text });
+      const { data } = await api.post(`/user/report/${id}`, { reason: text });
       setTarget(null);
       setQuery("");
       setReason("");
       setResults([]);
-      showAuthSuccessToast(t("privacyReportSent"), "auth-success");
+      showAppToast({
+        id: "report-sent",
+        body: data?.adminNotified
+          ? t("privacyReportAdminNotified")
+          : t("privacyReportStored"),
+      });
     } catch (err) {
-      showAuthErrorToast(formatApiError(err, t), "auth-error");
+      showAppToast({ id: "report-err", body: formatApiError(err, t) });
     } finally {
       setBusy(false);
     }

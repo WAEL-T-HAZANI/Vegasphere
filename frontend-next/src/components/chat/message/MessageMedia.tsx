@@ -40,7 +40,7 @@ export default function MessageMedia({
   const autoLoadMedia = shouldAutoLoadMedia();
   const [manualMediaLoad, setManualMediaLoad] = useState(false);
   const [videoPosterReady, setVideoPosterReady] = useState(false);
-  const loadInlineMedia = autoLoadMedia || manualMediaLoad;
+  const loadInlineMedia = showImage ? true : autoLoadMedia || manualMediaLoad;
 
   const requestInlineLoad = () => {
     onManualMediaLoad?.();

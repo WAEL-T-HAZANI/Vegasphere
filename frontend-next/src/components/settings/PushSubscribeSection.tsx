@@ -133,7 +133,7 @@ export default function PushSubscribeSection({
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={disabled}
+          disabled={busy || pushSaving}
           onClick={subscribe}
           className="vs-btn-primary-sm px-5 py-2.5 disabled:opacity-60"
         >

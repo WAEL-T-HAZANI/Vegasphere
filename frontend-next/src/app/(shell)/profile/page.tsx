@@ -37,6 +37,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarImgFailed, setAvatarImgFailed] = useState(false);
   const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [pendingAvatarRemove, setPendingAvatarRemove] = useState(false);
@@ -147,8 +148,8 @@ export default function ProfilePage() {
     dirty,
   ]);
 
-  const stageAvatarFile = (file: File | undefined) => {
-    if (!file) return;
+  const stageAvatarFile = async (file: File | undefined) => {
+    if (!file || avatarUploading) return;
     const mime = String(file.type || "").toLowerCase();
     if (!mime.startsWith("image/")) {
       showAppToast({
@@ -169,6 +170,22 @@ export default function ProfilePage() {
     setPendingAvatarRemove(false);
     setAvatarPreviewUrl(URL.createObjectURL(file));
     setAvatarImgFailed(false);
+    setAvatarUploading(true);
+    try {
+      const form = new FormData();
+      form.append("avatar", file, file.name || "avatar.png");
+      const { data } = await userClient.uploadAvatar(form);
+      setProfilePic(data?.url || "");
+      setPendingAvatarFile(null);
+      clearAvatarPreview();
+      await refreshUser();
+      showAppToast({ id: "profile-avatar-live", body: t("profileSaved") });
+    } catch (err) {
+      toastError(err);
+      resetAvatarStaging();
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const stageAvatarRemoval = () => {
@@ -353,9 +370,9 @@ export default function ProfilePage() {
                 type="file"
                 accept="image/jpeg,image/png,image/gif,image/webp"
                 className="hidden"
-                disabled={saving}
+                disabled={saving || avatarUploading}
                 onChange={(e) => {
-                  stageAvatarFile(e.target.files?.[0]);
+                  void stageAvatarFile(e.target.files?.[0]);
                 }}
               />
 

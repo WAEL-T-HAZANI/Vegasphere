@@ -22,10 +22,7 @@ import { createClientTempId } from "@/lib/chatConversation";
 import { buildRetrySendPayload } from "@/lib/messageSendPayload";
 import { formatApiError } from "@/lib/apiError";
 
-const SEND_ACK_TIMEOUT_MS = 10000;
-
-export function useChatOutgoing({
-  conversationId,
+export function useChatOutgoing({  conversationId,
   cid,
   user,
   t,
@@ -148,28 +145,31 @@ export function useChatOutgoing({
       const requestPayload = { ...base, clientTempId };
       try {
         if (socket?.connected) {
-          const ack = await new Promise((resolve, reject) => {
-            const timer = setTimeout(
-              () => reject(new Error("Message send timed out")),
-              SEND_ACK_TIMEOUT_MS,
+          socket.emit("send-message", requestPayload, (response) => {
+            if (!response?.ok || !response?.message) {
+              dispatch(
+                markOptimisticMessageStatus({
+                  conversationId: threadId,
+                  clientTempId,
+                  status: "failed",
+                  error: formatApiError(
+                    new Error(response?.error || t("messageSendFailed")),
+                    t,
+                    "messageSendFailed",
+                  ),
+                }),
+              );
+              return;
+            }
+            dispatch(
+              reconcileOptimisticMessage({
+                conversationId: threadId,
+                clientTempId,
+                message: response.message,
+              }),
             );
-            socket.emit("send-message", requestPayload, (response) => {
-              clearTimeout(timer);
-              if (!response?.ok || !response?.message) {
-                reject(new Error(response?.error || t("messageSendFailed")));
-                return;
-              }
-              resolve(response);
-            });
           });
-          dispatch(
-            reconcileOptimisticMessage({
-              conversationId: threadId,
-              clientTempId,
-              message: ack.message,
-            }),
-          );
-          return { ok: true, clientTempId, message: ack.message };
+          return { ok: true, clientTempId };
         }
         try {
           const { senderId: _sk, ...rest } = base;

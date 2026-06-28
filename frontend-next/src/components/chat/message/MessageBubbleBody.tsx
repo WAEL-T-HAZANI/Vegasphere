@@ -416,13 +416,21 @@ function MessageBubbleBody({
                 const uid = String(contactPayload.contactUserId || "");
                 if (!uid) return;
                 try {
-                  const { data } = await api.get(`/user/${uid}/contact.vcf`, {
-                    responseType: "blob",
-                  });
-                  const blob =
-                    data instanceof Blob
-                      ? data
-                      : new Blob([String(data)], { type: "text/vcard" });
+                  const paths = [`/user/${uid}/contact.vcf`, `/user/${uid}/contact.json`];
+                  let blob: Blob | null = null;
+                  for (const path of paths) {
+                    try {
+                      const { data } = await api.get(path, { responseType: "blob" });
+                      blob =
+                        data instanceof Blob
+                          ? data
+                          : new Blob([String(data)], { type: "text/vcard" });
+                      break;
+                    } catch {
+                      /* try next */
+                    }
+                  }
+                  if (!blob) return;
                   const url = URL.createObjectURL(blob);
                   const fname = String(
                     contactPayload?.name || contactPayload?.username || "contact",

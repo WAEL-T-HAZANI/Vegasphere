@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Copy, Globe, Hash, Lock, Megaphone, Shield } from "lucide-react";
+import { Copy, Download, Globe, Hash, Lock, Megaphone, Shield } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/classNames";
 import {
@@ -14,6 +14,8 @@ import {
 } from "@/lib/channelsHub";
 import { displayTopicName } from "@/lib/topicDisplay";
 import { showAppToast } from "@/lib/appToast";
+import { api } from "@/lib/api";
+import { triggerBrowserDownload } from "@/lib/messageFormat";
 import type { Conversation } from "@/types/api";
 
 type ChannelInfoOverviewProps = {
@@ -64,6 +66,24 @@ export default function ChannelInfoOverview({
       showAppToast({ id: "channel-slug-copy", body: t("channelInfoSlugCopied") });
     } catch {
       showAppToast({ id: "channel-slug-copy-err", body: t("copyFailed") });
+    }
+  };
+
+  const exportChat = async () => {
+    try {
+      const { data } = await api.get(`/message/export/${conversationId}`, {
+        responseType: "blob",
+      });
+      const blob =
+        data instanceof Blob
+          ? data
+          : new Blob([JSON.stringify(data)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      triggerBrowserDownload(url, `vegasphere-export-${conversationId.slice(-8)}.json`);
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      showAppToast({ id: "export-done", body: t("exportConversationDone") });
+    } catch {
+      showAppToast({ id: "export-err", body: t("exportConversationFailed") });
     }
   };
 
@@ -147,6 +167,18 @@ export default function ChannelInfoOverview({
           {t("channelInfoBrowseDirectory")}
         </Link>
       ) : null}
+
+      <div className="flex flex-col gap-2 border-t border-brand-200/35 pt-4 dark:border-brand-800/30">
+        <button
+          type="button"
+          onClick={() => void exportChat()}
+          className="vs-btn-outline inline-flex min-h-10 w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
+        >
+          <Download className="h-4 w-4 shrink-0" aria-hidden />
+          {t("exportConversation")}
+        </button>
+        <p className="text-xs text-muted">{t("chatExportHint")}</p>
+      </div>
     </section>
   );
 }

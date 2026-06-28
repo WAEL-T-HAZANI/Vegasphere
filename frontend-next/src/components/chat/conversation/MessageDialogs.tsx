@@ -119,7 +119,7 @@ export function DeleteAccountDialog({ open, onOpenChange, onConfirm, busy = fals
         <Dialog.Overlay className="fixed inset-0 z-[92] bg-black/40" />
         <Dialog.Content className="vs-dialog-content fixed left-1/2 top-1/2 z-[93] w-[min(92vw,400px)] -translate-x-1/2 -translate-y-1/2 p-4">
           <Dialog.Title className="text-lg font-semibold text-red-800 dark:text-red-200">
-            {t("privacyDeleteAccount")}
+            {t("privacyDeleteAccountAction")}
           </Dialog.Title>
           <p className="mt-2 text-sm text-muted">{t("privacyDeleteAccountConfirm")}</p>
           <div className="mt-4 flex justify-end gap-2">
@@ -134,7 +134,7 @@ export function DeleteAccountDialog({ open, onOpenChange, onConfirm, busy = fals
               onClick={() => onConfirm?.()}
               className="vs-btn-danger"
             >
-              {busy ? t("loading") : t("privacyDeleteAccount")}
+              {busy ? t("privacyDeleteAccountBusy") : t("privacyDeleteAccountAction")}
             </button>
           </div>
         </Dialog.Content>

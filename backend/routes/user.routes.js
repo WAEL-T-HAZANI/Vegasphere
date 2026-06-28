@@ -86,6 +86,13 @@ router.get(
 );
 
 router.get(
+  "/:id/contact.json",
+  fetchuser,
+  validate(idParamSchema, "params"),
+  downloadContactVcard,
+);
+
+router.get(
   "/presence",
   fetchuser,
   validate(presenceQuerySchema, "query"),

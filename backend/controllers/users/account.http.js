@@ -28,7 +28,7 @@ const deleteMyAccount = async (req, res) => {
         $or: [{ recipientId: userId }, { actorId: userId }],
       }),
       UserReport.deleteMany({
-        $or: [{ reporterId: userId }, { reportedUserId: userId }],
+        $or: [{ reporterId: userId }, { targetId: userId }],
       }),
       NetworkingPost.deleteMany({ authorId: userId }),
       Message.deleteMany({ senderId: userId }),

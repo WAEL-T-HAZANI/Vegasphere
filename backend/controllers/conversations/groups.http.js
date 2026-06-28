@@ -21,6 +21,16 @@ const createGroup = async (req, res) => {
     if (!name) {
       throw ApiError.badRequest("Name is required");
     }
+    const trimmedName = String(name).trim();
+    const dupGroup = await Conversation.findOne({
+      isGroup: true,
+      isChannel: { $ne: true },
+      members: req.user.id,
+      name: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+    }).select("_id");
+    if (dupGroup) {
+      throw ApiError.conflict("A group with this name already exists");
+    }
     const resolvedMemberIds = await resolveSelectableMemberIds(
       memberIds,
       req.user.id,
@@ -34,7 +44,7 @@ const createGroup = async (req, res) => {
     const newConversation = await Conversation.create({
       members: allMembers,
       isGroup: true,
-      name,
+      name: trimmedName,
       description: String(description || "")
         .trim()
         .slice(0, 180),
@@ -61,11 +71,12 @@ const createChannel = async (req, res) => {
     if (!name) {
       throw ApiError.badRequest("Name is required");
     }
+    const trimmedName = String(name).trim();
     const resolvedVisibility =
       String(visibility) === "private" ? "private" : "public";
     const slug =
       channelSlug ||
-      name
+      trimmedName
         .toLowerCase()
         .trim()
         .replace(/\s+/g, "-")
@@ -79,6 +90,14 @@ const createChannel = async (req, res) => {
     });
     if (existing) {
       throw ApiError.conflict("Channel slug already exists");
+    }
+    const dupChannel = await Conversation.findOne({
+      isChannel: true,
+      members: req.user.id,
+      name: new RegExp(`^${trimmedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+    }).select("_id");
+    if (dupChannel) {
+      throw ApiError.conflict("A channel with this name already exists");
     }
     const resolvedMemberIds = await resolveSelectableMemberIds(
       memberIds,
@@ -94,7 +113,7 @@ const createChannel = async (req, res) => {
       members: allMembers,
       isGroup: true,
       isChannel: true,
-      name,
+      name: trimmedName,
       description: String(description || "")
         .trim()
         .slice(0, 180),

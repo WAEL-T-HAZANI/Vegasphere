@@ -10,7 +10,8 @@ export function normalizeSearchQuery(text: string): string {
     .replace(/[أإآٱ]/g, "ا")
     .replace(/ى/g, "ي")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .replace(/^@+/, "");
 }
 
 export function searchGraphemeCount(text: string): number {

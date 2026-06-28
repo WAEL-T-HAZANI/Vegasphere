@@ -39,6 +39,17 @@ type NetworkingPayload = {
 
 type IntroTone = "friendly" | "formal" | "short";
 
+const NETWORKING_FILTER_KEY = "vs-networking-filters";
+
+function readNetworkingFilter(key: "q" | "tag") {
+  if (typeof window === "undefined") return "";
+  try {
+    return sessionStorage.getItem(`${NETWORKING_FILTER_KEY}:${key}`) || "";
+  } catch {
+    return "";
+  }
+}
+
 export default function NetworkingPage() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -51,8 +62,8 @@ export default function NetworkingPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
-  const [q, setQ] = useState("");
-  const [activeTag, setActiveTag] = useState("");
+  const [q, setQ] = useState(() => readNetworkingFilter("q"));
+  const [activeTag, setActiveTag] = useState(() => readNetworkingFilter("tag"));
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [recommendations, setRecommendations] = useState<NetworkingMatch[]>([]);
   const [posts, setPosts] = useState<NetworkingPostItem[]>([]);
@@ -75,6 +86,15 @@ export default function NetworkingPage() {
   const [closePostId, setClosePostId] = useState("");
 
   const meId = me?._id ? String(me._id) : "";
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(`${NETWORKING_FILTER_KEY}:q`, q);
+      sessionStorage.setItem(`${NETWORKING_FILTER_KEY}:tag`, activeTag);
+    } catch {
+      /* ignore */
+    }
+  }, [q, activeTag]);
 
   const load = useCallback(
     async ({ syncProfile = false }: { syncProfile?: boolean } = {}) => {

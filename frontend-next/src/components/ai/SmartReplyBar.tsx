@@ -123,7 +123,7 @@ export default function SmartReplyBar({
 
     let cancelled = false;
     const reqId = ++requestIdRef.current;
-    const debounceMs = autoGenerate ? 900 : 0;
+    const debounceMs = autoGenerate ? 1400 : 0;
 
     const timer = window.setTimeout(() => {
     (async () => {
@@ -134,8 +134,8 @@ export default function SmartReplyBar({
       }
       try {
         const contextMessages = messages.length
-          ? messages.slice(-12)
-          : texts.slice(-6).map((text) => ({ text, sender: "them" }));
+          ? messages.slice(-16)
+          : texts.slice(-8).map((text) => ({ text, sender: "them" }));
         const payload: Record<string, unknown> = {
           recentMessages: contextMessages,
           subject: subj,

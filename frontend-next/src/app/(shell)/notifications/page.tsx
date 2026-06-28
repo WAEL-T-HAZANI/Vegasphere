@@ -23,6 +23,7 @@ import DashboardPageLayout from "@/components/layout/DashboardPageLayout";
 import ProtectedPageGate from "@/components/layout/ProtectedPageGate";
 import ShellSegmentTabs from "@/components/layout/ShellSegmentTabs";
 import { formatApiError } from "@/lib/apiError";
+import { showAppToast } from "@/lib/appToast";
 import { cn } from "@/lib/classNames";
 import { notificationsClient, userClient } from "@/lib/clients";
 import { displayUserPrimaryLabel } from "@/lib/searchHub";
@@ -208,7 +209,10 @@ export default function NotificationsPage() {
   };
 
   const deleteAll = async () => {
-    if (!items.length) return;
+    if (!items.length) {
+      showAppToast({ id: "notifications-delete-empty", body: t("notificationsDeleteAllEmpty") });
+      return;
+    }
     try {
       setBusyId("delete-all");
       await notificationsClient.deleteAllNotifications();
@@ -284,7 +288,7 @@ export default function NotificationsPage() {
           <button
             type="button"
             onClick={() => void deleteAll()}
-            disabled={!items.length || busyId === "delete-all"}
+            disabled={busyId === "delete-all"}
             className="vs-btn-outline-sm px-4 py-2 disabled:opacity-50"
           >
             {busyId === "delete-all" ? "…" : t("notificationsDeleteAll")}

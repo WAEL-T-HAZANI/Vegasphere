@@ -26,7 +26,7 @@ export default function ReplyPreview({
         "mb-2 flex w-full items-center gap-2 rounded-2xl border px-2.5 py-2 text-left transition",
         isMine
           ? "border-white/20 bg-white/10 hover:bg-white/15"
-          : "border-brand-500/20 bg-brand-500/5 hover:bg-brand-500/10 dark:border-white/10 dark:bg-white/[0.06] dark:hover:bg-white/[0.09]"
+          : "border-white/10 bg-white/[0.06] hover:bg-white/[0.09]"
       )}
     >
       <span
@@ -34,7 +34,7 @@ export default function ReplyPreview({
           "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
           isMine
             ? "bg-white/12 text-white"
-            : "bg-brand-500/10 text-brand-700 vs-dark-brand-icon-tile"
+            : "bg-white/10 text-ink dark:text-white/90"
         )}
         aria-hidden
       >
@@ -52,7 +52,7 @@ export default function ReplyPreview({
         <span
           className={cn(
             "block text-[10px] font-semibold uppercase tracking-wide",
-            isMine ? "text-white/80" : "text-brand-700 vs-dark-brand-text-muted"
+            isMine ? "text-white/80" : "text-muted"
           )}
         >
           {replyPreviewKind(replyParent, t)}

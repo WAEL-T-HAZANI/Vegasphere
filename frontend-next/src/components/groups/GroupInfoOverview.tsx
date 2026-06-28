@@ -2,11 +2,14 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { MessageSquare, Shield, Users } from "lucide-react";
+import { Download, MessageSquare, Shield, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/classNames";
 import { activeChannelTopics } from "@/lib/channelsHub";
 import { displayTopicName } from "@/lib/topicDisplay";
+import { api } from "@/lib/api";
+import { showAppToast } from "@/lib/appToast";
+import { triggerBrowserDownload } from "@/lib/messageFormat";
 import type { Conversation } from "@/types/api";
 
 type GroupInfoOverviewProps = {
@@ -49,6 +52,24 @@ export default function GroupInfoOverview({
   const { t, i18n } = useTranslation();
   const dir = i18n.dir();
   const topics = activeChannelTopics(conversation.topics);
+
+  const exportChat = async () => {
+    try {
+      const { data } = await api.get(`/message/export/${conversationId}`, {
+        responseType: "blob",
+      });
+      const blob =
+        data instanceof Blob
+          ? data
+          : new Blob([JSON.stringify(data)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      triggerBrowserDownload(url, `vegasphere-export-${conversationId.slice(-8)}.json`);
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      showAppToast({ id: "export-done", body: t("exportConversationDone") });
+    } catch {
+      showAppToast({ id: "export-err", body: t("exportConversationFailed") });
+    }
+  };
 
   return (
     <section dir={dir} className="vs-settings-card space-y-4">
@@ -98,13 +119,24 @@ export default function GroupInfoOverview({
         </div>
       ) : null}
 
-      <Link
-        href={`/chat/${conversationId}`}
-        className="vs-btn-outline inline-flex min-h-10 w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
-      >
-        <MessageSquare className="h-4 w-4 shrink-0" aria-hidden />
-        {t("groupInfoOpenChat")}
-      </Link>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <Link
+          href={`/chat/${conversationId}`}
+          className="vs-btn-outline inline-flex min-h-10 w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
+        >
+          <MessageSquare className="h-4 w-4 shrink-0" aria-hidden />
+          {t("groupInfoOpenChat")}
+        </Link>
+        <button
+          type="button"
+          onClick={() => void exportChat()}
+          className="vs-btn-outline inline-flex min-h-10 w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
+        >
+          <Download className="h-4 w-4 shrink-0" aria-hidden />
+          {t("exportConversation")}
+        </button>
+      </div>
+      <p className="text-xs text-muted">{t("chatExportHint")}</p>
     </section>
   );
 

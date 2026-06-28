@@ -643,7 +643,7 @@ function translateByWordsForced(text, src, tgt) {
   return { text: out.join(""), changed };
 }
 
-function pivotTranslate(text, src, tgt) {
+function pivotTranslateCore(text, src, tgt) {
   if (src === tgt) return { text, method: "noop" };
 
   const directPhrase = lookupPhrase(text, src, tgt);
@@ -678,6 +678,23 @@ function pivotTranslate(text, src, tgt) {
   }
 
   return { text, method: "words" };
+}
+
+function pivotTranslate(text, src, tgt) {
+  if (src === tgt) return { text, method: "noop" };
+
+  const sentences = String(text)
+    .split(/(?<=[.!?؟])\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (sentences.length > 1) {
+    const translated = sentences.map((part) => pivotTranslateCore(part, src, tgt));
+    const joined = translated.map((part) => part.text).join(" ");
+    const changed = translated.some((part, idx) => part.text !== sentences[idx]);
+    if (changed) return { text: joined, method: "sentences" };
+  }
+
+  return pivotTranslateCore(text, src, tgt);
 }
 
 function resolveDirection(source, target, text) {

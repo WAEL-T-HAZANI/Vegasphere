@@ -163,8 +163,17 @@ export default function SignupClient({ safeNext }) {
           subtitle={t("signupVerifyEmailToast")}
         />
 
-        {!tok ? (
+        {!postSignup.emailVerified && !tok ? (
           <p className="mb-6 text-sm vega-muted">{t("forgotPasswordCheckInbox")}</p>
+        ) : null}
+
+        {!postSignup.emailVerified && !tok ? (
+          <Link
+            href="/privacy"
+            className="vega-btn-accent mb-4 inline-flex h-11 w-full items-center justify-center"
+          >
+            {t("resendVerificationEmail")}
+          </Link>
         ) : null}
 
         {tok && verifyHref ? (
@@ -182,13 +191,17 @@ export default function SignupClient({ safeNext }) {
           </div>
         ) : null}
 
-        <button
-          type="button"
-          className="vega-btn-accent mt-6 h-12 w-full"
-          onClick={() => router.replace(safeNext)}
-        >
-          {t("signupContinueToApp")}
-        </button>
+        {postSignup.emailVerified || tok ? (
+          <button
+            type="button"
+            className="vega-btn-accent mt-6 h-12 w-full"
+            onClick={() => router.replace(safeNext)}
+          >
+            {t("signupContinueToApp")}
+          </button>
+        ) : (
+          <p className="mt-6 text-center text-xs vega-muted">{t("signupVerifyBeforeContinue")}</p>
+        )}
       </div>
     );
   }

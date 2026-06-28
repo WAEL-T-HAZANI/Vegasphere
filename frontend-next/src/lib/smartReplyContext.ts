@@ -78,7 +78,7 @@ export function buildSmartReplyContext({
   activeConv,
   peerDisplayName = "",
   memberLabels = {},
-  maxMessages = 12,
+  maxMessages = 18,
 }: {
   messages: MessageLike[];
   meId: string;

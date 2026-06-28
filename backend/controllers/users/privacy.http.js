@@ -43,7 +43,10 @@ const reportUser = async (req, res) => {
     console.warn("sendUserReportEmail failed:", err?.message || err);
   }
 
-  res.status(201).json({ ok: true });
+  const adminRouted = Boolean(
+    String(process.env.REPORT_ADMIN_EMAIL || process.env.SMTP_USER || "").trim(),
+  );
+  res.status(201).json({ ok: true, adminNotified: adminRouted });
 };
 
 module.exports = {

@@ -15,7 +15,7 @@ import { api } from "@/lib/api";
 import { triggerBrowserDownload } from "@/lib/messageFormat";
 import { removeMessageFromConversation } from "@/store/slices/chatSlice";
 
-const VIEW_ONCE_MAX_MS = 6000;
+const VIEW_ONCE_MAX_MS = 4000;
 
 export default function MediaViewerHost() {
   const { t } = useTranslation();

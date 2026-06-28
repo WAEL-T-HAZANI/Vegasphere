@@ -6,10 +6,13 @@ import { useTranslation } from "react-i18next";
 import { Toaster } from "react-hot-toast";
 import { registerToastNavigation } from "@/lib/appToast";
 
+import { getToastPosition } from "@/lib/toastShell";
+
 export default function AppToaster() {
   const router = useRouter();
   const { i18n } = useTranslation();
   const rtl = i18n.dir() === "rtl";
+  const position = getToastPosition(rtl);
 
   useEffect(() => {
     registerToastNavigation((conversationId) => {
@@ -21,12 +24,12 @@ export default function AppToaster() {
   return (
     <Toaster
       key={rtl ? "rtl" : "ltr"}
-      position={rtl ? "top-left" : "top-right"}
+      position={position}
       gutter={10}
       containerClassName="vs-toast-host"
       containerStyle={{
-        top: "max(1rem, env(safe-area-inset-top, 0px))",
-        bottom: "auto",
+        top: "auto",
+        bottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
         left: rtl ? "max(1rem, env(safe-area-inset-left, 0px))" : "auto",
         right: rtl ? "auto" : "max(1rem, env(safe-area-inset-right, 0px))",
       }}

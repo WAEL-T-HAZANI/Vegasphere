@@ -48,7 +48,8 @@ function normalizeForSearch(text) {
     .replace(/[أإآٱ]/g, "ا")
     .replace(/ى/g, "ي")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .replace(/^@+/, "");
 }
 
 function escapeRegexChar(ch) {

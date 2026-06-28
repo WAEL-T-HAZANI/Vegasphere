@@ -197,8 +197,8 @@ function InboxChatList({
                   <li
                     key={String(id)}
                     className={cn(
-                      "flex flex-wrap items-center justify-between gap-2 border-t border-brand-200/35 px-3 py-2.5 dark:border-brand-800/30 sm:px-4",
-                      idx === 0 && "border-t-0",
+                      "flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-200/40 bg-brand-50/30 px-3 py-2.5 dark:border-brand-800/35 dark:bg-brand-900/15 sm:px-4",
+                      idx === 0 && "mt-1",
                     )}
                   >
                     <div className="min-w-0 flex-1 text-start">
@@ -211,13 +211,13 @@ function InboxChatList({
                       <button
                         type="button"
                         onClick={() => restoreHidden(id)}
-                        className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800 dark:bg-brand-700 dark:hover:bg-brand-800"
+                        className="vs-btn-primary-sm !min-h-8 px-3 py-1.5 text-xs"
                       >
                         {t("chatRestoreToList")}
                       </button>
                       <Link
                         href={buildChatHref(id, c, { from: "chats" })}
-                        className="rounded-full border border-brand-300/70 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50 dark:border-brand-700/50 dark:text-brand-200 dark:hover:bg-brand-900/25"
+                        className="vs-btn-outline-sm !min-h-8 px-3 py-1.5 text-xs"
                       >
                         {t("openChat")}
                       </Link>
