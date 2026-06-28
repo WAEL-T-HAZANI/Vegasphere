@@ -13,7 +13,7 @@ const {
   getRequestIp,
 } = require("../../services/session-auth.js");
 const { isDestructiveMaintenanceAllowed } = require("../../config/env.js");
-const { isSmtpConfigured } = require("../../services/mailer.js");
+const { isMailConfigured } = require("../../services/mailer.js");
 const {
   issueVerificationToken,
   sendVerifyMail,
@@ -100,7 +100,7 @@ const register = async (req, res) => {
     }
 
     let verifySent = false;
-    if (isSmtpConfigured() || process.env.EMAIL_VERIFY_DEBUG === "1") {
+    if (isMailConfigured() || process.env.EMAIL_VERIFY_DEBUG === "1") {
       try {
         const verifyToken = await issueVerificationToken(newUser);
         verifySent = await sendVerifyMail(newUser, verifyToken);

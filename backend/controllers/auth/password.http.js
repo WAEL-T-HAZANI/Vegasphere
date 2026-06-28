@@ -6,7 +6,7 @@ const { isEnvTruthy } = require("../../config/env.js");
 const User = require("../../models/User.js");
 const {
   sendPasswordResetEmail,
-  isSmtpConfigured,
+  isMailConfigured,
   formatSmtpError,
 } = require("../../services/mailer.js");
 const { hashResetToken, FORGOT_OK } = require("./helpers.js");
@@ -33,7 +33,7 @@ const forgotPassword = async (req, res) => {
     const resetUrl = `${base}/reset-password?token=${encodeURIComponent(rawToken)}`;
 
     let mailSent = false;
-    if (isSmtpConfigured()) {
+    if (isMailConfigured()) {
       try {
         const info = await sendPasswordResetEmail({
           to: user.email,
@@ -54,7 +54,7 @@ const forgotPassword = async (req, res) => {
       }
     } else if (!isEnvTruthy(process.env.PASSWORD_RESET_DEBUG)) {
       console.warn(
-        "Password reset: SMTP not configured (set SMTP_HOST, SMTP_USER, SMTP_PASS) or use PASSWORD_RESET_DEBUG=1 for local token.",
+        "Password reset: mail not configured (set SMTP_* or RESEND_API_KEY) or use PASSWORD_RESET_DEBUG=1 for local token.",
       );
     }
 

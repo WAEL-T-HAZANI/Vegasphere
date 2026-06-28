@@ -4,7 +4,7 @@ const crypto = require("crypto");
 const User = require("../../models/User.js");
 const {
   sendVerificationEmail,
-  isSmtpConfigured,
+  isMailConfigured,
 } = require("../../services/mailer.js");
 const { hashResetToken } = require("./helpers.js");
 
@@ -27,7 +27,7 @@ async function sendVerifyMail(user, rawToken) {
   ).replace(/\/$/, "");
   const verifyUrl = `${base}/verify-email?token=${encodeURIComponent(rawToken)}`;
 
-  if (isSmtpConfigured()) {
+  if (isMailConfigured()) {
     try {
       await sendVerificationEmail({
         to: user.email,

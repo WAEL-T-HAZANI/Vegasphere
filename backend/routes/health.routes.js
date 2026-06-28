@@ -4,8 +4,9 @@ const redisClient = require("../services/redis-client.js");
 const { isReady } = require("../services/redis-factory.js");
 const { ok } = require("../services/api-response.js");
 const {
-  isSmtpConfigured,
-  verifySmtpConnection,
+  isMailConfigured,
+  verifyMailConnection,
+  getMailHealth,
 } = require("../services/mailer.js");
 const { isPushConfigured } = require("../services/push-notify.js");
 const { isEnvTruthy } = require("../config/env.js");
@@ -40,13 +41,15 @@ router.get("/ready", async (req, res) => {
   }
 
   let smtp = "skipped";
-  if (isSmtpConfigured()) {
+  let mailProvider = "skipped";
+  if (isMailConfigured()) {
     try {
-      await verifySmtpConnection();
+      const verified = await verifyMailConnection();
       smtp = "up";
+      mailProvider = verified?.provider || getMailHealth().provider || "smtp";
     } catch (error) {
       smtp = "down";
-      console.warn("SMTP ready probe failed:", error.message);
+      console.warn("Mail ready probe failed:", error.message);
     }
   }
 
@@ -59,6 +62,7 @@ router.get("/ready", async (req, res) => {
       mongo: mongoReady ? "up" : "down",
       mongoWrite,
       smtp,
+      mailProvider,
       vapid,
       passwordResetDebug: isEnvTruthy(process.env.PASSWORD_RESET_DEBUG)
         ? "on"
