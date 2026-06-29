@@ -14,8 +14,9 @@ function getDatabaseSync() {
   if (sqliteUnavailable) return null;
   try {
     return require("node:sqlite").DatabaseSync;
-  } catch {
+  } catch (err) {
     sqliteUnavailable = true;
+    console.warn(`[ai] node:sqlite unavailable: ${err?.message || err}`);
     return null;
   }
 }

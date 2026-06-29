@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node --watch index.js",
+    "start": "node --experimental-sqlite index.js",
+    "dev": "node --watch --experimental-sqlite index.js",
     "postinstall": "node scripts/download-vega-dict-build.js"
   },
   "author": "",
