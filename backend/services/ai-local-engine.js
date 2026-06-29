@@ -311,9 +311,10 @@ function loadEngine() {
 
   phraseMaps.clear();
   wordMaps.clear();
-  dictStore.init();
 
-  const fromDb = dictStore.loadSmartIntents?.();
+  const fromDb = dictStore.isAvailable()
+    ? dictStore.loadSmartIntents?.()
+    : null;
   if (fromDb?.length) {
     intents = [...fromDb];
   } else {
@@ -453,9 +454,16 @@ function getIncomingTexts(messages) {
 
 function getDataSource() {
   loadEngine();
-  return (
-    dictStore.getDataSource?.() || (dictStore.isAvailable() ? "sqlite" : "json")
-  );
+  if (dictStore.isAvailable()) return "sqlite";
+  const fileExists = fs.existsSync(dictStore.DB_PATH);
+  if (fileExists) {
+    try {
+      if (fs.statSync(dictStore.DB_PATH).size >= 1024 * 1024) return "sqlite-file";
+    } catch {
+      /* ignore */
+    }
+  }
+  return dictStore.getDataSource?.() || "json";
 }
 
 function getLastIncomingMessage(messages) {
@@ -650,7 +658,7 @@ function getPhraseMap(src, tgt) {
 
 function getWordMap(src, tgt) {
   if (dictStore.isAvailable()) {
-    return dictStore.getWordMapCached(src, tgt);
+    return null;
   }
   return wordMaps.get(pairKey(src, tgt)) || null;
 }
@@ -696,6 +704,18 @@ function translateToken(token, src, tgt) {
 }
 
 function translateByWords(text, src, tgt) {
+  if (dictStore.isAvailable()) {
+    const parts = String(text || "").split(/(\s+|[.,!?؟،؛:;])/);
+    let changed = false;
+    const out = parts.map((part) => {
+      if (!part || /^\s+$/.test(part) || /^[.,!?؟،؛:;]$/.test(part)) return part;
+      const translated = translateToken(part, src, tgt);
+      if (normalizeKey(translated) !== normalizeKey(part)) changed = true;
+      return translated;
+    });
+    return changed ? out.join("") : null;
+  }
+
   const map = getWordMap(src, tgt);
   if (!map || !map.size) return null;
 

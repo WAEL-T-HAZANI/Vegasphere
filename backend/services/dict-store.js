@@ -3,7 +3,7 @@
  * Uses Node.js built-in node:sqlite (no native addons).
  */
 const fs = require("fs");
-const { getVegaDictPath } = require("../lib/vega-dict-path.js");
+const { getVegaDictPath, MIN_BYTES } = require("../lib/vega-dict-path.js");
 
 const DB_PATH = getVegaDictPath();
 
@@ -123,6 +123,9 @@ function hasPhraseSrc(srcLang, text) {
   return Boolean(row?.ok);
 }
 function getWordMapCached(src, tgt) {
+  // Never load full word tables from SQLite into RAM (OOM on small hosts).
+  if (isAvailable()) return null;
+
   const key = `${String(src).toLowerCase()}:${String(tgt).toLowerCase()}`;
   if (wordCache.has(key)) return wordCache.get(key);
 
@@ -189,7 +192,8 @@ function getHealthCheck() {
       /* ignore */
     }
   }
-  const sqlite = isAvailable();
+  // Do not open the 952MB DB here — Belmo health probes must stay lightweight.
+  const sqlite = fileExists && fileBytes >= MIN_BYTES && !sqliteUnavailable;
   return {
     dbPath: DB_PATH,
     fileExists,
