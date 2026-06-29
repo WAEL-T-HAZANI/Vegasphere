@@ -9,8 +9,11 @@ const http = require("http");
 const {
   getVegaDictPath,
   getWritableDataDir,
+  hasSpaceForDownload,
   MIN_BYTES,
+  REQUIRED_BYTES,
 } = require("../lib/vega-dict-path.js");
+const { isEnvTruthy } = require("../config/env.js");
 
 const DB_PATH = getVegaDictPath();
 
@@ -80,7 +83,26 @@ async function ensureVegaDict() {
       };
     }
 
+    if (isEnvTruthy(process.env.VEGA_DICT_SKIP_DOWNLOAD)) {
+      return {
+        ok: false,
+        source: "skipped",
+        path: DB_PATH,
+        message: "VEGA_DICT_SKIP_DOWNLOAD is set — using JSON fallbacks",
+      };
+    }
+
     const dir = path.dirname(DB_PATH);
+    if (!hasSpaceForDownload(dir)) {
+      const needGb = (REQUIRED_BYTES / 1024 / 1024 / 1024).toFixed(1);
+      return {
+        ok: false,
+        source: "no-space",
+        path: DB_PATH,
+        message: `Need ~${needGb} GB free at ${dir} (Belmo /tmp is too small). Mount VEGA_DICT_DIR or unset VEGA_DICT_URL.`,
+      };
+    }
+
     fs.mkdirSync(dir, { recursive: true });
     const tmp = `${DB_PATH}.download`;
     await downloadFile(url, tmp);
