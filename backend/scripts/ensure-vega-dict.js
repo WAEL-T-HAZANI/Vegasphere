@@ -64,7 +64,8 @@ function downloadFile(url, dest) {
   });
 }
 
-async function ensureVegaDict() {
+async function ensureVegaDict(options = {}) {
+  const forBuild = Boolean(options.forBuild);
   try {
     if (fs.existsSync(DB_PATH)) {
       const stat = fs.statSync(DB_PATH);
@@ -83,7 +84,7 @@ async function ensureVegaDict() {
       };
     }
 
-    if (isEnvTruthy(process.env.VEGA_DICT_SKIP_DOWNLOAD)) {
+    if (!forBuild && isEnvTruthy(process.env.VEGA_DICT_SKIP_DOWNLOAD)) {
       return {
         ok: false,
         source: "skipped",

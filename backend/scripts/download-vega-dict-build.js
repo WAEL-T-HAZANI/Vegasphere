@@ -27,7 +27,7 @@ async function main() {
   // Bake into /app/data/ in the deployment image (read-only at runtime is OK for SQLite).
   process.env.VEGA_DICT_PATH = LEGACY_PATH;
   const { ensureVegaDict } = require("./ensure-vega-dict.js");
-  const result = await ensureVegaDict();
+  const result = await ensureVegaDict({ forBuild: true });
   if (!result.ok) {
     console.error(`[ai] build: dictionary download failed — ${result.message || result.source}`);
     process.exit(1);
