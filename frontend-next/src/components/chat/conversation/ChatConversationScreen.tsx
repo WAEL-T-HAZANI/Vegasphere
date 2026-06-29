@@ -1093,7 +1093,6 @@ export default function ChatConversationScreen() {
       />
 
       <MessageList
-        key={cid}
         ref={messageListRef}
         visibleThreadRows={visibleThreadRows}
         isEmpty={visibleMessages.length === 0}

@@ -70,7 +70,7 @@ export function useWebRtcCall(myUserId) {
     (wantVideo) => ({
       audio: selectedAudioInputId
         ? {
-            deviceId: { exact: selectedAudioInputId },
+            deviceId: { ideal: selectedAudioInputId },
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
@@ -82,8 +82,11 @@ export function useWebRtcCall(myUserId) {
           },
       video: wantVideo
         ? selectedVideoInputId
-          ? { deviceId: { exact: selectedVideoInputId } }
-          : true
+          ? {
+              deviceId: { ideal: selectedVideoInputId },
+              facingMode: { ideal: "user" },
+            }
+          : { facingMode: { ideal: "user" }, width: { ideal: 1280 }, height: { ideal: 720 } }
         : false,
     }),
     [selectedAudioInputId, selectedVideoInputId]

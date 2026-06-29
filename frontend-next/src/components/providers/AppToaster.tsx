@@ -30,8 +30,10 @@ export default function AppToaster() {
       containerStyle={{
         top: "auto",
         bottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
-        left: rtl ? "max(1rem, env(safe-area-inset-left, 0px))" : "auto",
-        right: rtl ? "auto" : "max(1rem, env(safe-area-inset-right, 0px))",
+        left: "50%",
+        right: "auto",
+        transform: "translateX(-50%)",
+        maxWidth: "min(24rem, calc(100vw - 2rem))",
       }}
       toastOptions={{
         className: "",

@@ -123,7 +123,7 @@ export default function SmartReplyBar({
 
     let cancelled = false;
     const reqId = ++requestIdRef.current;
-    const debounceMs = autoGenerate ? 1400 : 0;
+    const debounceMs = autoGenerate ? 1800 : 0;
 
     const timer = window.setTimeout(() => {
     (async () => {

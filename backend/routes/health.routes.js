@@ -70,6 +70,14 @@ router.get("/ready", async (req, res) => {
       redis: redisConfigured ? (redisReady ? "up" : "down") : "skipped",
     },
   };
+  try {
+    const dictStore = require("../services/dict-store.js");
+    const stats = dictStore.getStats?.();
+    data.checks.vegaDict = dictStore.isAvailable() ? "sqlite" : "json-fallback";
+    if (stats?.phraseCount) data.checks.vegaDictPhrases = stats.phraseCount;
+  } catch {
+    data.checks.vegaDict = "unknown";
+  }
   if (!ready) {
     return res.status(503).json({
       success: false,

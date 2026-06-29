@@ -40,7 +40,7 @@ export default function MessageMedia({
   const autoLoadMedia = shouldAutoLoadMedia();
   const [manualMediaLoad, setManualMediaLoad] = useState(false);
   const [videoPosterReady, setVideoPosterReady] = useState(false);
-  const loadInlineMedia = showImage ? true : autoLoadMedia || manualMediaLoad;
+  const loadInlineMedia = autoLoadMedia || manualMediaLoad;
 
   const requestInlineLoad = () => {
     onManualMediaLoad?.();
@@ -178,7 +178,7 @@ export default function MessageMedia({
                   decoding="async"
                   className={cn(
                     "h-full w-full transition-opacity duration-200",
-                    isGroupChat ? "object-contain" : "object-cover",
+                    isGroupChat ? "max-h-80 object-contain" : "object-cover",
                     mediaLoading ? "opacity-0" : "opacity-100",
                   )}
                   onLoad={onMediaLoad}

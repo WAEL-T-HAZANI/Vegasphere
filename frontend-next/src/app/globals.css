@@ -212,7 +212,7 @@ body {
   }
 
   .vs-muted-panel {
-    @apply rounded-2xl border border-brand-200/40 bg-brand-50/35 px-4 py-3 text-xs font-semibold text-muted ring-1 ring-brand-700/[0.03] dark:border-brand-800/30 dark:bg-brand-900/15 dark:ring-brand-800/20 dark:font-normal;
+    @apply rounded-2xl border border-brand-200/40 bg-brand-50/35 px-4 py-3 text-xs font-semibold text-muted ring-1 ring-brand-700/[0.03] dark:border-white/10 dark:bg-white/[0.04] dark:ring-white/[0.06] dark:font-normal dark:text-ink;
   }
   .vs-stat-tile {
     @apply rounded-2xl border border-brand-200/40 bg-surface/70 px-4 py-3 ring-1 ring-brand-700/[0.02] dark:border-white/10 dark:bg-white/[0.025] dark:ring-white/[0.03];
@@ -332,10 +332,10 @@ body {
     @apply bg-gradient-to-br from-brand-900/50 to-red-950/[0.35] text-brand-100;
   }
   .dark .vs-dark-brand-progress-track {
-    @apply bg-gradient-to-r from-brand-900/[0.45] to-red-950/30;
+    @apply bg-white/10;
   }
   .dark .vs-dark-brand-progress-fill {
-    @apply bg-gradient-to-r from-brand-500 to-red-600;
+    @apply bg-white/70;
   }
   .dark .vs-dark-brand-select {
     @apply border-brand-500/70 bg-gradient-to-br from-brand-600 via-brand-700 to-red-800 text-white;
@@ -350,7 +350,7 @@ body {
     @apply text-brand-200/90;
   }
   .dark .vs-dark-brand-pin-icon {
-    @apply text-red-300;
+    @apply text-white/75;
   }
 
   /* Chat bubble — badges + rich payloads (voice, contact, schedule, etc.) */
@@ -1134,8 +1134,8 @@ html:not(.dark) .vs-account-page .text-muted {
     font-weight: 600;
   }
   .dark .vega-tab-idle {
-    color: rgb(var(--vega-muted) / 0.92);
-    font-weight: 400;
+    color: rgb(var(--vega-muted) / 0.95);
+    font-weight: 600;
   }
   .vega-tab-idle:hover {
     background-color: rgb(var(--vega-brand) / 0.12);

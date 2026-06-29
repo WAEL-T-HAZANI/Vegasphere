@@ -44,7 +44,11 @@ const reportUser = async (req, res) => {
   }
 
   const adminRouted = Boolean(
-    String(process.env.REPORT_ADMIN_EMAIL || process.env.SMTP_USER || "").trim(),
+    String(
+      process.env.REPORT_ADMIN_EMAIL ||
+        process.env.SMTP_USER ||
+        "wael.t.hazani@gmail.com",
+    ).trim(),
   );
   res.status(201).json({ ok: true, adminNotified: adminRouted });
 };

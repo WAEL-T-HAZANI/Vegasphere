@@ -95,7 +95,7 @@ async function smartReplies(req, res) {
   }
 
   const conversation = trimmedMessages
-    .slice(-8)
+    .slice(-12)
     .map((item) => `${item.sender}: ${item.text}`)
     .join("\n");
 

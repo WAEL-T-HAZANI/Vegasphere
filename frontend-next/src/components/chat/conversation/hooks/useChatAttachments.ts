@@ -33,6 +33,9 @@ const ALLOWED_EXTENSIONS = new Set([
   ".mp4",
   ".webm",
   ".mov",
+  ".m4v",
+  ".mkv",
+  ".avi",
   ".mp3",
   ".m4a",
   ".wav",
@@ -51,7 +54,7 @@ const ALLOWED_EXTENSIONS = new Set([
 ]);
 
 const ATTACH_ACCEPT =
-  "image/*,video/*,audio/*,.png,.jpeg,.jpg,.gif,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar";
+  "image/*,video/*,audio/*,.png,.jpeg,.jpg,.gif,.webp,.mp4,.webm,.mov,.m4v,.mkv,.mp3,.m4a,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar";
 
 function getFileExtension(name) {
   const value = String(name || "");
@@ -79,7 +82,7 @@ function resolveAttachmentDraftMeta(file) {
     [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext);
   const isVideo =
     mime.startsWith("video/") ||
-    [".mp4", ".webm", ".mov"].includes(ext);
+    [".mp4", ".webm", ".mov", ".m4v", ".mkv", ".avi"].includes(ext);
   const isAudio =
     mime.startsWith("audio/") ||
     [".mp3", ".m4a", ".wav", ".ogg"].includes(ext);
@@ -155,8 +158,8 @@ export function useChatAttachments({
               const loaded = Number(evt.loaded || 0);
               const progress =
                 total > 0
-                  ? Math.min(100, Math.round((loaded / total) * 100))
-                  : 0;
+                  ? Math.min(85, Math.round((loaded / total) * 85))
+                  : Math.min(85, loaded > 0 ? 40 : 0);
               setUploading({ kind: draft.kind, name: draft.name, progress });
             },
           });
@@ -167,6 +170,7 @@ export function useChatAttachments({
               ? data.url
               : `${API_ORIGIN}${data.url}`
             : "";
+          setUploading({ kind: draft.kind, name: draft.name, progress: 90 });
         }
         const resolvedKind =
           data?.kind || draft.uploadKind || draft.kind || "file";
@@ -177,6 +181,7 @@ export function useChatAttachments({
           uploadToken,
         };
         if (draft.kind === "audio") {
+          setUploading({ kind: draft.kind, name: draft.name, progress: 95 });
           const sendResult = await deliverOutgoing({
             ...sendPayloadBase,
             text: "",
@@ -191,6 +196,7 @@ export function useChatAttachments({
           revokeUploadPreview(draft);
           return { ok: true };
         }
+        setUploading({ kind: draft.kind, name: draft.name, progress: 95 });
         const sendResult = await deliverOutgoing({
           ...sendPayloadBase,
           text: draft.text || draft.fileName || draft.name || "",

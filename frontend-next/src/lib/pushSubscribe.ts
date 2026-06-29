@@ -61,7 +61,7 @@ export async function subscribeToWebPush(): Promise<PushSubscribeResult> {
 
   let reg: ServiceWorkerRegistration;
   try {
-    reg = await ensurePushServiceWorker();
+    reg = await ensurePushServiceWorker(25_000);
   } catch (err) {
     if (err instanceof ServiceWorkerSetupError) {
       return mapSetupError(err);

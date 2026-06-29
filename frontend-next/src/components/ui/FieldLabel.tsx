@@ -18,7 +18,7 @@ export function FieldLabel({
     <label
       className={cn(
         authStyle
-          ? "mb-2 block text-start text-[10px] font-bold uppercase tracking-[0.2em] vega-muted"
+          ? "mb-2 block text-start text-[10px] font-bold uppercase tracking-[0.2em] text-[rgb(var(--vega-muted))] dark:font-bold dark:text-[rgb(var(--vega-ink)/0.82)]"
           : "vs-label",
         className,
       )}

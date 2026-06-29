@@ -417,6 +417,20 @@ export default function ChatInfoPage() {
               ) : null}
             </div>
             <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap">
+              {canEditInfo ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditName(displayName);
+                    setEditDescription(description);
+                    setEditInfo(true);
+                  }}
+                  className="vs-btn-outline inline-flex min-h-10 w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
+                >
+                  <Pencil className="h-4 w-4 shrink-0" aria-hidden />
+                  {isChannel ? t("channelInfoEdit") : t("groupInfoEdit")}
+                </button>
+              ) : null}
               <Link
                 href={`/chat/${cid}`}
                 className="vs-btn-primary inline-flex min-h-10 w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"

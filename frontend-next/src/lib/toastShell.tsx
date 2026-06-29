@@ -7,16 +7,8 @@ import { cn } from "@/lib/classNames";
 
 export type ToastVariant = "success" | "error" | "info" | "message";
 
-export function getToastPosition(rtl?: boolean): "bottom-left" | "bottom-right" {
-  if (typeof rtl === "boolean") {
-    return rtl ? "bottom-left" : "bottom-right";
-  }
-  if (typeof document !== "undefined") {
-    const htmlDir = document.documentElement.getAttribute("dir");
-    if (htmlDir === "rtl") return "bottom-left";
-    if (htmlDir === "ltr") return "bottom-right";
-  }
-  return i18n.dir() === "rtl" ? "bottom-left" : "bottom-right";
+export function getToastPosition(_rtl?: boolean): "bottom-center" {
+  return "bottom-center";
 }
 
 const VARIANT_ICONS: Record<

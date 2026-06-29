@@ -141,6 +141,16 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 
 async function start() {
   console.log(getMailStatusLine());
+  const { ensureVegaDict } = require("./scripts/ensure-vega-dict.js");
+  const dictResult = await ensureVegaDict();
+  if (dictResult.ok) {
+    const mb = ((dictResult.bytes || 0) / 1024 / 1024).toFixed(1);
+    console.log(`[ai] vega-dict.db ready (${dictResult.source}, ${mb} MB)`);
+  } else {
+    console.warn(
+      `[ai] vega-dict.db not loaded (${dictResult.source}) — using JSON fallbacks. ${dictResult.message || ""}`.trim(),
+    );
+  }
   await connectDB();
   await warmUpSmtp();
   if (!schedulersStarted) {

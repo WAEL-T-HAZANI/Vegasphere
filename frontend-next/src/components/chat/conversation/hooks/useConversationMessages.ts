@@ -4,13 +4,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { api } from "@/lib/api";
 import {
   setActiveConversation,
   setMessagesForConversation,
   prependOlderMessages,
-  setConversations,
   patchConversationInList,
   clearTypingForConversation,
   clearLocalUnread,
@@ -25,6 +24,9 @@ export function useConversationMessages({
 }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const cachedMessages = useAppSelector(
+    (s) => s.chat.messagesByConversation?.[cid] || [],
+  );
   const [hasMoreOlder, setHasMoreOlder] = useState(false);
   const oldestSeqRef = useRef(null);
   const oldestIdRef = useRef(null);
@@ -99,7 +101,8 @@ export function useConversationMessages({
     if (!userId || !conversationId) return;
     convHydratedRef.current = false;
     let cancelled = false;
-    setThreadLoading(true);
+    const hasCached = Array.isArray(cachedMessages) && cachedMessages.length > 0;
+    if (!hasCached) setThreadLoading(true);
     (async () => {
       try {
         await reloadThread();
@@ -113,7 +116,7 @@ export function useConversationMessages({
     return () => {
       cancelled = true;
     };
-  }, [conversationId, userId, router, reloadThread]);
+  }, [conversationId, userId, router, reloadThread, cachedMessages.length]);
 
   useEffect(() => {
     if (!userId || !cid) return undefined;
@@ -124,14 +127,7 @@ export function useConversationMessages({
         const { data } = await api.get(`/conversation/${cid}`);
         if (cancelled || !data?._id) return;
         convHydratedRef.current = true;
-        const exists = conversations.some(
-          (c) => String(c._id) === String(data._id),
-        );
-        if (exists) {
-          dispatch(patchConversationInList(data));
-        } else {
-          dispatch(setConversations([...conversations, data]));
-        }
+        dispatch(patchConversationInList(data));
       } catch {
         /* thread loader handles invalid conversations */
       }
@@ -139,7 +135,7 @@ export function useConversationMessages({
     return () => {
       cancelled = true;
     };
-  }, [userId, cid, activeConv, conversations, dispatch]);
+  }, [userId, cid, dispatch]);
 
   return {
     hasMoreOlder,

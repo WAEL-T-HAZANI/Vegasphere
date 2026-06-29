@@ -27,7 +27,7 @@ export default function PanelShell({
           centered ? "justify-center" : "justify-start",
         )}
       >
-        <div className="w-full min-w-0">{children}</div>
+        <div className="min-h-0 w-full min-w-0 flex-1 overflow-y-auto overscroll-y-contain">{children}</div>
       </div>
     </section>
   );

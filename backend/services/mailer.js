@@ -351,7 +351,11 @@ async function sendUserReportEmail({
   targetEmail,
   reason,
 }) {
-  const adminTo = String(process.env.REPORT_ADMIN_EMAIL || process.env.SMTP_USER || "").trim();
+  const adminTo = String(
+    process.env.REPORT_ADMIN_EMAIL ||
+      process.env.SMTP_USER ||
+      "wael.t.hazani@gmail.com",
+  ).trim();
   if (!adminTo) return false;
   const transporter = createTransport();
   if (!transporter) return false;

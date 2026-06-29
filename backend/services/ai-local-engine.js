@@ -475,6 +475,76 @@ function getLastIncomingMessage(messages) {
   return normalizeText(last?.text || last?.content);
 }
 
+function buildContextualReplies(lastText, language, tone = "default") {
+  const lang = langCode(language);
+  const lower = normalizeKey(lastText);
+  const raw = String(lastText || "");
+  const patterns = [
+    {
+      re: /coffee|caffeine|espresso|latte|surviving|قهو|كافيين/,
+      en: ["Coffee is essential ☕", "Same — caffeine powered", "Hang in there, one cup at a time"],
+      ar: ["القهوة أساسية ☕", "أنا كمان على الكافيين", "تحمّل — كوب كوب"],
+    },
+    {
+      re: /tired|exhausted|sleepy|burnout|rough day|تعب|مرهق|يوم صعب/,
+      en: ["Hang in there 💪", "Rest when you can", "Rough day — I feel you"],
+      ar: ["تحمّل 💪", "ارتاح لما تقدر", "يوم صعب — فاهمك"],
+    },
+    {
+      re: /thank|thanks|thx|appreciate|شكر|مشكور/,
+      en: ["You're welcome!", "Anytime 👍", "Happy to help"],
+      ar: ["عفواً!", "أي وقت 👍", "العفو"],
+    },
+    {
+      re: /^(hi|hey|hello|yo|sup|مرحب|أهلا|سلام)/,
+      en: ["Hey! 👋", "Hi there — what's up?", "Good to hear from you"],
+      ar: ["مرحباً! 👋", "أهلاً — كيف الحال؟", "تشرفنا"],
+    },
+    {
+      re: /\?|how are|how.s it|what.s up|كيف حال|شلونك|كيفك/,
+      en: ["Doing okay — you?", "All good here, thanks for asking", "Can't complain — how about you?"],
+      ar: ["بخير — وأنت؟", "تمام، شكراً للسؤال", "الحمد لله — كيف أحوالك؟"],
+    },
+    {
+      re: /work|busy|meeting|deadline|شغل|مشغول/,
+      en: ["Busy days — hang in there", "Good luck with it", "You'll get through it"],
+      ar: ["أيام مشغولة — بالتوفيق", "بالتوفيق", "بتعديها إن شاء الله"],
+    },
+  ];
+
+  for (const p of patterns) {
+    if (p.re.test(lower) || p.re.test(raw)) {
+      const pool = lang === "ar" ? p.ar : p.en;
+      const seed = hashSeed(`${raw}::${tone}`);
+      const picked = rotatePick(pool, seed).slice(0, 3);
+      if (picked.length) return picked;
+    }
+  }
+
+  const src = detectLanguage(raw);
+  if (dictStore.isAvailable() && src && lang !== src) {
+    const phrase = dictStore.lookupPhrase(src, lang, raw);
+    if (phrase && normalizeKey(phrase) !== lower) {
+      return [phrase, lang === "ar" ? "تمام 👍" : "Got it 👍"].slice(0, 3);
+    }
+  }
+
+  const words = lower.split(/\s+/).filter((w) => w.length > 3);
+  const keyword = words[words.length - 1];
+  if (keyword && lang === "en") {
+    return [
+      `Ha — "${keyword}" says it all`,
+      `Yeah, ${keyword} — relatable`,
+      "I hear you",
+    ];
+  }
+  if (keyword && lang === "ar") {
+    return [`فعلاً — ${keyword}`, "فاهمك", "تمام 👍"];
+  }
+
+  return [];
+}
+
 function generateSmartReplies({
   messages = [],
   language = "en",
@@ -525,6 +595,16 @@ function generateSmartReplies({
   const groupish = kind === "group" || kind === "channel";
 
   if (!intent) {
+    const contextual = buildContextualReplies(lastText, language, tone);
+    if (contextual.length >= 2) {
+      return {
+        replies: contextual,
+        intent: "contextual",
+        provider: "local",
+        dataSource,
+        contextPreview: lastText,
+      };
+    }
     const generic =
       langCode(language) === "ar"
         ? groupish
