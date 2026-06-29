@@ -372,15 +372,23 @@ function scorePattern(inputKey, entry) {
   return 30 + ratio * 40 + overlap * 5;
 }
 
-function matchIntent(text, preferredLang) {
+function matchIntent(text, preferredLang, options = {}) {
   loadEngine();
   const key = normalizeKey(text);
   if (!key) return null;
+
+  const {
+    blockCategories = [],
+    blockIds = [],
+    minScore = 30,
+  } = options;
 
   let best = null;
   let bestScore = 0;
 
   for (const entry of patternIndex) {
+    if (blockCategories.includes(entry.intent?.category)) continue;
+    if (blockIds.includes(entry.intentId)) continue;
     if (preferredLang && entry.lang !== preferredLang) continue;
     const score = scorePattern(key, entry);
     if (score > bestScore) {
@@ -391,6 +399,8 @@ function matchIntent(text, preferredLang) {
 
   if (!best && preferredLang) {
     for (const entry of patternIndex) {
+      if (blockCategories.includes(entry.intent?.category)) continue;
+      if (blockIds.includes(entry.intentId)) continue;
       const score = scorePattern(key, entry);
       if (score > bestScore) {
         bestScore = score;
@@ -399,7 +409,36 @@ function matchIntent(text, preferredLang) {
     }
   }
 
-  return bestScore >= 30 ? best : null;
+  return bestScore >= minScore ? best : null;
+}
+
+function matchIntentForContext(text, preferredLang, stats) {
+  loadEngine();
+  const blockCategories = stats?.ongoing ? ["greeting"] : [];
+  const blockIds = stats?.ongoing
+    ? ["greeting_general", "greeting_morning", "greeting_evening"]
+    : [];
+
+  if (isWellbeingQuestion(text)) {
+    const wellbeing = intents.find((i) => i.id === "how_are_you");
+    if (wellbeing) return wellbeing;
+  }
+
+  if (stats?.ongoing && isPureGreeting(text)) {
+    const wellbeing = intents.find((i) => i.id === "how_are_you");
+    if (wellbeing && isWellbeingQuestion(text)) return wellbeing;
+    const gotIt = intents.find((i) => i.id === "got_it");
+    if (gotIt) return gotIt;
+  }
+
+  const transcript = stats?.topics?.length
+    ? `${text} ${stats.topics.join(" ")}`
+    : text;
+
+  return (
+    matchIntent(text, preferredLang, { blockCategories, blockIds }) ||
+    matchIntent(transcript, preferredLang, { blockCategories, blockIds })
+  );
 }
 
 function pickReplies(intent, language, tone) {
@@ -439,17 +478,208 @@ function hashSeed(text) {
   return h;
 }
 
+const STOPWORDS = new Set([
+  "the",
+  "and",
+  "you",
+  "your",
+  "that",
+  "this",
+  "with",
+  "have",
+  "from",
+  "they",
+  "what",
+  "when",
+  "where",
+  "which",
+  "about",
+  "just",
+  "like",
+  "been",
+  "were",
+  "will",
+  "would",
+  "could",
+  "should",
+  "there",
+  "their",
+  "them",
+  "then",
+  "than",
+  "into",
+  "some",
+  "very",
+  "also",
+  "still",
+  "hello",
+  "hey",
+  "good",
+  "how",
+  "are",
+  "its",
+  "was",
+  "for",
+  "not",
+  "but",
+  "all",
+  "can",
+  "did",
+  "does",
+  "doing",
+  "going",
+  "here",
+  "right",
+  "well",
+  "yeah",
+  "yes",
+  "okay",
+  "thanks",
+  "thank",
+  "من",
+  "في",
+  "على",
+  "إلى",
+  "الى",
+  "هذا",
+  "هذه",
+  "ذلك",
+  "كيف",
+  "شو",
+  "لي",
+  "لك",
+  "مع",
+  "عن",
+  "هل",
+  "تمام",
+  "مرحبا",
+  "أهلا",
+  "اهلا",
+  "هلا",
+]);
+
+function isMeSender(sender) {
+  const role = String(sender || "").toLowerCase();
+  return ["me", "user", "assistant"].includes(role);
+}
+
 function getIncomingTexts(messages) {
   const out = [];
   if (!Array.isArray(messages)) return out;
-  for (let i = messages.length - 1; i >= 0 && out.length < 3; i -= 1) {
+  for (let i = messages.length - 1; i >= 0 && out.length < 6; i -= 1) {
     const item = messages[i];
-    const sender = String(item?.sender || item?.role || "").toLowerCase();
-    if (["me", "user", "assistant"].includes(sender)) continue;
+    if (isMeSender(item?.sender || item?.role)) continue;
     const text = normalizeText(item?.text || item?.content);
     if (text) out.push(text);
   }
   return out.reverse();
+}
+
+function getLastOutgoingMessage(messages) {
+  if (!Array.isArray(messages) || !messages.length) return "";
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const item = messages[i];
+    if (!isMeSender(item?.sender || item?.role)) continue;
+    const text = normalizeText(item?.text || item?.content);
+    if (text) return text;
+  }
+  return "";
+}
+
+function countConversationDepth(messages) {
+  if (!Array.isArray(messages) || !messages.length) return 0;
+  let depth = 0;
+  let lastSide = "";
+  for (const item of messages) {
+    const side = isMeSender(item?.sender || item?.role) ? "me" : "them";
+    const text = normalizeText(item?.text || item?.content);
+    if (!text) continue;
+    if (side !== lastSide) {
+      depth += 1;
+      lastSide = side;
+    }
+  }
+  return Math.max(0, Math.floor(depth / 2));
+}
+
+function extractTopics(messages, maxTopics = 4) {
+  const freq = new Map();
+  if (!Array.isArray(messages)) return [];
+
+  for (const item of messages) {
+    const text = normalizeText(item?.text || item?.content);
+    if (!text) continue;
+    for (const token of normalizeKey(text).split(/\s+/)) {
+      if (token.length < 4 || STOPWORDS.has(token)) continue;
+      freq.set(token, (freq.get(token) || 0) + 1);
+    }
+  }
+
+  return [...freq.entries()]
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+    .slice(0, maxTopics)
+    .map(([word]) => word);
+}
+
+function detectConversationTone(messages) {
+  const recent = (messages || [])
+    .slice(-10)
+    .map((item) => normalizeText(item?.text || item?.content))
+    .filter(Boolean)
+    .join(" ");
+
+  if (
+    /😄|😂|🤣|😅|😉|lol|lmao|haha|mostly|living the dream|notification sound|plants are still alive|relatable|vibes|grind|chaos|surviving/i.test(
+      recent,
+    )
+  ) {
+    return "funny";
+  }
+  if (/regards|sincerely|dear sir|respectfully|تحية|طيبة|فضلك/i.test(recent)) {
+    return "formal";
+  }
+  if (/\b(ok|k|👍|تمام|أوكي|ok\.)\b/i.test(recent) && recent.length < 120) {
+    return "short";
+  }
+  return "friendly";
+}
+
+function isWellbeingQuestion(text) {
+  const key = normalizeKey(text);
+  return (
+    /\b(how are you|how r u|how are u|how you doing|how s it going|how is it going|what s up|whats up|you okay|you alright|everything ok|everything okay)\b/.test(
+      key,
+    ) ||
+    /\b(كيف حالك|كيفك|شلونك|شو أخبارك|كيف الحال|إيش أخبارك|شو الوضع)\b/.test(
+      key,
+    ) ||
+    /\?/.test(text)
+  );
+}
+
+function isPureGreeting(text) {
+  const key = normalizeKey(text);
+  if (!key) return false;
+  if (isWellbeingQuestion(text)) return false;
+  return /^(hi|hey|hello|yo|sup|howdy|hiya|مرحب|أهلا|اهلا|هلا|سلام)\b/.test(
+    key,
+  );
+}
+
+function getConversationStats(messages) {
+  const depth = countConversationDepth(messages);
+  const topics = extractTopics(messages.slice(-14));
+  const tone = detectConversationTone(messages);
+  const lastIncoming = getLastIncomingMessage(messages);
+  const lastOutgoing = getLastOutgoingMessage(messages);
+  return {
+    depth,
+    topics,
+    tone,
+    lastIncoming,
+    lastOutgoing,
+    ongoing: depth >= 2,
+  };
 }
 
 function getDataSource() {
@@ -483,10 +713,74 @@ function getLastIncomingMessage(messages) {
   return normalizeText(last?.text || last?.content);
 }
 
-function buildContextualReplies(lastText, language, tone = "default") {
+function buildThreadContinuityReplies(stats, language, tone = "default") {
+  const lang = langCode(language);
+  const { topics, lastIncoming, ongoing } = stats || {};
+  if (!ongoing || !lastIncoming) return [];
+
+  const topic = topics?.[0] || "";
+  const isQuestion = isWellbeingQuestion(lastIncoming);
+  const seed = hashSeed(`${lastIncoming}::${topic}::${tone}`);
+
+  if (isQuestion) {
+    if (lang === "ar") {
+      const pools = topic
+        ? [
+            `بخير! ${topic} لسا على بالي 😄`,
+            `تمام — ${topic} بعدها موجودة`,
+            `الحمد لله! وأنت؟`,
+          ]
+        : [
+            "بخير الحمد لله — وأنت؟",
+            "تمام! شو أخبارك؟",
+            "الحمد لله — كيف يومك؟",
+          ];
+      return rotatePick(pools, seed).slice(0, 3);
+    }
+
+    const pools = topic
+      ? [
+          `Pretty good! Still thinking about ${topic} 😄`,
+          `All good — ${topic} is still a thing though`,
+          `Can't complain! How about you?`,
+        ]
+      : [
+          "Doing well, thanks! You?",
+          "All good here — how's your day?",
+          "Pretty good! What's new with you?",
+        ];
+    return rotatePick(pools, seed).slice(0, 3);
+  }
+
+  if (topic) {
+    if (lang === "ar") {
+      return rotatePick(
+        [
+          `فعلاً — ${topic} 😄`,
+          `ههه ${topic} — فاهمك`,
+          `تمام، ${topic} 👍`,
+        ],
+        seed,
+      ).slice(0, 3);
+    }
+    return rotatePick(
+      [
+        `Ha — ${topic} says it all 😄`,
+        `Yeah, ${topic} — I feel that`,
+        `True! ${topic} energy`,
+      ],
+      seed,
+    ).slice(0, 3);
+  }
+
+  return [];
+}
+
+function buildContextualReplies(lastText, language, tone = "default", stats = null) {
   const lang = langCode(language);
   const lower = normalizeKey(lastText);
   const raw = String(lastText || "");
+  const ongoing = Boolean(stats?.ongoing);
   const patterns = [
     {
       re: /coffee|caffeine|espresso|latte|surviving|قهو|كافيين/,
@@ -504,14 +798,14 @@ function buildContextualReplies(lastText, language, tone = "default") {
       ar: ["عفواً!", "أي وقت 👍", "العفو"],
     },
     {
-      re: /^(hi|hey|hello|yo|sup|مرحب|أهلا|سلام)/,
-      en: ["Hey! 👋", "Hi there — what's up?", "Good to hear from you"],
-      ar: ["مرحباً! 👋", "أهلاً — كيف الحال؟", "تشرفنا"],
-    },
-    {
       re: /\?|how are|how.s it|what.s up|كيف حال|شلونك|كيفك/,
       en: ["Doing okay — you?", "All good here, thanks for asking", "Can't complain — how about you?"],
       ar: ["بخير — وأنت؟", "تمام، شكراً للسؤال", "الحمد لله — كيف أحوالك؟"],
+    },
+    {
+      re: /plant|notification|dream|mostly|living|happy|😄|😂|🤣/,
+      en: ["Haha same vibe 😄", "Living the dream… mostly", "Good! My plants are still alive too"],
+      ar: ["نفس الطاقة 😄", "عايش الحلم… تقريباً", "بخير! النباتات لسا عايشة"],
     },
     {
       re: /work|busy|meeting|deadline|شغل|مشغول/,
@@ -520,10 +814,18 @@ function buildContextualReplies(lastText, language, tone = "default") {
     },
   ];
 
+  if (!ongoing) {
+    patterns.splice(3, 0, {
+      re: /^(hi|hey|hello|yo|sup|مرحب|أهلا|سلام)/,
+      en: ["Hey! 👋", "Hi there — what's up?", "Good to hear from you"],
+      ar: ["مرحباً! 👋", "أهلاً — كيف الحال؟", "تشرفنا"],
+    });
+  }
+
   for (const p of patterns) {
     if (p.re.test(lower) || p.re.test(raw)) {
       const pool = lang === "ar" ? p.ar : p.en;
-      const seed = hashSeed(`${raw}::${tone}`);
+      const seed = hashSeed(`${raw}::${tone}::${stats?.depth || 0}`);
       const picked = rotatePick(pool, seed).slice(0, 3);
       if (picked.length) return picked;
     }
@@ -563,7 +865,8 @@ function generateSmartReplies({
 }) {
   loadEngine();
 
-  const lastText = getLastIncomingMessage(messages);
+  const stats = getConversationStats(messages);
+  const lastText = stats.lastIncoming || getLastIncomingMessage(messages);
   const dataSource = getDataSource();
   if (!lastText) {
     const fallback = language.startsWith("ar")
@@ -582,35 +885,77 @@ function generateSmartReplies({
   const preferredLang =
     script === "ar" ? "ar" : script === "en" ? "en" : langCode(language);
 
-  const incomingTexts = getIncomingTexts(messages);
-  const contextBlock =
-    incomingTexts.length > 1 ? incomingTexts.join(" ") : lastText;
+  const effectiveTone =
+    tone && tone !== "default" ? tone : stats.tone || "default";
 
-  let intent =
-    matchIntent(contextBlock, preferredLang) ||
-    matchIntent(lastText, preferredLang);
+  const transcript = (messages || [])
+    .slice(-16)
+    .map((item) => {
+      const side = isMeSender(item?.sender || item?.role) ? "me" : "them";
+      const text = normalizeText(item?.text || item?.content);
+      return text ? `${side}: ${text}` : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  const contextPreview = stats.ongoing
+    ? transcript.split("\n").slice(-4).join(" · ") || lastText
+    : lastText;
+
+  let intent = matchIntentForContext(lastText, preferredLang, stats);
+
+  if (!intent && stats.ongoing) {
+    intent = matchIntentForContext(
+      `${lastText} ${stats.topics.join(" ")}`,
+      preferredLang,
+      stats,
+    );
+  }
 
   if (!intent) {
     const question = /\?|؟/.test(lastText);
     const exclaim = /!/.test(lastText);
-    if (question)
+    if (isWellbeingQuestion(lastText)) {
+      intent = intents.find((i) => i.id === "how_are_you") || null;
+    } else if (question) {
       intent = intents.find((i) => i.id === "question_what") || null;
-    else if (exclaim)
+    } else if (exclaim) {
       intent = intents.find((i) => i.id === "confirmation_yes") || null;
+    }
   }
 
   const kind = String(conversationKind || "").toLowerCase();
   const groupish = kind === "group" || kind === "channel";
 
+  const continuity = buildThreadContinuityReplies(
+    stats,
+    language,
+    effectiveTone,
+  );
+  if (continuity.length >= 2) {
+    return {
+      replies: continuity,
+      intent: "thread-continuity",
+      provider: "local",
+      dataSource,
+      contextPreview,
+    };
+  }
+
   if (!intent) {
-    const contextual = buildContextualReplies(lastText, language, tone);
+    const contextual = buildContextualReplies(
+      lastText,
+      language,
+      effectiveTone,
+      stats,
+    );
     if (contextual.length >= 2) {
       return {
         replies: contextual,
         intent: "contextual",
         provider: "local",
         dataSource,
-        contextPreview: lastText,
+        contextPreview,
       };
     }
     const generic =
@@ -626,13 +971,13 @@ function generateSmartReplies({
       intent: null,
       provider: "local",
       dataSource,
-      contextPreview: lastText,
+      contextPreview,
     };
   }
 
-  const pool = pickReplies(intent, language, tone);
+  const pool = pickReplies(intent, language, effectiveTone);
   const seed = hashSeed(
-    `${contextBlock}::${subject}::${tone}::${variationSeed}`,
+    `${transcript}::${subject}::${effectiveTone}::${variationSeed}`,
   );
   const rotated = rotatePick(pool, seed);
   const replies = rotated.slice(0, 3);
@@ -648,7 +993,7 @@ function generateSmartReplies({
     intent: intent.id,
     provider: "local",
     dataSource,
-    contextPreview: lastText,
+    contextPreview,
   };
 }
 

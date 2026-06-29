@@ -134,7 +134,7 @@ export default function SmartReplyBar({
       }
       try {
         const contextMessages = messages.length
-          ? messages.slice(-16)
+          ? messages.slice(-20)
           : texts.slice(-8).map((text) => ({ text, sender: "them" }));
         const payload: Record<string, unknown> = {
           recentMessages: contextMessages,
