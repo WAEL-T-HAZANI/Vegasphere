@@ -75,6 +75,7 @@ router.get("/ready", async (req, res) => {
     const stats = dictStore.getStats?.();
     data.checks.vegaDict = dictStore.isAvailable() ? "sqlite" : "json-fallback";
     if (stats?.phraseCount) data.checks.vegaDictPhrases = stats.phraseCount;
+    data.checks.vegaDictPath = dictStore.DB_PATH;
   } catch {
     data.checks.vegaDict = "unknown";
   }

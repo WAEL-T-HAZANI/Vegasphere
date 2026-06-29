@@ -32,16 +32,29 @@ function normalizeKey(value) {
     .trim();
 }
 
-function init() {
-  if (db) return db;
+function openDatabase() {
   const DatabaseSync = getDatabaseSync();
   if (!DatabaseSync || !fs.existsSync(DB_PATH)) return null;
-  try {
-    db = new DatabaseSync(DB_PATH, { readOnly: true });
-    return db;
-  } catch {
-    return null;
+
+  const attempts = [
+    () => new DatabaseSync(`file:${DB_PATH}?mode=ro&immutable=1`, { readOnly: true }),
+    () => new DatabaseSync(DB_PATH, { readOnly: true }),
+  ];
+
+  for (const tryOpen of attempts) {
+    try {
+      return tryOpen();
+    } catch (err) {
+      console.warn(`[ai] sqlite open failed (${DB_PATH}): ${err?.message || err}`);
+    }
   }
+  return null;
+}
+
+function init() {
+  if (db) return db;
+  db = openDatabase();
+  return db;
 }
 
 function isAvailable() {
