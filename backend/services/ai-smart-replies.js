@@ -122,25 +122,39 @@ async function smartReplies(req, res) {
     }
   }
 
-  const result = generateSmartReplies({
-    messages: trimmedMessages,
-    language,
-    tone,
-    subject,
-    conversationKind,
-    variationSeed,
-  });
+  try {
+    const result = generateSmartReplies({
+      messages: trimmedMessages,
+      language,
+      tone,
+      subject,
+      conversationKind,
+      variationSeed,
+    });
 
-  cacheSet(cacheKey, result);
+    cacheSet(cacheKey, result);
 
-  return res.json({
-    replies: result.replies,
-    suggestions: result.replies,
-    intent: result.intent,
-    provider: "local",
-    dataSource: result.dataSource || getDataSource(),
-    contextPreview: result.contextPreview || "",
-  });
+    return res.json({
+      replies: result.replies,
+      suggestions: result.replies,
+      intent: result.intent,
+      provider: "local",
+      dataSource: result.dataSource || getDataSource(),
+      contextPreview: result.contextPreview || "",
+    });
+  } catch (err) {
+    console.warn("smartReplies failed:", err?.message || err);
+    const fallback = language.startsWith("ar")
+      ? ["👍", "تمام", "شكراً"]
+      : ["👍", "Sounds good", "Thanks!"];
+    return res.json({
+      replies: fallback,
+      suggestions: fallback,
+      provider: "local",
+      dataSource: "json",
+      contextPreview: "",
+    });
+  }
 }
 
 module.exports = {
