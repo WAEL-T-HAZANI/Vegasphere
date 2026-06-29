@@ -145,7 +145,8 @@ async function start() {
   const dictResult = await ensureVegaDict();
   if (dictResult.ok) {
     const mb = ((dictResult.bytes || 0) / 1024 / 1024).toFixed(1);
-    console.log(`[ai] vega-dict.db ready (${dictResult.source}, ${mb} MB)`);
+    const at = dictResult.path ? ` @ ${dictResult.path}` : "";
+    console.log(`[ai] vega-dict.db ready (${dictResult.source}, ${mb} MB${at})`);
   } else {
     console.warn(
       `[ai] vega-dict.db not loaded (${dictResult.source}) — using JSON fallbacks. ${dictResult.message || ""}`.trim(),

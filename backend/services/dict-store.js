@@ -3,9 +3,9 @@
  * Uses Node.js built-in node:sqlite (no native addons).
  */
 const fs = require("fs");
-const path = require("path");
+const { getVegaDictPath } = require("../lib/vega-dict-path.js");
 
-const DB_PATH = path.join(__dirname, "..", "data", "vega-dict.db");
+const DB_PATH = getVegaDictPath();
 
 let db = null;
 let sqliteUnavailable = false;
