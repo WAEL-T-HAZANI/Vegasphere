@@ -168,6 +168,38 @@ function lookupPhrase(src, tgt, text) {
   });
 }
 
+/**
+ * Prefix search on phrases.src_key for natural reply candidates (same language).
+ * Uses PRIMARY KEY (src_lang, tgt_lang, src_key) — prefix LIKE 'token%' is indexed.
+ */
+function searchReplyPhraseCandidates(srcLang, tokens, options = {}) {
+  const lang = String(srcLang || "en").toLowerCase();
+  const limit = Math.min(200, Math.max(10, Number(options.limit) || 80));
+  const rawTokens = Array.isArray(tokens) ? tokens : [];
+  const uniq = [
+    ...new Set(
+      rawTokens
+        .map((t) => normalizeKey(t))
+        .filter((t) => t.length >= 2)
+        .slice(0, 12),
+    ),
+  ];
+  if (!uniq.length) return [];
+
+  return (
+    withConn((conn) => {
+      const clauses = uniq.map(() => "src_key LIKE ?").join(" OR ");
+      const params = [lang, ...uniq.map((t) => `${t}%`), limit];
+      const rows = conn
+        .prepare(
+          `SELECT DISTINCT src_key FROM phrases WHERE src_lang = ? AND (${clauses}) LIMIT ?`,
+        )
+        .all(...params);
+      return rows.map((row) => String(row?.src_key || "").trim()).filter(Boolean);
+    }) || []
+  );
+}
+
 function lookupWord(src, tgt, token) {
   const key = normalizeKey(token);
   if (!key) return token;
@@ -309,6 +341,7 @@ module.exports = {
   init,
   isAvailable,
   lookupPhrase,
+  searchReplyPhraseCandidates,
   lookupWord,
   hasWordSrc,
   hasPhraseSrc,

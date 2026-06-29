@@ -7,6 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 const dictStore = require("./dict-store");
+const { retrievePhraseReplies } = require("./phrase-retrieval.js");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 
@@ -902,6 +903,59 @@ function generateSmartReplies({
     ? transcript.split("\n").slice(-4).join(" · ") || lastText
     : lastText;
 
+  const continuity = buildThreadContinuityReplies(
+    stats,
+    language,
+    effectiveTone,
+  );
+
+  const phraseReplies = retrievePhraseReplies({
+    messages,
+    language: preferredLang,
+    stats,
+    variationSeed,
+  });
+
+  if (phraseReplies.length >= 2) {
+    if (continuity.length >= 1) {
+      const blended = [
+        continuity[0],
+        phraseReplies[0],
+        phraseReplies[1] || continuity[1] || phraseReplies[0],
+      ].filter(Boolean);
+      const unique = [...new Set(blended.map((s) => normalizeKey(s)))].map(
+        (key) =>
+          blended.find((line) => normalizeKey(line) === key) || key,
+      );
+      if (unique.length >= 2) {
+        return {
+          replies: unique.slice(0, 3),
+          intent: "phrase-blend",
+          provider: "local",
+          dataSource,
+          contextPreview,
+        };
+      }
+    }
+    return {
+      replies: phraseReplies,
+      intent: "phrase-retrieval",
+      provider: "local",
+      dataSource,
+      contextPreview,
+    };
+  }
+
+  if (continuity.length >= 2) {
+    return {
+      replies: continuity,
+      intent: "thread-continuity",
+      provider: "local",
+      dataSource,
+      contextPreview,
+    };
+  }
+
   let intent = matchIntentForContext(lastText, preferredLang, stats);
 
   if (!intent && stats.ongoing) {
@@ -926,21 +980,6 @@ function generateSmartReplies({
 
   const kind = String(conversationKind || "").toLowerCase();
   const groupish = kind === "group" || kind === "channel";
-
-  const continuity = buildThreadContinuityReplies(
-    stats,
-    language,
-    effectiveTone,
-  );
-  if (continuity.length >= 2) {
-    return {
-      replies: continuity,
-      intent: "thread-continuity",
-      provider: "local",
-      dataSource,
-      contextPreview,
-    };
-  }
 
   if (!intent) {
     const contextual = buildContextualReplies(
