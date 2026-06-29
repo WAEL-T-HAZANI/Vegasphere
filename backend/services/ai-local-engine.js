@@ -1,13 +1,14 @@
 /**
  * Local intent-based smart replies + phrase/word translation engine.
- * Premium mode: SQLite vega-dict.db (MUSE + OPUS + ArabEyes).
- * Fallback: legacy JSON in backend/data/.
+ * Smart replies: curated JSON in backend/data/ (smartReplies.json, ai-supplements.json).
+ * Translation: SQLite vega-dict.db when available; JSON fallbacks (translations.json, fallbackWords.json).
  */
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 const dictStore = require("./dict-store");
 const { retrievePhraseReplies } = require("./phrase-retrieval.js");
+const { retrieveJsonPhraseReplies } = require("./json-reply-catalog.js");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 
@@ -307,40 +308,50 @@ function buildPatternIndex(intentList) {
   return index;
 }
 
+function mergeIntentList(base, extras) {
+  const seen = new Set(base.map((i) => i.id));
+  const out = [...base];
+  for (const intent of extras || []) {
+    if (!intent?.id || seen.has(intent.id)) continue;
+    out.push(intent);
+    seen.add(intent.id);
+  }
+  return out;
+}
+
+function loadSmartReplyIntents() {
+  const smart = readJson("smartReplies.json");
+  intents = Array.isArray(smart?.intents) ? [...smart.intents] : [];
+
+  const supplements = readJson("ai-supplements.json");
+  if (Array.isArray(supplements?.intents)) {
+    intents = mergeIntentList(intents, supplements.intents);
+  }
+
+  if (process.env.AI_MERGE_DB_INTENTS === "1" && dictStore.isAvailable()) {
+    const fromDb = dictStore.loadSmartIntents?.() || [];
+    intents = mergeIntentList(intents, fromDb);
+  }
+}
+
+function loadTranslationMaps() {
+  if (dictStore.isAvailable()) {
+    const supplements = readJson("ai-supplements.json");
+    if (supplements?.phrases) mergePairMaps(supplements.phrases, phraseMaps);
+    return;
+  }
+  loadLegacyJsonMaps();
+}
+
 function loadEngine() {
   if (loaded) return;
 
   phraseMaps.clear();
   wordMaps.clear();
 
-  const fromDb = dictStore.isAvailable()
-    ? dictStore.loadSmartIntents?.()
-    : null;
-  if (fromDb?.length) {
-    intents = [...fromDb];
-  } else {
-    const smart = readJson("smartReplies.json");
-    intents = Array.isArray(smart?.intents) ? [...smart.intents] : [];
-  }
+  loadSmartReplyIntents();
   patternIndex = buildPatternIndex(intents);
-
-  if (!dictStore.isAvailable()) {
-    loadLegacyJsonMaps();
-  } else {
-    const supplementPath = path.join(DATA_DIR, "ai-supplements.json");
-    if (fs.existsSync(supplementPath)) {
-      const supplements = readJson("ai-supplements.json");
-      if (Array.isArray(supplements?.intents) && supplements.intents.length) {
-        const seen = new Set(intents.map((i) => i.id));
-        for (const intent of supplements.intents) {
-          if (!intent?.id || seen.has(intent.id)) continue;
-          intents.push(intent);
-          seen.add(intent.id);
-        }
-        patternIndex = buildPatternIndex(intents);
-      }
-    }
-  }
+  loadTranslationMaps();
 
   loaded = true;
 }
@@ -856,6 +867,73 @@ function buildContextualReplies(lastText, language, tone = "default", stats = nu
   return [];
 }
 
+function blendUniqueReplies(lists, max = 3) {
+  const out = [];
+  const seen = new Set();
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const line of list) {
+      const text = normalizeText(line);
+      if (!text) continue;
+      const key = normalizeKey(text);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(text);
+      if (out.length >= max) return out;
+    }
+  }
+  return out;
+}
+
+function resolveIntent(lastText, preferredLang, stats) {
+  let intent = matchIntentForContext(lastText, preferredLang, stats);
+
+  if (!intent && stats?.ongoing) {
+    intent = matchIntentForContext(
+      `${lastText} ${(stats.topics || []).join(" ")}`,
+      preferredLang,
+      stats,
+    );
+  }
+
+  if (!intent) {
+    const question = /\?|؟/.test(lastText);
+    const exclaim = /!/.test(lastText);
+    if (isWellbeingQuestion(lastText)) {
+      intent = intents.find((i) => i.id === "how_are_you") || null;
+    } else if (question) {
+      intent = intents.find((i) => i.id === "question_what") || null;
+    } else if (exclaim) {
+      intent = intents.find((i) => i.id === "confirmation_yes") || null;
+    }
+  }
+
+  return intent;
+}
+
+function buildIntentReplies(
+  intent,
+  language,
+  effectiveTone,
+  transcript,
+  subject,
+  variationSeed,
+) {
+  if (!intent) return [];
+  const pool = pickReplies(intent, language, effectiveTone);
+  const seed = hashSeed(
+    `${transcript}::${subject}::${effectiveTone}::${variationSeed}`,
+  );
+  const rotated = rotatePick(pool, seed);
+  const replies = rotated.slice(0, 3);
+  while (replies.length < 3 && pool.length) {
+    const extra = pool[replies.length % pool.length];
+    if (!replies.includes(extra)) replies.push(extra);
+    else break;
+  }
+  return replies;
+}
+
 function generateSmartReplies({
   messages = [],
   language = "en",
@@ -916,30 +994,41 @@ function generateSmartReplies({
     variationSeed,
   });
 
-  if (phraseReplies.length >= 2) {
-    if (continuity.length >= 1) {
-      const blended = [
-        continuity[0],
-        phraseReplies[0],
-        phraseReplies[1] || continuity[1] || phraseReplies[0],
-      ].filter(Boolean);
-      const unique = [...new Set(blended.map((s) => normalizeKey(s)))].map(
-        (key) =>
-          blended.find((line) => normalizeKey(line) === key) || key,
-      );
-      if (unique.length >= 2) {
-        return {
-          replies: unique.slice(0, 3),
-          intent: "phrase-blend",
-          provider: "local",
-          dataSource,
-          contextPreview,
-        };
-      }
-    }
+  const intent = resolveIntent(lastText, preferredLang, stats);
+  const intentReplies = buildIntentReplies(
+    intent,
+    language,
+    effectiveTone,
+    transcript,
+    subject,
+    variationSeed,
+  );
+
+  const jsonPhrases = retrieveJsonPhraseReplies({
+    messages,
+    language: preferredLang,
+    stats: { ...stats, tone: effectiveTone },
+    variationSeed,
+    lastText,
+  });
+
+  const dbPhrases = phraseReplies;
+
+  const primary = blendUniqueReplies([
+    stats.ongoing ? continuity.slice(0, 1) : [],
+    intentReplies,
+    jsonPhrases,
+  ]);
+
+  if (primary.length >= 2) {
+    const replies =
+      primary.length >= 3
+        ? primary
+        : blendUniqueReplies([primary, dbPhrases.slice(0, 1)]);
     return {
-      replies: phraseReplies,
-      intent: "phrase-retrieval",
+      replies,
+      intent:
+        intent?.id || (jsonPhrases.length ? "json-phrases" : "thread-continuity"),
       provider: "local",
       dataSource,
       contextPreview,
@@ -947,34 +1036,19 @@ function generateSmartReplies({
   }
 
   if (continuity.length >= 2) {
-    return {
-      replies: continuity,
-      intent: "thread-continuity",
-      provider: "local",
-      dataSource,
-      contextPreview,
-    };
-  }
-
-  let intent = matchIntentForContext(lastText, preferredLang, stats);
-
-  if (!intent && stats.ongoing) {
-    intent = matchIntentForContext(
-      `${lastText} ${stats.topics.join(" ")}`,
-      preferredLang,
-      stats,
-    );
-  }
-
-  if (!intent) {
-    const question = /\?|؟/.test(lastText);
-    const exclaim = /!/.test(lastText);
-    if (isWellbeingQuestion(lastText)) {
-      intent = intents.find((i) => i.id === "how_are_you") || null;
-    } else if (question) {
-      intent = intents.find((i) => i.id === "question_what") || null;
-    } else if (exclaim) {
-      intent = intents.find((i) => i.id === "confirmation_yes") || null;
+    const replies = blendUniqueReplies([
+      continuity,
+      jsonPhrases,
+      dbPhrases.slice(0, 1),
+    ]);
+    if (replies.length >= 2) {
+      return {
+        replies,
+        intent: "thread-continuity",
+        provider: "local",
+        dataSource,
+        contextPreview,
+      };
     }
   }
 
@@ -989,14 +1063,30 @@ function generateSmartReplies({
       stats,
     );
     if (contextual.length >= 2) {
+      const replies = blendUniqueReplies([
+        contextual,
+        jsonPhrases,
+        dbPhrases.slice(0, 1),
+      ]);
       return {
-        replies: contextual,
+        replies: replies.length >= 2 ? replies : contextual,
         intent: "contextual",
         provider: "local",
         dataSource,
         contextPreview,
       };
     }
+
+    if (dbPhrases.length >= 2) {
+      return {
+        replies: blendUniqueReplies([continuity.slice(0, 1), dbPhrases]),
+        intent: "phrase-retrieval",
+        provider: "local",
+        dataSource,
+        contextPreview,
+      };
+    }
+
     const generic =
       langCode(language) === "ar"
         ? groupish
@@ -1014,18 +1104,11 @@ function generateSmartReplies({
     };
   }
 
-  const pool = pickReplies(intent, language, effectiveTone);
-  const seed = hashSeed(
-    `${transcript}::${subject}::${effectiveTone}::${variationSeed}`,
-  );
-  const rotated = rotatePick(pool, seed);
-  const replies = rotated.slice(0, 3);
-
-  while (replies.length < 3 && pool.length) {
-    const extra = pool[replies.length % pool.length];
-    if (!replies.includes(extra)) replies.push(extra);
-    else break;
-  }
+  const replies = blendUniqueReplies([
+    intentReplies,
+    jsonPhrases,
+    dbPhrases.slice(0, 1),
+  ]);
 
   return {
     replies: replies.length ? replies : ["👍", "OK", "Thanks!"],
