@@ -219,6 +219,7 @@ export function useChatOutgoing({  conversationId,
       activeConv?.isGroup,
       activeConv?.isChannel,
       canPostInConv,
+      sendBlocked,
       setForwardStatus,
     ],
   );

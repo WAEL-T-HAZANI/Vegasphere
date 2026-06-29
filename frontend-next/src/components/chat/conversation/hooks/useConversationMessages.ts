@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { api } from "@/lib/api";
+import { mergeThreadWithPendingOptimistics } from "@/lib/chatThread";
 import {
   setActiveConversation,
   setMessagesForConversation,
@@ -23,10 +24,14 @@ export function useConversationMessages({
   conversations,
 }) {
   const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
   const dispatch = useAppDispatch();
   const cachedMessages = useAppSelector(
     (s) => s.chat.messagesByConversation?.[cid] || [],
   );
+  const cachedMessagesRef = useRef(cachedMessages);
+  cachedMessagesRef.current = cachedMessages;
   const [hasMoreOlder, setHasMoreOlder] = useState(false);
   const oldestSeqRef = useRef(null);
   const oldestIdRef = useRef(null);
@@ -43,10 +48,14 @@ export function useConversationMessages({
       ? { messages: data, hasMore: false }
       : data;
     const list = Array.isArray(payload.messages) ? payload.messages : [];
+    const merged = mergeThreadWithPendingOptimistics(
+      list,
+      cachedMessagesRef.current,
+    );
     dispatch(
       setMessagesForConversation({
         conversationId: cid,
-        messages: list,
+        messages: merged,
       }),
     );
     setHasMoreOlder(Boolean(payload.hasMore));
@@ -107,7 +116,7 @@ export function useConversationMessages({
         await reloadThread();
         if (cancelled) return;
       } catch {
-        if (!cancelled) router.push("/chats");
+        if (!cancelled) routerRef.current.push("/chats");
       } finally {
         if (!cancelled) setThreadLoading(false);
       }
@@ -116,7 +125,7 @@ export function useConversationMessages({
       cancelled = true;
     };
     // Only reload when switching conversations — not when optimistic sends change length.
-  }, [conversationId, userId, router, reloadThread]);
+  }, [conversationId, userId, reloadThread]);
 
   useEffect(() => {
     if (!userId || !cid) return undefined;

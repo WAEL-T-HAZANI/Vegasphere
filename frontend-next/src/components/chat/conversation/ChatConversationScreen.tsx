@@ -42,6 +42,7 @@ import { useScheduledMessages } from "@/components/chat/conversation/hooks/useSc
 import { useMessageComposer } from "@/components/chat/conversation/hooks/useMessageComposer";
 import { useChatConversationMessageActions } from "@/components/chat/conversation/hooks/useChatConversationMessageActions";
 import { formatPresenceTimestamp } from "@/lib/chatConversation";
+import { pullMessageSync } from "@/lib/messageSync";
 import ChatConversationDialogs from "@/components/chat/conversation/ChatConversationDialogs";
 import MessageSelectionBar from "@/components/chat/conversation/MessageSelectionBar";
 import { showAppToast } from "@/lib/appToast";
@@ -229,7 +230,7 @@ export default function ChatConversationScreen() {
     activeConv.e2eEnabled,
   );
 
-  const { e2eConvKey, enableE2e, disableE2e } = useChatE2e({
+  const { e2eConvKey, e2eKeyResolved, enableE2e, disableE2e } = useChatE2e({
     dmE2eActive,
     userId: user?._id,
     cid,
@@ -464,14 +465,13 @@ export default function ChatConversationScreen() {
     const socket = getSocket();
     if (!socket || !user?._id || !conversationId) return;
     const onConnect = () => {
-      reloadThread().catch(() => {
-      });
+      void pullMessageSync(dispatch);
     };
     socket.on("connect", onConnect);
     return () => {
       socket.off("connect", onConnect);
     };
-  }, [conversationId, user?._id, reloadThread]);
+  }, [conversationId, user?._id, dispatch]);
 
 
 
@@ -722,7 +722,8 @@ export default function ChatConversationScreen() {
     }
   }, [selectedMessages, decryptedById, cid, t]);
 
-  const sendBlocked = (dmE2eActive && !e2eConvKey) || !canPostInConv;
+  const sendBlocked =
+    (dmE2eActive && e2eKeyResolved && !e2eConvKey) || !canPostInConv;
 
   const {
     deliverOutgoing,

@@ -28,16 +28,20 @@ export function useChatE2e({
 }) {
   const { t } = useTranslation();
   const [e2eConvKey, setE2eConvKey] = useState(null);
+  const [e2eKeyResolved, setE2eKeyResolved] = useState(true);
   const [, setE2eBusy] = useState(false);
 
   useEffect(() => {
     if (!dmE2eActive || !userId) {
       setE2eConvKey(null);
+      setE2eKeyResolved(true);
       return;
     }
+    setE2eKeyResolved(false);
     const stored = getStoredConversationKey(cid);
     if (stored) {
       setE2eConvKey(stored);
+      setE2eKeyResolved(true);
       return;
     }
 
@@ -66,7 +70,10 @@ export function useChatE2e({
       }
     };
 
-    if (tryUnwrap(activeConv)) return;
+    if (tryUnwrap(activeConv)) {
+      setE2eKeyResolved(true);
+      return;
+    }
 
     (async () => {
       try {
@@ -76,6 +83,8 @@ export function useChatE2e({
         if (!tryUnwrap(data)) setE2eConvKey(null);
       } catch {
         if (!cancelled) setE2eConvKey(null);
+      } finally {
+        if (!cancelled) setE2eKeyResolved(true);
       }
     })();
 
@@ -136,7 +145,7 @@ export function useChatE2e({
     }
   };
 
-  return { e2eConvKey, setE2eConvKey, enableE2e, disableE2e: async () => {
+  return { e2eConvKey, e2eKeyResolved, setE2eConvKey, enableE2e, disableE2e: async () => {
     if (!userId || !dmE2eActive) return;
     setE2eBusy(true);
     try {

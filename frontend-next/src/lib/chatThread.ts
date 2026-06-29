@@ -122,3 +122,59 @@ export function buildChatThreadRows(messages) {
 
   return rows;
 }
+
+function normalizeMessageId(value) {
+  return value ? String(value) : "";
+}
+
+function messageSenderId(message) {
+  return normalizeMessageId(message?.senderId?._id ?? message?.senderId);
+}
+
+/** Keep in-flight / failed optimistic sends when reloading thread from server. */
+export function mergeThreadWithPendingOptimistics(serverMessages, currentMessages) {
+  const serverList = Array.isArray(serverMessages) ? serverMessages : [];
+  const currentList = Array.isArray(currentMessages) ? currentMessages : [];
+
+  const pending = currentList.filter((message) => {
+    const status = message?.clientStatus;
+    const tempId = normalizeMessageId(message?.clientTempId);
+    if (!tempId || (status !== "sending" && status !== "failed")) return false;
+
+    if (
+      serverList.some(
+        (row) => normalizeMessageId(row?.clientTempId) === tempId,
+      )
+    ) {
+      return false;
+    }
+
+    const messageId = normalizeMessageId(message?._id);
+    if (
+      messageId &&
+      serverList.some((row) => normalizeMessageId(row?._id) === messageId)
+    ) {
+      return false;
+    }
+
+    const plain = String(message?.text || "").trim();
+    const sender = messageSenderId(message);
+    const createdAt = new Date(message?.createdAt || 0).getTime();
+    if (plain && sender && Number.isFinite(createdAt)) {
+      const duplicate = serverList.some((row) => {
+        if (messageSenderId(row) !== sender) return false;
+        if (String(row?.text || "").trim() !== plain) return false;
+        const rowTime = new Date(row?.createdAt || 0).getTime();
+        return (
+          Number.isFinite(rowTime) && Math.abs(rowTime - createdAt) < 120_000
+        );
+      });
+      if (duplicate) return false;
+    }
+
+    return true;
+  });
+
+  if (!pending.length) return serverList;
+  return [...serverList, ...pending];
+}
