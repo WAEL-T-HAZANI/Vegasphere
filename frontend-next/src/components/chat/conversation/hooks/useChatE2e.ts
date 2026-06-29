@@ -40,34 +40,55 @@ export function useChatE2e({
       setE2eConvKey(stored);
       return;
     }
-    const wrap = activeConv?.e2eWrappedKeys?.find(
-      (w) => String(w.userId) === String(userId),
-    );
-    const issuerPk = activeConv?.e2eIssuerPublicKey;
-    if (!wrap?.box || !issuerPk) {
-      setE2eConvKey(null);
-      return;
-    }
-    try {
-      const pair = ensureE2eKeypair(userId);
-      if (!pair) return;
-      const raw = unwrapConversationKey(
-        issuerPk,
-        wrap.box,
-        wrap.nonce,
-        pair.secretKey,
+
+    let cancelled = false;
+
+    const tryUnwrap = (conv) => {
+      const wrap = conv?.e2eWrappedKeys?.find(
+        (w) => String(w.userId) === String(userId),
       );
-      storeConversationKey(cid, raw);
-      setE2eConvKey(raw);
-    } catch {
-      setE2eConvKey(null);
-    }
+      const issuerPk = conv?.e2eIssuerPublicKey;
+      if (!wrap?.box || !issuerPk) return false;
+      try {
+        const pair = ensureE2eKeypair(userId);
+        if (!pair) return false;
+        const raw = unwrapConversationKey(
+          issuerPk,
+          wrap.box,
+          wrap.nonce,
+          pair.secretKey,
+        );
+        storeConversationKey(cid, raw);
+        setE2eConvKey(raw);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (tryUnwrap(activeConv)) return;
+
+    (async () => {
+      try {
+        const { data } = await api.get(`/conversation/${cid}`);
+        if (cancelled) return;
+        if (data) dispatch(patchConversationInList(data));
+        if (!tryUnwrap(data)) setE2eConvKey(null);
+      } catch {
+        if (!cancelled) setE2eConvKey(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     dmE2eActive,
     userId,
     cid,
     activeConv?.e2eWrappedKeys,
     activeConv?.e2eIssuerPublicKey,
+    dispatch,
   ]);
 
   const enableE2e = async () => {

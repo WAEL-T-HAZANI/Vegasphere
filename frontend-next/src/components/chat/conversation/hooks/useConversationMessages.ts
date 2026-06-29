@@ -99,7 +99,6 @@ export function useConversationMessages({
 
   useEffect(() => {
     if (!userId || !conversationId) return;
-    convHydratedRef.current = false;
     let cancelled = false;
     const hasCached = Array.isArray(cachedMessages) && cachedMessages.length > 0;
     if (!hasCached) setThreadLoading(true);
@@ -116,7 +115,8 @@ export function useConversationMessages({
     return () => {
       cancelled = true;
     };
-  }, [conversationId, userId, router, reloadThread, cachedMessages.length]);
+    // Only reload when switching conversations — not when optimistic sends change length.
+  }, [conversationId, userId, router, reloadThread]);
 
   useEffect(() => {
     if (!userId || !cid) return undefined;
