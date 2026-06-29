@@ -179,14 +179,34 @@ function loadSmartIntents() {
   }
 }
 
+function getHealthCheck() {
+  const fileExists = fs.existsSync(DB_PATH);
+  let fileBytes = 0;
+  if (fileExists) {
+    try {
+      fileBytes = fs.statSync(DB_PATH).size;
+    } catch {
+      /* ignore */
+    }
+  }
+  const sqlite = isAvailable();
+  return {
+    dbPath: DB_PATH,
+    fileExists,
+    fileBytes,
+    sqlite,
+    source: sqlite ? "sqlite" : "json",
+  };
+}
+
 function getStats() {
   const conn = init();
   if (!conn) return null;
 
-  const phraseCount = conn.prepare("SELECT COUNT(*) AS n FROM phrases").get()?.n || 0;
-  const wordCount = conn.prepare("SELECT COUNT(*) AS n FROM words").get()?.n || 0;
+  const phraseCount = Number(conn.prepare("SELECT COUNT(*) AS n FROM phrases").get()?.n || 0);
+  const wordCount = Number(conn.prepare("SELECT COUNT(*) AS n FROM words").get()?.n || 0);
   const smartIntentCount = hasSmartIntentsTable()
-    ? conn.prepare("SELECT COUNT(*) AS n FROM smart_intents").get()?.n || 0
+    ? Number(conn.prepare("SELECT COUNT(*) AS n FROM smart_intents").get()?.n || 0)
     : 0;
   const pairs = conn
     .prepare(
@@ -230,6 +250,7 @@ module.exports = {
   loadSmartIntents,
   getWordMapCached,
   getStats,
+  getHealthCheck,
   getDataSource,
   clearCache,
   close,

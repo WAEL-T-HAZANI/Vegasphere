@@ -72,12 +72,16 @@ router.get("/ready", async (req, res) => {
   };
   try {
     const dictStore = require("../services/dict-store.js");
-    const stats = dictStore.getStats?.();
-    data.checks.vegaDict = dictStore.isAvailable() ? "sqlite" : "json-fallback";
-    if (stats?.phraseCount) data.checks.vegaDictPhrases = stats.phraseCount;
-    data.checks.vegaDictPath = dictStore.DB_PATH;
-  } catch {
+    const health = dictStore.getHealthCheck?.() || {};
+    data.checks.vegaDict = health.sqlite ? "sqlite" : "json-fallback";
+    if (health.dbPath) data.checks.vegaDictPath = health.dbPath;
+    if (health.fileBytes) {
+      data.checks.vegaDictMb = Number((health.fileBytes / 1024 / 1024).toFixed(1));
+    }
+  } catch (error) {
     data.checks.vegaDict = "unknown";
+    data.checks.vegaDictError = error?.message || String(error);
+    console.warn("vegaDict ready probe failed:", error?.message || error);
   }
   if (!ready) {
     return res.status(503).json({
