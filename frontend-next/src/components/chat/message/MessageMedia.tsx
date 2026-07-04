@@ -194,12 +194,7 @@ export default function MessageMedia({
       {showImageFallbackCard ? (
         <button
           type="button"
-          onClick={() => {
-            void triggerBrowserDownload(
-              effectiveImageUrl || mediaUrl || fileUrl,
-              m.fileName || "",
-            );
-          }}
+          onClick={() => onOpenMedia?.(m)}
           className={cn(
             "mb-1 block w-full overflow-hidden rounded-2xl border p-3 text-left transition hover:bg-subtle",
             isMine

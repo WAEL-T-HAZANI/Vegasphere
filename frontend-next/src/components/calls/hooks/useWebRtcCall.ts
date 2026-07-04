@@ -20,6 +20,7 @@ import {
 import {
   acquireCallMedia,
   attachLocalStreamToPeer,
+  ensureRecvTransceivers,
   IceCandidateQueue,
   mergeRemoteTrack,
   applyIceCandidate,
@@ -91,7 +92,7 @@ export function useWebRtcCall(myUserId) {
   }, [isVideoCall]);
 
   const emit = useCallback((payload) => {
-    emitWebRtcSignal({
+    void emitWebRtcSignal({
       ...payload,
       conversationId: convIdRef.current ?? payload.conversationId,
       callSessionId: callSessionIdRef.current ?? payload.callSessionId,
@@ -241,14 +242,15 @@ export function useWebRtcCall(myUserId) {
       };
 
       pc.onicecandidate = (e) => {
-        if (e.candidate && remotePeerRef.current && myUserId) {
-          emit({
-            to: remotePeerRef.current,
-            from: myUserId,
-            type: "ice",
-            candidate: e.candidate.toJSON(),
-          });
-        }
+        if (!remotePeerRef.current || !myUserId) return;
+        void emitWebRtcSignal({
+          to: remotePeerRef.current,
+          from: myUserId,
+          type: "ice",
+          candidate: e.candidate ? e.candidate.toJSON() : null,
+          conversationId: convIdRef.current,
+          callSessionId: callSessionIdRef.current,
+        });
       };
 
       pc.ontrack = (e) => {
@@ -347,6 +349,7 @@ export function useWebRtcCall(myUserId) {
         setCallNotice("failed");
         return;
       }
+      await ensureIceServersReady();
       closePeer();
       convIdRef.current = conversationId || null;
       callSessionIdRef.current = createCallSessionId("direct-call");
@@ -374,13 +377,18 @@ export function useWebRtcCall(myUserId) {
         });
         await pc.setLocalDescription(offer);
         setCallState("ringing_out");
-        emit({
+        const sent = await emitWebRtcSignal({
           to: remoteId,
           from: myUserId,
           type: "offer",
           sdp: offer.sdp,
           callType: videoCall ? "video" : "audio",
+          conversationId: convIdRef.current,
+          callSessionId: callSessionIdRef.current,
         });
+        if (!sent) {
+          throw new Error("Socket not connected");
+        }
         setCallNotice("");
       } catch (e) {
         console.warn("WebRTC start:", e);
@@ -434,7 +442,7 @@ export function useWebRtcCall(myUserId) {
 
       setIncomingMeta(null);
       setCallState("active");
-      emit({
+      await emitWebRtcSignal({
         to: from,
         from: myUserId,
         type: "answer",
@@ -551,11 +559,13 @@ export function useWebRtcCall(myUserId) {
         // Pre-create peer + apply offer so ICE from caller is not lost while ringing.
         try {
           await ensureIceServersReady();
+          const wantVideo = (callType || "audio") === "video";
           if (!pcRef.current || pcRef.current.signalingState === "closed") {
             attachPeer(from);
           }
           const pc = pcRef.current;
           if (pc && !pc.remoteDescription) {
+            ensureRecvTransceivers(pc, wantVideo);
             await pc.setRemoteDescription({ type: "offer", sdp });
             await flushIce();
           }
@@ -576,8 +586,10 @@ export function useWebRtcCall(myUserId) {
         return;
       }
 
-      if (type === "ice" && candidate) {
-        await addIce(candidate);
+      if (type === "ice") {
+        if (candidate) {
+          await addIce(candidate);
+        }
         return;
       }
 

@@ -66,6 +66,12 @@ export function attachLocalStreamToPeer(
   stream: MediaStream,
   wantVideo: boolean,
 ) {
+  for (const trx of pc.getTransceivers()) {
+    if (trx.direction === "recvonly" || trx.direction === "inactive") {
+      trx.direction = "sendrecv";
+    }
+  }
+
   const audioTrack = stream.getAudioTracks()[0] || null;
   const videoTrack = wantVideo ? stream.getVideoTracks()[0] || null : null;
 
@@ -119,6 +125,28 @@ export function mergeRemoteTrack(prev: MediaStream | null, event: RTCTrackEvent)
   return base;
 }
 
+/** Ensure recv m-lines exist before applying a remote offer while ringing. */
+export function ensureRecvTransceivers(pc: RTCPeerConnection, wantVideo: boolean) {
+  const transceivers = pc.getTransceivers();
+  const hasAudio = transceivers.some(
+    (t) =>
+      t.sender?.track?.kind === "audio" ||
+      t.receiver?.track?.kind === "audio" ||
+      t.mid,
+  );
+  const hasVideo = transceivers.some(
+    (t) =>
+      t.sender?.track?.kind === "video" ||
+      t.receiver?.track?.kind === "video",
+  );
+
+  if (!hasAudio) {
+    pc.addTransceiver("audio", { direction: "recvonly" });
+  }
+  if (wantVideo && !hasVideo) {
+    pc.addTransceiver("video", { direction: "recvonly" });
+  }
+}
 export class IceCandidateQueue {
   private pending: RTCIceCandidateInit[] = [];
 

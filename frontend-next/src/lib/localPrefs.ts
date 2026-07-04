@@ -22,7 +22,7 @@ export function writeLocalPref(key, value) {
 
 /** Whether chat media should load automatically (Settings → media auto-download). */
 export function shouldAutoLoadMedia() {
-  const pref = readLocalPref("vs_media_auto_download", "wifi");
+  const pref = readLocalPref("vs_media_auto_download", "always");
   if (pref === "never") return false;
   if (pref === "always") return true;
   if (typeof navigator === "undefined") return true;

@@ -42,7 +42,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setEnterToSend(readLocalPref("vs_enter_to_send", true) !== false);
-    const adm = readLocalPref("vs_media_auto_download", "wifi");
+    const adm = readLocalPref("vs_media_auto_download", "always");
     setAutoDownloadMedia(["never", "wifi", "always"].includes(adm) ? adm : "wifi");
   }, []);
 

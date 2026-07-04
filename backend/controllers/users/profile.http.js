@@ -6,7 +6,7 @@ const {
   defaultAvatarUrl,
   removeStoredAvatarFile,
 } = require("../../services/avatar-utils.js");
-const { publishLocalUpload } = require("../../services/object-storage.js");
+const { persistUploadedFile } = require("../../services/media-storage.js");
 const { emitProfileUpdated } = require("../../services/profile-notify.js");
 const {
   applyPresencePrivacy,
@@ -99,7 +99,7 @@ const uploadAvatar = async (req, res) => {
     const relUrl = `${avatarUploadPrefix}${req.file.filename}`;
     const localPath = req.file.path;
     const previous = user.profilePic || "";
-    const cloudUrl = await publishLocalUpload(
+    const cloudUrl = await persistUploadedFile(
       localPath,
       relUrl,
       req.file.mimetype,

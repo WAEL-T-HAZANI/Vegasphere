@@ -2,8 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const crypto = require("crypto");
-const { publishLocalUpload } = require("./object-storage.js");
-const { uploadSubdir } = require("./upload-base.js");
+const { persistUploadedFile } = require("./media-storage.js");
+const { getUploadBase, getStagedBase, uploadSubdir } = require("./upload-base.js");
 
 let uploadRoot;
 let stagedRoot;
@@ -56,8 +56,10 @@ const ALLOWED_EXTENSIONS = new Set([
 
 function ensureUploadRoot() {
   uploadRoot = uploadRoot || uploadSubdir("messages");
-  stagedRoot = stagedRoot || uploadSubdir("messages", ".staged");
-  stagedMetaRoot = stagedMetaRoot || uploadSubdir("messages", ".staged", "meta");
+  stagedRoot = stagedRoot || getStagedBase();
+  stagedMetaRoot =
+    stagedMetaRoot || path.join(getStagedBase(), "meta");
+  fs.mkdirSync(stagedMetaRoot, { recursive: true });
 }
 
 function sanitizeBaseName(name) {
@@ -225,7 +227,6 @@ function prepareStagedUpload({ token, userId }) {
     removeStageFiles(meta);
     return null;
   }
-  const finalPath = path.resolve(uploadRoot, String(meta.storedName || ""));
   const relUrl = `/uploads/messages/${meta.storedName}`;
   return {
     token: String(meta.token),
@@ -237,20 +238,14 @@ function prepareStagedUpload({ token, userId }) {
     async commit() {
       ensureUploadRoot();
       if (!fs.existsSync(meta.stagedPath)) return false;
-      const uploaded = await publishLocalUpload(
+      const cloudUrl = await persistUploadedFile(
         meta.stagedPath,
         relUrl,
         meta.fileType,
       );
-      if (uploaded) {
-        const metaPath = metaPathForToken(meta.token);
-        if (metaPath && fs.existsSync(metaPath)) {
-          fs.unlinkSync(metaPath);
-        }
-        this.url = uploaded;
-        return true;
+      if (cloudUrl) {
+        this.url = cloudUrl;
       }
-      fs.renameSync(meta.stagedPath, finalPath);
       const metaPath = metaPathForToken(meta.token);
       if (metaPath && fs.existsSync(metaPath)) {
         fs.unlinkSync(metaPath);

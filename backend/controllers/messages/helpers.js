@@ -3,6 +3,7 @@ const Message = require("../../models/Message.js");
 const Conversation = require("../../models/Conversation.js");
 const bus = require("../../services/event-bus.js");
 const { EVENTS } = bus;
+const { PUBLIC_API_URL } = require("../../config/env.js");
 
 function safeGetIO() {
   try {
@@ -30,7 +31,23 @@ function normalizeStoredMediaUrl(raw) {
   if (!raw) return "";
   const value = String(raw).trim();
   if (!value) return "";
-  if (/^https?:\/\//i.test(value) || /^data:/i.test(value)) return value;
+  if (/^data:/i.test(value)) return value;
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const apiBase = String(PUBLIC_API_URL || "").trim().replace(/\/$/, "");
+      if (apiBase && value.startsWith(apiBase)) {
+        const pathname = new URL(value).pathname;
+        return pathname.startsWith("/") ? pathname : `/${pathname}`;
+      }
+      const pathname = new URL(value).pathname;
+      if (pathname.startsWith("/uploads/")) {
+        return pathname;
+      }
+    } catch {
+      /* keep absolute URL for external assets */
+    }
+    return value;
+  }
   return value.startsWith("/") ? value : `/${value}`;
 }
 
@@ -169,7 +186,6 @@ const E2E_LIST_PREVIEW = "🔒 Encrypted message";
 
 const getLatestMessageText = ({ messageType, text, e2eVersion }) => {
   if (Number(e2eVersion) > 0) return E2E_LIST_PREVIEW;
-  if (text && text.trim()) return text;
   switch (messageType) {
     case "poll":
       return "Poll";
@@ -184,8 +200,10 @@ const getLatestMessageText = ({ messageType, text, e2eVersion }) => {
     case "audio":
       return "__audio__";
     default:
-      return text || "";
+      break;
   }
+  if (text && text.trim()) return text;
+  return text || "";
 };
 
 async function syncLatestMessageOnEdit(messageDoc, nextText) {

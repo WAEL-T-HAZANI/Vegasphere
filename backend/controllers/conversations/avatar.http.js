@@ -5,7 +5,7 @@ const {
   buildAbsoluteAssetUrl,
   removeStoredConversationAvatarFile,
 } = require("../../services/avatar-utils.js");
-const { publishLocalUpload } = require("../../services/object-storage.js");
+const { persistUploadedFile } = require("../../services/media-storage.js");
 const {
   isConversationAdmin,
   isConversationMember,
@@ -52,7 +52,7 @@ const uploadConversationAvatar = async (req, res) => {
 
   const relUrl = `${conversationAvatarUploadPrefix}${req.file.filename}`;
   const previous = conv.avatar || "";
-  const cloudUrl = await publishLocalUpload(
+  const cloudUrl = await persistUploadedFile(
     req.file.path,
     relUrl,
     req.file.mimetype,

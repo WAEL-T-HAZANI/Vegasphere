@@ -140,6 +140,7 @@ export default function CallManagerProvider() {
     const peerUserId = targets.peerUserId;
 
     void (async () => {
+      await prefetchIceServers().catch(() => {});
       if (peerUserId) {
         try {
           const { data } = await callsClient.canRingUser(peerUserId);

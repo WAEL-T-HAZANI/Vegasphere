@@ -51,6 +51,24 @@ const S3_PUBLIC_BASE_URL = String(process.env.S3_PUBLIC_BASE_URL || "")
   .trim()
   .replace(/\/$/, "");
 
+// ---- Upload storage (local disk or MongoDB GridFS — no S3 required) ----
+const UPLOAD_STORAGE = String(process.env.UPLOAD_STORAGE || "local")
+  .trim()
+  .toLowerCase();
+const PUBLIC_API_URL = String(process.env.PUBLIC_API_URL || "")
+  .trim()
+  .replace(/\/$/, "");
+
+if (isProd && UPLOAD_STORAGE === "local" && !String(process.env.UPLOAD_DIR || "").trim()) {
+  console.warn(
+    "[config] UPLOAD_DIR is not set and UPLOAD_STORAGE=local; uploaded files may be lost when the container restarts. On Belmo set UPLOAD_STORAGE=gridfs (uses MongoDB) or mount a persistent UPLOAD_DIR volume.",
+  );
+}
+
+if (UPLOAD_STORAGE === "gridfs") {
+  console.info("[config] Upload storage: MongoDB GridFS (no S3/R2 required)");
+}
+
 // ---- CORS ---------------------------------------------------------------
 function normalizeOrigin(origin) {
   const trimmed = String(origin || "").trim();
@@ -150,7 +168,18 @@ const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 300);
 const TRUST_PROXY = process.env.TRUST_PROXY === "1" || isProd;
 
 // ---- WebRTC ICE (STUN/TURN) ---------------------------------------------
-const DEFAULT_ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
+const DEFAULT_ICE_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  {
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+    ],
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+];
 
 function parseIceServers(raw) {
   const trimmed = String(raw || "").trim();
@@ -256,6 +285,8 @@ module.exports = {
   S3_SECRET_ACCESS_KEY,
   S3_ENDPOINT,
   S3_PUBLIC_BASE_URL,
+  UPLOAD_STORAGE,
+  PUBLIC_API_URL,
   CORS_ORIGINS,
   parseOrigins,
   resolveCorsOrigin,

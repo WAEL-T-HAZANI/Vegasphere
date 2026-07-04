@@ -23,6 +23,32 @@ const IN_TYPE_BY_EVENT: Record<string, string> = {
   "call:busy": "call-busy",
 };
 
+function waitForSocketConnected(socket, timeoutMs = 8000) {
+  if (!socket) return Promise.resolve(false);
+  if (socket.connected) return Promise.resolve(true);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      socket.off("connect", onConnect);
+      resolve(ok);
+    };
+
+    const onConnect = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+
+    socket.once("connect", onConnect);
+    try {
+      socket.connect();
+    } catch {
+      finish(false);
+    }
+  });
+}
+
 export function useWebRtcSignaling(onSignal) {
   useEffect(() => {
     const socket = getSocket();
@@ -44,13 +70,20 @@ export function useWebRtcSignaling(onSignal) {
   }, [onSignal]);
 }
 
-export function emitWebRtcSignal(payload) {
+/** Emit signaling only after socket is connected (prevents lost offers). */
+export async function emitWebRtcSignal(payload) {
   const event = OUT_EVENT_BY_TYPE[payload?.type];
-  if (!event) return;
+  if (!event) return false;
+
   const socket = getSocket();
-  if (!socket) return;
-  if (!socket.connected) {
-    socket.connect();
+  if (!socket) return false;
+
+  const connected = await waitForSocketConnected(socket);
+  if (!connected) {
+    console.warn("WebRTC signal dropped: socket not connected", payload?.type);
+    return false;
   }
+
   socket.emit(event, payload);
+  return true;
 }

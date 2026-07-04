@@ -117,6 +117,21 @@ export default function CallScreenOverlay({
     if (remoteStream?.getAudioTracks?.()?.length) {
       void playMediaElement(el);
     }
+
+    const tracks = remoteStream?.getAudioTracks?.() || [];
+    const onTrackChange = () => {
+      void playMediaElement(el);
+    };
+    for (const track of tracks) {
+      track.addEventListener("unmute", onTrackChange);
+      track.addEventListener("mute", onTrackChange);
+    }
+    return () => {
+      for (const track of tracks) {
+        track.removeEventListener("unmute", onTrackChange);
+        track.removeEventListener("mute", onTrackChange);
+      }
+    };
   }, [remoteStream]);
 
   useEffect(() => {

@@ -99,22 +99,35 @@ async function noteCallSignal(payload) {
   const sessionId = String(payload?.callSessionId || "").trim();
   if (!sessionId) return;
 
-  const initiatorId = toObjectId(payload.from);
-  const targetId = toObjectId(payload.to);
+  const signalFrom = toObjectId(payload.from);
+  const signalTo = toObjectId(payload.to);
   const conversationId = toObjectId(payload.conversationId);
-  if (!initiatorId || !targetId) return;
+  if (!signalFrom || !signalTo) return;
 
-  if (
-    !(await canInitiateCallToUser(initiatorId, targetId, {
-      groupCall: Boolean(payload.groupCall),
-    }))
-  ) {
-    return;
+  const signalType = String(payload.type || "");
+
+  if (signalType === "offer") {
+    if (
+      !(await canInitiateCallToUser(signalFrom, signalTo, {
+        groupCall: Boolean(payload.groupCall),
+      }))
+    ) {
+      return;
+    }
+  } else {
+    const existing = await CallLog.findOne({ sessionId }).select(
+      "participantIds initiatorId",
+    );
+    if (!existing) return;
+    const participants = (existing.participantIds || []).map((id) =>
+      String(id),
+    );
+    if (!participants.includes(String(signalFrom))) return;
   }
 
   const now = new Date();
   const participantIds = [
-    ...new Set([initiatorId.toString(), targetId.toString()]),
+    ...new Set([signalFrom.toString(), signalTo.toString()]),
   ].map((id) => new mongoose.Types.ObjectId(id));
 
   const baseSet = {
@@ -124,7 +137,7 @@ async function noteCallSignal(payload) {
   const setOnInsert = {
     sessionId,
     conversationId,
-    initiatorId,
+    initiatorId: signalType === "offer" ? signalFrom : undefined,
     participantIds,
     mode: payload.callType === "video" ? "video" : "audio",
     groupCall: Boolean(payload.groupCall),
@@ -133,8 +146,12 @@ async function noteCallSignal(payload) {
 
   let doc = await CallLog.findOne({ sessionId });
   if (!doc) {
+    if (signalType !== "offer") return;
     try {
-      doc = await CallLog.create(setOnInsert);
+      doc = await CallLog.create({
+        ...setOnInsert,
+        initiatorId: signalFrom,
+      });
     } catch (error) {
       if (error?.code === 11000) {
         doc = await CallLog.findOne({ sessionId });
@@ -158,19 +175,19 @@ async function noteCallSignal(payload) {
     update.$set.answeredAt = now;
     update.$addToSet = {
       ...(update.$addToSet || {}),
-      answeredByIds: targetId,
+      answeredByIds: signalFrom,
     };
   }
 
   if (payload.type === "call-decline") {
     update.$set.status = "declined";
     update.$set.endedAt = now;
-    update.$set.endedById = targetId;
+    update.$set.endedById = signalFrom;
   }
 
   if (payload.type === "call-hangup") {
     update.$set.endedAt = now;
-    update.$set.endedById = initiatorId;
+    update.$set.endedById = signalFrom;
   }
 
   doc = await CallLog.findOneAndUpdate({ sessionId }, update, {
@@ -181,7 +198,7 @@ async function noteCallSignal(payload) {
 
   if (payload.type === "call-hangup") {
     let nextStatus = computeStatusFromDoc(doc);
-    if (!doc.answeredAt && String(doc.initiatorId) === String(initiatorId)) {
+    if (!doc.answeredAt && String(doc.initiatorId) === String(signalFrom)) {
       nextStatus = "cancelled";
     }
     const answeredAtMs = doc.answeredAt
@@ -204,7 +221,7 @@ async function noteCallSignal(payload) {
 
   if (payload.type === "offer") {
     await notifyIncomingCallPush({
-      targetId,
+      targetId: signalTo,
       conversationId,
       mode: setOnInsert.mode,
       groupCall: Boolean(payload.groupCall),
@@ -214,7 +231,7 @@ async function noteCallSignal(payload) {
   publishCallsUpdated({
     kind: payload.type || "signal",
     sessionId,
-    userId: String(initiatorId),
+    userId: String(signalFrom),
   });
 }
 

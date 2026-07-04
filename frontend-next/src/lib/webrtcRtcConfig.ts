@@ -6,6 +6,19 @@ const DEFAULT_STUN_SERVERS = [
   { urls: "stun:stun.services.mozilla.com:3478" },
 ];
 
+/** Public TURN relay for cross-network calls when none configured (demo-grade). */
+const DEFAULT_TURN_SERVERS = [
+  {
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+    ],
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+];
+
 function urlsKey(entry) {
   if (!entry || !entry.urls) return "";
   const u = entry.urls;
@@ -42,6 +55,17 @@ function mergeIceServers(...groups) {
     }
   }
   return out.length ? out : [...DEFAULT_STUN_SERVERS];
+}
+
+function hasTurnCredentials(servers) {
+  return (servers || []).some(
+    (entry) =>
+      entry?.username &&
+      entry?.credential &&
+      (Array.isArray(entry.urls)
+        ? entry.urls.some((u) => /^turns?:/i.test(String(u)))
+        : /^turns?:/i.test(String(entry.urls || ""))),
+  );
 }
 
 let serverIceServers = [];
@@ -81,7 +105,10 @@ export async function prefetchIceServers() {
 
 export function getRtcConfiguration() {
   const fromEnv = parseEnvIceServers(process.env.NEXT_PUBLIC_WEBRTC_ICE_SERVERS);
-  const iceServers = mergeIceServers(fromEnv, serverIceServers, DEFAULT_STUN_SERVERS);
+  const merged = mergeIceServers(fromEnv, serverIceServers, DEFAULT_STUN_SERVERS);
+  const iceServers = hasTurnCredentials(merged)
+    ? merged
+    : mergeIceServers(merged, DEFAULT_TURN_SERVERS);
 
   const policy = process.env.NEXT_PUBLIC_WEBRTC_ICE_TRANSPORT_POLICY;
   const iceTransportPolicy =

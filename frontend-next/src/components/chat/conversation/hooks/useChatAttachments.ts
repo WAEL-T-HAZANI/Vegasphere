@@ -179,11 +179,7 @@ export function useChatAttachments({
           });
           data = response?.data || {};
           uploadToken = String(data?.uploadToken || "").trim();
-          uploadedUrl = data?.url
-            ? String(data.url).startsWith("http")
-              ? data.url
-              : `${API_ORIGIN}${data.url}`
-            : "";
+          uploadedUrl = data?.url ? String(data.url) : "";
           setUploading({
             kind: draft.kind,
             name: draft.name,
@@ -226,27 +222,20 @@ export function useChatAttachments({
           progress: 97,
           phase: "sending",
         });
+        const isVisualMedia =
+          resolvedKind === "image" || resolvedKind === "video";
         const sendResult = await deliverOutgoing({
           ...sendPayloadBase,
-          text: draft.text || draft.fileName || draft.name || "",
-          messageType:
-            resolvedKind === "image"
-              ? "image"
-              : resolvedKind === "video"
-                ? "video"
-                : "file",
-          imageUrl:
-            resolvedKind === "image" || resolvedKind === "video"
-              ? uploadedUrl || draft.previewUrl || ""
-              : "",
+          text: isVisualMedia ? "" : draft.text || draft.fileName || draft.name || "",
+          messageType: isVisualMedia
+            ? resolvedKind
+            : "file",
+          imageUrl: isVisualMedia ? uploadedUrl || "" : "",
           fileName: data?.fileName || draft.fileName || draft.name || "",
           fileType:
             data?.fileType || draft.fileType || "application/octet-stream",
           fileSize: data?.fileSize || draft.fileSize || 0,
-          fileData:
-            resolvedKind === "image" || resolvedKind === "video"
-              ? ""
-              : uploadedUrl,
+          fileData: isVisualMedia ? "" : uploadedUrl,
           disappearAfterSec: draft.disappearAfterSec || 0,
           viewOnce: Boolean(draft.viewOnce),
         });
