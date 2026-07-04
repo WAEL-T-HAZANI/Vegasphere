@@ -273,7 +273,7 @@ export default function ConversationHeader({
             compact
             className={cn("gap-1", rtl && "flex-row-reverse")}
           />
-          {isGroupChannel && isGroupChannelAdmin ? (
+          {isGroupChannel ? (
             <button
               type="button"
               onClick={() => router.push(`/chat/${cid}/info`)}

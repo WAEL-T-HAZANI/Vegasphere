@@ -18,7 +18,18 @@ function waitForActiveWorker(
   if (reg.active?.state === "activated") return Promise.resolve();
 
   return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(() => {
+    const timer = window.setTimeout(async () => {
+      try {
+        await navigator.serviceWorker.ready;
+        const latest =
+          (await navigator.serviceWorker.getRegistration(SW_SCOPE)) || reg;
+        if (latest.active) {
+          resolve();
+          return;
+        }
+      } catch {
+        /* fall through to reject */
+      }
       reject(
         new ServiceWorkerSetupError(
           "timeout",

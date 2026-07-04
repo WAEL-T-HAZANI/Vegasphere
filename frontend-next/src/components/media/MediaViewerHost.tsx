@@ -113,7 +113,13 @@ export default function MediaViewerHost() {
 
   const isVideo =
     media?.type === "video" ||
-    /\.(mp4|webm|ogg|mov)(\?|$)/i.test(media?.url || "");
+    /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(media?.url || "");
+
+  const videoSrc = (() => {
+    const base = String(media?.url || "").trim();
+    if (!base) return "";
+    return base.includes("#") ? base : `${base}#t=0.001`;
+  })();
 
   const multi = items.length > 1;
 
@@ -225,10 +231,13 @@ export default function MediaViewerHost() {
           >
             {isVideo ? (
               <video
-                src={media?.url}
+                key={videoSrc}
+                src={videoSrc}
                 controls
                 autoPlay
-                className="max-h-full w-full rounded-lg"
+                playsInline
+                preload="metadata"
+                className="max-h-full w-full min-h-[12rem] rounded-lg bg-black object-contain"
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element

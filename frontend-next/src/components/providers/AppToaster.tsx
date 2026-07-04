@@ -33,7 +33,8 @@ export default function AppToaster() {
         left: "50%",
         right: "auto",
         transform: "translateX(-50%)",
-        maxWidth: "min(24rem, calc(100vw - 2rem))",
+        width: "min(20rem, calc(100vw - 2rem))",
+        maxWidth: "min(20rem, calc(100vw - 2rem))",
       }}
       toastOptions={{
         className: "",

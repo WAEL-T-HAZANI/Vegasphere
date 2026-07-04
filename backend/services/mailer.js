@@ -356,10 +356,7 @@ async function sendUserReportEmail({
       process.env.SMTP_USER ||
       "wael.t.hazani@gmail.com",
   ).trim();
-  if (!adminTo) return false;
-  const transporter = createTransport();
-  if (!transporter) return false;
-  const from = resolveMailFrom();
+  if (!adminTo || !isMailConfigured()) return false;
   const subject = process.env.MAIL_SUBJECT_REPORT || "Vegasphere user report";
   const text = `User report received
 
@@ -375,7 +372,14 @@ ${reason}`;
 <p><strong>Reason:</strong></p>
 <p>${escapeHtml(reason).replace(/\n/g, "<br>")}</p>`;
 
-  await transporter.sendMail({ from, to: adminTo, subject, text, html });
+  await sendTransactionalEmail({
+    to: adminTo,
+    subject,
+    text,
+    html,
+    replyTo: reporterEmail || undefined,
+    refId: `user-report-${Date.now()}`,
+  });
   return true;
 }
 

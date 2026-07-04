@@ -623,9 +623,14 @@ export default function ChatConversationScreen() {
 
   const openGalleryForMessage = useCallback(
     (m) => {
-      if (!mediaItems.length) return;
       const idx = findMediaGalleryIndex(mediaItems, m._id);
-      dispatch(openMediaViewer({ items: mediaItems, index: idx }));
+      if (idx >= 0) {
+        dispatch(openMediaViewer({ items: mediaItems, index: idx }));
+        return;
+      }
+      const solo = extractMediaItemsFromMessages([m]);
+      if (!solo.length) return;
+      dispatch(openMediaViewer({ items: solo, index: 0 }));
     },
     [mediaItems, dispatch],
   );
@@ -1067,14 +1072,17 @@ export default function ChatConversationScreen() {
           mediaTiles={assetMediaItems}
           fileItems={assetFileItems}
           linkItems={assetLinkItems}
-          onOpenMedia={(messageId) =>
-            dispatch(
-              openMediaViewer({
-                items: mediaItems,
-                index: findMediaGalleryIndex(mediaItems, messageId),
-              }),
-            )
-          }
+          onOpenMedia={(messageId) => {
+            const idx = findMediaGalleryIndex(mediaItems, messageId);
+            if (idx >= 0) {
+              dispatch(openMediaViewer({ items: mediaItems, index: idx }));
+              return;
+            }
+            const msg = messagesById[String(messageId)];
+            const solo = msg ? extractMediaItemsFromMessages([msg]) : [];
+            if (!solo.length) return;
+            dispatch(openMediaViewer({ items: solo, index: 0 }));
+          }}
           onJump={(messageId) => {
             jumpToMessage(messageId);
             setAssetsOpen(false);

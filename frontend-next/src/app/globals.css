@@ -886,6 +886,30 @@ body {
   font-weight: 600;
 }
 
+.vs-networking-page .vs-muted-panel {
+  border-color: rgb(var(--vega-muted) / 0.22);
+  background: rgb(var(--vega-paper) / 0.92);
+  color: rgb(var(--vega-ink));
+  font-weight: 500;
+}
+
+.dark .vs-networking-page .vs-muted-panel {
+  border-color: rgb(var(--vega-muted) / 0.28);
+  background: rgb(var(--vega-paper) / 0.08);
+  color: rgb(var(--vega-ink));
+}
+
+.vs-networking-page .vs-select-field {
+  background: rgb(var(--vega-paper) / 0.95);
+  color: rgb(var(--vega-ink));
+}
+
+.dark .vs-networking-page .vs-select-field {
+  background: rgb(var(--vega-paper) / 0.08);
+  border-color: rgb(var(--vega-muted) / 0.28);
+  color: rgb(var(--vega-ink));
+}
+
 html:not(.dark) .vs-shell-page .text-muted,
 html:not(.dark) .vs-settings-page .text-muted,
 html:not(.dark) .vs-account-page .text-muted {
@@ -1936,22 +1960,28 @@ html[data-reduce-motion] *::after {
 .vs-toast-host {
   z-index: 60 !important;
   pointer-events: none;
-  /* Let react-hot-toast stack toasts with absolute rows + translateY */
   display: block !important;
+  width: min(20rem, calc(100vw - 2rem)) !important;
+  min-width: min(20rem, calc(100vw - 2rem)) !important;
+  max-width: min(20rem, calc(100vw - 2rem)) !important;
 }
 
-/* Each toast slot spans the host width; child card aligns to the active corner */
+/* Each toast slot spans the host width; child card fills the row */
 .vs-toast-host > div {
   width: 100% !important;
   min-width: 0 !important;
-  max-width: none !important;
+  max-width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
+  display: flex !important;
+  justify-content: stretch !important;
 }
 
 .vs-toast-host > div > .vs-toast-shell {
-  width: 20rem;
-  max-width: min(20rem, calc(100vw - 2rem));
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  flex: 1 1 auto;
 }
 
 @media (max-width: 360px) {

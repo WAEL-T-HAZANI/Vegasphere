@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Radio, Volume2, Zap } from "lucide-react";
 import { api } from "@/lib/api";
@@ -39,7 +39,17 @@ export default function PushSubscribeSection({
   const { t } = useTranslation();
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deviceSubscribed, setDeviceSubscribed] = useState(false);
   const disabled = busy || pushSaving || rulesBusy;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.getRegistration("/").then(async (reg) => {
+      if (!reg) return;
+      const sub = await reg.pushManager.getSubscription();
+      setDeviceSubscribed(Boolean(sub?.endpoint));
+    });
+  }, [pushWhenAway, permissionGranted]);
 
   const subscribe = async () => {
     setMsg("");
@@ -52,29 +62,24 @@ export default function PushSubscribeSection({
       onPermissionChange?.(perm === "granted");
       if (perm !== "granted") {
         setMsg(t("pushDisabled"));
+        setDeviceSubscribed(false);
         return;
       }
       const result = await subscribeToWebPush();
       if (result.ok === false) {
-        setMsg(formatApiError(result.error, t, "pushSubscribeFailed"));
+        setMsg(t("pushSubscribeFailed"));
         return;
       }
       if (!result.subscribed) {
-        const reason = "reason" in result ? result.reason : "unsupported";
-        const reasonKey: Record<string, string> = {
-          not_configured: "pushNotConfigured",
-          insecure: "pushInsecureContext",
-          push_unavailable: "pushServiceUnavailable",
-          sw_timeout: "pushSwTimeout",
-          unsupported: "pushSwUnsupported",
-        };
-        setMsg(t(reasonKey[reason] || "pushSwUnsupported"));
+        setDeviceSubscribed(false);
+        setMsg(t("pushSubscribeFailed"));
         return;
       }
+      setDeviceSubscribed(true);
       onPushWhenAwayChange?.(true);
       setMsg(t("pushSubscribed"));
     } catch (e) {
-      setMsg(formatApiError(e, t, "pushSubscribeFailed"));
+      setMsg(t("pushSubscribeFailed"));
     } finally {
       setBusy(false);
     }
@@ -85,12 +90,12 @@ export default function PushSubscribeSection({
     setBusy(true);
     try {
       await unsubscribeFromWebPush();
+      setDeviceSubscribed(false);
       onPushWhenAwayChange?.(false);
       onUnsubscribed?.();
-      onPermissionChange?.(false);
       setMsg(t("pushUnsubscribed"));
     } catch (e) {
-      setMsg(formatApiError(e, t, "pushSubscribeFailed"));
+      setMsg(t("pushSubscribeFailed"));
     } finally {
       setBusy(false);
     }
@@ -127,7 +132,12 @@ export default function PushSubscribeSection({
           hint={t("pushNotifyWhenAwayHint")}
           checked={pushWhenAway}
           disabled={disabled}
-          onChange={onPushWhenAwayChange}
+          onChange={(next) => {
+            onPushWhenAwayChange(next);
+            if (next && permissionGranted && !deviceSubscribed && !busy) {
+              void subscribe();
+            }
+          }}
         />
       ) : null}
       <div className="flex flex-wrap gap-2">
@@ -166,10 +176,11 @@ export default function PushSubscribeSection({
           {t("pushSendTest")}
         </button>
       </div>
-      {permissionAsked ? (
-        <p className="text-xs font-medium text-muted">
-          {permissionGranted ? t("pushEnabled") : t("pushDisabled")}
-        </p>
+      {permissionAsked && permissionGranted && deviceSubscribed ? (
+        <p className="text-xs font-medium text-muted">{t("pushEnabled")}</p>
+      ) : null}
+      {permissionAsked && !permissionGranted ? (
+        <p className="text-xs font-medium text-muted">{t("pushDisabled")}</p>
       ) : null}
       {msg ? (
         <p className="text-xs font-medium leading-relaxed text-muted">{msg}</p>

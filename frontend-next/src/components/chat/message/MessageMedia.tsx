@@ -79,7 +79,8 @@ export default function MessageMedia({
             <video
               src={videoPreviewSrc(effectiveVideoUrl)}
               className={cn(
-                "absolute inset-0 h-full w-full object-cover",
+                "absolute inset-0 h-full w-full",
+                isGroupChat ? "object-contain" : "object-cover",
                 videoPosterReady ? "opacity-100" : "opacity-0",
               )}
               muted

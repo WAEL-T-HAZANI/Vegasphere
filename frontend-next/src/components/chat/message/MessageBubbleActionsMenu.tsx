@@ -179,10 +179,9 @@ export default function MessageBubbleActionsMenu({
                     try {
                       const ui = (i18n.language || "en").split("-")[0].toLowerCase();
                       const targetLanguage = ui === "ar" ? "en" : "ar";
-                      const sourceLanguage = ui === "ar" ? "ar" : "en";
                       const { data } = await api.post("/ai/translate", {
                         text,
-                        sourceLanguage,
+                        sourceLanguage: "auto",
                         targetLanguage,
                       });
                       setTranslation(String(data?.translatedText || ""));

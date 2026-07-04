@@ -74,11 +74,27 @@ export function useWebRtcCall(myUserId) {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            // @ts-expect-error Chrome-specific AEC tuning
+            googEchoCancellation: true,
+            // @ts-expect-error Chrome-specific AEC tuning
+            googAutoGainControl: true,
+            // @ts-expect-error Chrome-specific AEC tuning
+            googNoiseSuppression: true,
+            // @ts-expect-error Chrome-specific AEC tuning
+            googHighpassFilter: true,
           }
         : {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            // @ts-expect-error Chrome-specific AEC tuning
+            googEchoCancellation: true,
+            // @ts-expect-error Chrome-specific AEC tuning
+            googAutoGainControl: true,
+            // @ts-expect-error Chrome-specific AEC tuning
+            googNoiseSuppression: true,
+            // @ts-expect-error Chrome-specific AEC tuning
+            googHighpassFilter: true,
           },
       video: wantVideo
         ? selectedVideoInputId
@@ -253,10 +269,22 @@ export function useWebRtcCall(myUserId) {
         }
       };
       pc.ontrack = (e) => {
-        const stream = e.streams?.[0] || new MediaStream([e.track]);
+        const track = e.track;
+        if (!track) return;
         setRemoteStream((prev) => {
-          if (prev && stream.id === prev.id) return prev;
-          return stream;
+          const tracks = prev ? [...prev.getTracks()] : [];
+          const sameKind = tracks.findIndex((t) => t.kind === track.kind);
+          if (sameKind >= 0) {
+            try {
+              tracks[sameKind].stop();
+            } catch {
+              /* ignore */
+            }
+            tracks[sameKind] = track;
+          } else {
+            tracks.push(track);
+          }
+          return new MediaStream(tracks);
         });
       };
       return pc;

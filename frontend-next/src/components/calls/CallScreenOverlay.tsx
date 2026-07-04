@@ -66,6 +66,10 @@ export default function CallScreenOverlay({
     const el = localRef.current;
     if (!el) return;
     el.srcObject = localStream || null;
+    el.muted = true;
+    if (localStream) {
+      void el.play?.().catch(() => {});
+    }
   }, [localStream]);
 
   useEffect(() => {
@@ -142,7 +146,14 @@ export default function CallScreenOverlay({
           <Dialog.Title className="sr-only">
             {t("webrtcBeta")} — {peerDisplayName || t("someoneTypingAnonymous")}
           </Dialog.Title>
-          <audio ref={remoteAudioRef} autoPlay playsInline className="sr-only" aria-hidden />
+          <audio
+            ref={remoteAudioRef}
+            autoPlay
+            playsInline
+            muted={false}
+            className="sr-only"
+            aria-hidden
+          />
 
           <div className="flex shrink-0 flex-col items-center gap-1 pt-2 text-center">
             <h2 className="text-lg font-semibold text-white md:text-xl">

@@ -116,19 +116,12 @@ export default function ChatInfoPage() {
   const isChannel = Boolean(conv?.isChannel);
   const isGroupOrChannel = Boolean(conv?.isGroup || conv?.isChannel);
 
-  useEffect(() => {
-    if (loading || !conv || !me?._id) return;
-    if (isGroupOrChannel && !isGroupAdmin) {
-      showAppToast({
-        id: `info-admin-only-${cid}`,
-        body: t("groupChannelInfoAdminOnly"),
-      });
-      router.replace(`/chat/${cid}`);
-    }
-  }, [cid, conv, isGroupAdmin, isGroupOrChannel, loading, me?._id, router, t]);
-
   const canEditInfo = useMemo(() => {
-    if (isGroupOrChannel) return isGroupAdmin;
+    if (isGroupOrChannel) {
+      return (
+        isGroupAdmin || Boolean(conv?.effectiveMemberRights?.canEditInfo)
+      );
+    }
     return Boolean(conv?.effectiveMemberRights?.canEditInfo);
   }, [conv?.effectiveMemberRights?.canEditInfo, isGroupAdmin, isGroupOrChannel]);
 
@@ -156,6 +149,11 @@ export default function ChatInfoPage() {
     : groupInitials(displayName, t("groupInitialFallback"));
   const channelSlugLabel = isChannel ? formatChannelSlug(String(conv?.channelSlug || "")) : "";
   const showAdminWorkspace = isGroupAdmin;
+  const canManageTopics = useMemo(() => {
+    if (!conv || !me?._id) return false;
+    if (isGroupAdmin) return true;
+    return Boolean(conv?.effectiveMemberRights?.canEditInfo);
+  }, [conv, isGroupAdmin, me?._id]);
   const memberCount =
     typeof conv?.memberCount === "number"
       ? conv.memberCount
@@ -350,10 +348,6 @@ export default function ChatInfoPage() {
     </div>
   );
 
-  if (isGroupOrChannel && conv && me?._id && !isGroupAdmin) {
-    return null;
-  }
-
   return (
     <DashboardPageLayout
       title={
@@ -508,7 +502,7 @@ export default function ChatInfoPage() {
           />
         ) : null}
 
-        {isGroupAdmin && isGroupOrChannel ? (
+        {isGroupOrChannel && conv && !editInfo ? (
           <section className="vs-settings-card space-y-4">
             <div className="text-start">
               <h2 className="text-base font-semibold text-ink">
@@ -577,11 +571,12 @@ export default function ChatInfoPage() {
           </section>
         ) : null}
 
-        {showAdminWorkspace ? (
+        {showAdminWorkspace || canManageTopics ? (
           <GroupConversationWorkspace
             conversationId={cid}
             conversation={conv}
             onConversationChange={setConv}
+            topicsOnly={!showAdminWorkspace && canManageTopics}
           />
         ) : null}
 

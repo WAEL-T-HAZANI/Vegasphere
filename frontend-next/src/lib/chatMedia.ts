@@ -55,11 +55,9 @@ export function extractMediaItemsFromMessages(messages) {
 }
 
 export function findMediaGalleryIndex(items, messageId) {
-  if (!Array.isArray(items) || !messageId) return 0;
+  if (!Array.isArray(items) || !messageId) return -1;
 
   const id = String(messageId);
 
-  const index = items.findIndex((it) => it?.messageId === id);
-
-  return index >= 0 ? index : 0;
+  return items.findIndex((it) => it?.messageId === id);
 }
