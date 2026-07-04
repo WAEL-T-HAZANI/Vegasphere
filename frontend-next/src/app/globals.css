@@ -274,7 +274,7 @@ body {
   .vs-select-field {
     @apply min-w-[9.5rem] cursor-pointer appearance-none rounded-xl border border-brand-200/60 bg-surface px-3 py-2.5 pe-9 text-xs font-semibold text-ink shadow-sm outline-none transition;
     @apply focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25;
-    @apply dark:border-brand-800/50 dark:bg-gray-950 dark:text-[rgb(var(--vega-ink))];
+    @apply dark:border-white/10 dark:bg-black dark:text-[rgb(var(--vega-ink))];
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-position: right 0.65rem center;
     background-repeat: no-repeat;
@@ -284,7 +284,7 @@ body {
   .vs-select-trigger {
     @apply min-w-[9.5rem] cursor-pointer rounded-xl border border-brand-200/60 bg-surface px-3 py-2.5 text-xs font-semibold text-ink shadow-sm outline-none transition;
     @apply focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25;
-    @apply dark:border-brand-800/50 dark:bg-gray-950 dark:text-[rgb(var(--vega-ink))];
+    @apply dark:border-white/10 dark:bg-black dark:text-[rgb(var(--vega-ink))];
   }
   :is(.dark) .vs-select-field {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -299,7 +299,13 @@ body {
     @apply focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas dark:focus-visible:ring-offset-gray-950;
   }
   .vs-alert-brand {
-    @apply rounded-2xl border border-brand-200/90 bg-brand-50/90 px-3 py-2 text-xs text-brand-900 shadow-sm ring-1 ring-brand-500/10 dark:border-brand-800 dark:bg-gradient-to-r dark:from-brand-900/40 dark:to-red-950/[0.28] dark:text-brand-100;
+    @apply rounded-2xl border border-brand-200/90 bg-brand-50/90 px-3 py-2 text-xs text-brand-900 shadow-sm ring-1 ring-brand-500/10 dark:border-brand-800/50 dark:bg-gradient-to-r dark:from-brand-900/40 dark:to-red-950/[0.28] dark:text-brand-100;
+  }
+  .vs-upload-progress-track {
+    @apply bg-brand-200/50;
+  }
+  .vs-upload-progress-fill {
+    @apply bg-gradient-to-r from-brand-600 to-brand-700;
   }
   .vs-popover {
     @apply rounded-2xl border border-brand-200/45 bg-surface/95 p-3 shadow-xl ring-1 ring-brand-700/[0.05] backdrop-blur dark:border-white/10 dark:bg-black/90 dark:ring-white/[0.06];
@@ -335,7 +341,25 @@ body {
     @apply bg-white/10;
   }
   .dark .vs-dark-brand-progress-fill {
-    @apply bg-gradient-to-r from-brand-500 to-brand-600;
+    @apply bg-gradient-to-r from-brand-700 via-brand-800 to-red-900;
+  }
+  .dark .vs-upload-progress-track {
+    @apply bg-white/10;
+  }
+  .dark .vs-upload-progress-fill {
+    @apply bg-gradient-to-r from-brand-700 via-brand-800 to-red-900;
+  }
+  .vs-upload-progress-fill--pulse {
+    animation: vs-upload-pulse 1.15s ease-in-out infinite;
+  }
+  @keyframes vs-upload-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.72;
+    }
   }
   .dark .vs-dark-brand-select {
     @apply border-brand-500/70 bg-gradient-to-br from-brand-600 via-brand-700 to-red-800 text-white;
@@ -899,14 +923,15 @@ body {
 }
 
 .dark .vs-networking-page .vs-muted-panel {
-  border-color: rgb(var(--vega-muted) / 0.28);
-  background: rgb(80 17 38 / 0.22);
+  border-color: rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0);
   color: rgb(var(--vega-ink));
 }
 
-.dark .vs-networking-page .vs-select-field {
-  background: rgb(80 17 38 / 0.22);
-  border-color: rgb(var(--vega-muted) / 0.28);
+.dark .vs-networking-page .vs-select-field,
+.dark .vs-networking-page .vs-select-trigger {
+  background: rgb(0 0 0);
+  border-color: rgb(255 255 255 / 0.1);
   color: rgb(var(--vega-ink));
 }
 

@@ -57,7 +57,8 @@ async function getS3Client() {
 async function uploadLocalFile(localPath, relativePath, contentType) {
   if (!isObjectStorageEnabled()) return null;
   const key = normalizeStorageKey(relativePath);
-  const body = fs.readFileSync(localPath);
+  const stat = fs.statSync(localPath);
+  const body = fs.createReadStream(localPath);
   const { PutObjectCommand } = await import("@aws-sdk/client-s3");
   const client = await getS3Client();
   await client.send(
@@ -65,6 +66,7 @@ async function uploadLocalFile(localPath, relativePath, contentType) {
       Bucket: S3_BUCKET,
       Key: key,
       Body: body,
+      ContentLength: stat.size,
       ContentType: contentType || "application/octet-stream",
     }),
   );

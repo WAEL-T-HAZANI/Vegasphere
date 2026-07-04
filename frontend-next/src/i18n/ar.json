@@ -691,6 +691,8 @@
   "messageSending": "جارٍ الإرسال…",
   "messageUploadFailed": "تعذر رفع هذا المرفق. حاول مرة أخرى.",
   "messageUploadProgress": "جارٍ رفع {{name}}...",
+  "messageUploadProcessing": "جارٍ إنهاء رفع {{name}}...",
+  "messageUploadSending": "جارٍ إرسال {{name}}...",
   "microphonePermissionDenied": "تم رفض إذن الميكروفون.",
   "moreEmojis": "المزيد من الرموز",
   "nameLabel": "الاسم",

@@ -29,6 +29,7 @@ const subscribePush = async (req, res) => {
           keys: { p256dh: keys.p256dh, auth: keys.auth },
         },
       },
+      pushNotificationsEnabled: true,
     });
     res.json({ ok: true });
   
@@ -51,7 +52,7 @@ const sendTestPush = async (req, res) => {
   }
   const user = await User.findById(req.user.id).select("pushSubscriptions");
   if (!user?.pushSubscriptions?.length) {
-    throw ApiError.badRequest("No push subscription — enable Web Push in Settings first");
+    throw ApiError.badRequest("No push subscription on this device yet");
   }
   await notifyUserPush(req.user.id, {
     title: "Vegasphere",

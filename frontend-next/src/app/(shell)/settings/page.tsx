@@ -32,12 +32,10 @@ export default function SettingsPage() {
   const languageOptionArabic = isArabic ? "العربية" : "Arabic";
   const themeLabelLight = isArabic ? "فاتح" : "Light";
   const themeLabelDark = isArabic ? "داكن" : "Dark";
-  const [pushWhenAway, setPushWhenAway] = useState(true);
   const [doNotDisturb, setDoNotDisturb] = useState(false);
   const [directAlerts, setDirectAlerts] = useState(true);
   const [groupAlerts, setGroupAlerts] = useState(true);
   const [mentionAlerts, setMentionAlerts] = useState(true);
-  const [pushSaving, setPushSaving] = useState(false);
   const [notifySaving, setNotifySaving] = useState(false);
   const [enterToSend, setEnterToSend] = useState(true);
   const [autoDownloadMedia, setAutoDownloadMedia] = useState("wifi");
@@ -50,7 +48,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!user) return;
-    setPushWhenAway(user.pushNotificationsEnabled !== false);
     setDoNotDisturb(user.doNotDisturb === true);
     setDirectAlerts(user.notificationRules?.direct !== false);
     setGroupAlerts(user.notificationRules?.groups !== false);
@@ -71,21 +68,6 @@ export default function SettingsPage() {
     },
     [t],
   );
-
-  const savePushPreference = async (enabled) => {
-    setPushSaving(true);
-    try {
-      await userClient.updateProfile({ pushNotificationsEnabled: enabled });
-      const { data } = await authClient.getMe();
-      dispatch(setUser(data));
-      toastSaved();
-    } catch (err) {
-      toastError(err);
-      setPushWhenAway(!enabled);
-    } finally {
-      setPushSaving(false);
-    }
-  };
 
   const saveNotificationRules = async (nextRules) => {
     setNotifySaving(true);
@@ -178,13 +160,9 @@ export default function SettingsPage() {
           setGroupAlerts={setGroupAlerts}
           mentionAlerts={mentionAlerts}
           setMentionAlerts={setMentionAlerts}
-          pushWhenAway={pushWhenAway}
-          setPushWhenAway={setPushWhenAway}
-          pushSaving={pushSaving}
           notifySaving={notifySaving}
           doNotDisturb={doNotDisturb}
           saveNotificationRules={saveNotificationRules}
-          savePushPreference={savePushPreference}
           saveDoNotDisturb={saveDoNotDisturb}
         />
         <SettingsMaintenanceSection />

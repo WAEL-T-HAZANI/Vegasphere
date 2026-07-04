@@ -678,6 +678,8 @@
   "messageSending": "Sending…",
   "messageUploadFailed": "Could not upload this attachment. Try again.",
   "messageUploadProgress": "Uploading {{name}}...",
+  "messageUploadProcessing": "Finishing upload for {{name}}...",
+  "messageUploadSending": "Sending {{name}}...",
   "microphonePermissionDenied": "Microphone permission was denied.",
   "moreEmojis": "More emojis",
   "nameLabel": "Name",

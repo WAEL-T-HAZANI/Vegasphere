@@ -5,13 +5,13 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { api } from "@/lib/api";
 import { setUser } from "@/store/slices/authSlice";
 import { setNotificationPrefs } from "@/store/slices/uiSlice";
-import { subscribeToWebPush } from "@/lib/pushSubscribe";
+import { ensureWebPushSubscribed } from "@/lib/pushSubscribe";
 import { primeCallRingtone } from "@/lib/callRingtone";
 import { primeNotificationSound } from "@/lib/notificationSound";
 
 /**
  * When logged in: request notification permission, subscribe to VAPID push,
- * and enable server-side push when away (once per session).
+ * and enable server-side background notifications (default on for every user).
  */
 export default function PushNotificationBootstrap() {
   const dispatch = useAppDispatch();
@@ -31,9 +31,18 @@ export default function PushNotificationBootstrap() {
       try {
         primeNotificationSound();
         primeCallRingtone();
-        if (Notification.permission !== "granted") return;
 
-        const sub = await subscribeToWebPush();
+        const sub = await ensureWebPushSubscribed();
+        const granted = Notification.permission === "granted";
+
+        dispatch(
+          setNotificationPrefs({
+            browserPush: granted,
+            permissionAsked: Notification.permission !== "default",
+            sound: user?.notificationRules?.sound !== false,
+          }),
+        );
+
         if (!sub.ok || !sub.subscribed) return;
 
         await api.put("/user/update", { pushNotificationsEnabled: true });
@@ -50,7 +59,7 @@ export default function PushNotificationBootstrap() {
         /* non-fatal */
       }
     })();
-  }, [dispatch, status, user?._id]);
+  }, [dispatch, status, user?._id, user?.notificationRules?.sound]);
 
   return null;
 }

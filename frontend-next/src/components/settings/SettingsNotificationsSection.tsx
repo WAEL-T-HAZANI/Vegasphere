@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import { Bell, BellOff } from "lucide-react";
 import { setNotificationPrefs } from "@/store/slices/uiSlice";
-import PushSubscribeSection from "@/components/settings/PushSubscribeSection";
 import SettingsSectionHeading from "@/components/settings/SettingsSectionHeading";
 import SettingsToggleRow from "@/components/settings/SettingsToggleRow";
 
@@ -22,16 +21,12 @@ export default function SettingsNotificationsSection({
   setGroupAlerts,
   mentionAlerts,
   setMentionAlerts,
-  pushWhenAway,
-  setPushWhenAway,
-  pushSaving,
   notifySaving,
   doNotDisturb,
   saveNotificationRules,
-  savePushPreference,
   saveDoNotDisturb,
 }) {
-  const rulesBusy = pushSaving || notifySaving;
+  const rulesBusy = notifySaving;
 
   const patchRules = (patch) => {
     saveNotificationRules({
@@ -119,33 +114,6 @@ export default function SettingsNotificationsSection({
           onChange={saveDoNotDisturb}
         />
       </motion.section>
-
-      <motion.div
-        {...sectionMotion}
-        transition={{ duration: 0.2, delay: 0.12 }}
-      >
-        <PushSubscribeSection
-          embedded
-          pushWhenAway={pushWhenAway}
-          pushSaving={pushSaving}
-          rulesBusy={rulesBusy}
-          permissionGranted={notify.browserPush}
-          permissionAsked={notify.permissionAsked}
-          onPushWhenAwayChange={(next) => {
-            setPushWhenAway(next);
-            savePushPreference(next);
-          }}
-          onPermissionChange={(granted) => {
-            dispatch(
-              setNotificationPrefs({
-                browserPush: granted,
-                permissionAsked: true,
-              }),
-            );
-          }}
-          onUnsubscribed={() => setPushWhenAway(false)}
-        />
-      </motion.div>
     </>
   );
 }

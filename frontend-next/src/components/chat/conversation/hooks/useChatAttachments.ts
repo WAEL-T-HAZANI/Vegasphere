@@ -74,6 +74,19 @@ function isAllowedAttachment(file) {
   );
 }
 
+/** Map bytes sent → 0–90%; reserve 90–100% for server ack + message send. */
+function attachmentUploadProgress(loaded, total) {
+  const loadedN = Number(loaded || 0);
+  const totalN = Number(total || 0);
+  if (totalN > 0) {
+    const ratio = Math.min(1, loadedN / totalN);
+    if (ratio >= 1) return 90;
+    return Math.max(2, Math.round(ratio * 90));
+  }
+  if (loadedN <= 0) return 2;
+  return Math.min(85, Math.round(10 + Math.log10(loadedN + 1) * 15));
+}
+
 function resolveAttachmentDraftMeta(file) {
   const mime = String(file?.type || "").toLowerCase();
   const ext = getFileExtension(file?.name);
@@ -136,7 +149,7 @@ export function useChatAttachments({
       if (!draft?.file || !user?._id || !conversationId) {
         return { ok: false, message: t("messageUploadFailed") };
       }
-      setUploading({ kind: draft.kind, name: draft.name, progress: 0 });
+      setUploading({ kind: draft.kind, name: draft.name, progress: 0, phase: "upload" });
       setFailedUpload(null);
       setVoiceMsg("");
       let uploadToken = String(draft.uploadToken || "").trim();
@@ -153,14 +166,15 @@ export function useChatAttachments({
           form.append("kind", draft.uploadKind || draft.kind || "file");
           const response = await api.post("/message/upload", form, {
             headers: { "Content-Type": "multipart/form-data" },
+            timeout: 600_000,
             onUploadProgress: (evt) => {
-              const total = Number(evt.total || 0);
-              const loaded = Number(evt.loaded || 0);
-              const progress =
-                total > 0
-                  ? Math.min(85, Math.round((loaded / total) * 85))
-                  : Math.min(85, loaded > 0 ? 40 : 0);
-              setUploading({ kind: draft.kind, name: draft.name, progress });
+              const progress = attachmentUploadProgress(evt.loaded, evt.total);
+              setUploading({
+                kind: draft.kind,
+                name: draft.name,
+                progress,
+                phase: progress >= 90 ? "processing" : "upload",
+              });
             },
           });
           data = response?.data || {};
@@ -170,7 +184,12 @@ export function useChatAttachments({
               ? data.url
               : `${API_ORIGIN}${data.url}`
             : "";
-          setUploading({ kind: draft.kind, name: draft.name, progress: 90 });
+          setUploading({
+            kind: draft.kind,
+            name: draft.name,
+            progress: 92,
+            phase: "processing",
+          });
         }
         const resolvedKind =
           data?.kind || draft.uploadKind || draft.kind || "file";
@@ -181,7 +200,12 @@ export function useChatAttachments({
           uploadToken,
         };
         if (draft.kind === "audio") {
-          setUploading({ kind: draft.kind, name: draft.name, progress: 95 });
+          setUploading({
+            kind: draft.kind,
+            name: draft.name,
+            progress: 97,
+            phase: "sending",
+          });
           const sendResult = await deliverOutgoing({
             ...sendPayloadBase,
             text: "",
@@ -196,7 +220,12 @@ export function useChatAttachments({
           revokeUploadPreview(draft);
           return { ok: true };
         }
-        setUploading({ kind: draft.kind, name: draft.name, progress: 95 });
+        setUploading({
+          kind: draft.kind,
+          name: draft.name,
+          progress: 97,
+          phase: "sending",
+        });
         const sendResult = await deliverOutgoing({
           ...sendPayloadBase,
           text: draft.text || draft.fileName || draft.name || "",

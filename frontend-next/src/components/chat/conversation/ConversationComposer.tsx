@@ -244,16 +244,25 @@ export default function ConversationComposer(props) {
           <div className="vs-alert-brand mb-3">
             <div className="flex items-center justify-between gap-3">
               <span>
-                {t("messageUploadProgress", {
-                  name: uploading.name,
-                  progress: uploading.progress,
-                })}
+                {uploading.phase === "sending"
+                  ? t("messageUploadSending", { name: uploading.name })
+                  : uploading.phase === "processing"
+                    ? t("messageUploadProcessing", { name: uploading.name })
+                    : t("messageUploadProgress", {
+                        name: uploading.name,
+                        progress: uploading.progress,
+                      })}
               </span>
               <span className="font-semibold">{uploading.progress}%</span>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-brand-200/70 vs-dark-brand-progress-track">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full vs-upload-progress-track">
               <div
-                className="h-full rounded-full bg-brand-600 transition-all vs-dark-brand-progress-fill"
+                className={cn(
+                  "h-full rounded-full transition-all vs-upload-progress-fill",
+                  (uploading.phase === "processing" ||
+                    uploading.phase === "sending") &&
+                    "vs-upload-progress-fill--pulse",
+                )}
                 style={{ width: `${Math.max(6, uploading.progress)}%` }}
               />
             </div>

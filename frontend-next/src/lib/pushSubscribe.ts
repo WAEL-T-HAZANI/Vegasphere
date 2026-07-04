@@ -146,3 +146,18 @@ export async function isVapidConfigured() {
     return false;
   }
 }
+
+/** Request browser permission (if needed) and subscribe this device to Web Push. */
+export async function ensureWebPushSubscribed(): Promise<PushSubscribeResult> {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return { ok: true, subscribed: false, reason: "unsupported" };
+  }
+  let perm = Notification.permission;
+  if (perm === "default") {
+    perm = await Notification.requestPermission();
+  }
+  if (perm !== "granted") {
+    return { ok: true, subscribed: false, reason: "unsupported" };
+  }
+  return subscribeToWebPush();
+}

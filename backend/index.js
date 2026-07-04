@@ -107,6 +107,13 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 const server = http.createServer(app);
+// Large video uploads need long-lived connections (Belmo/nginx must match).
+server.timeout = 600_000;
+server.headersTimeout = 610_000;
+if (typeof server.requestTimeout === "number") {
+  server.requestTimeout = 600_000;
+}
+server.keepAliveTimeout = 65_000;
 
 initSocket(server);
 
