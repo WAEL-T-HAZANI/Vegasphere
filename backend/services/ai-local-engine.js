@@ -338,6 +338,8 @@ function loadTranslationMaps() {
   if (dictStore.isAvailable()) {
     const supplements = readJson("ai-supplements.json");
     if (supplements?.phrases) mergePairMaps(supplements.phrases, phraseMaps);
+    // Curated word pairs (e.g. car → سيارة) must apply even when SQLite is primary.
+    if (supplements?.words) mergePairMaps(supplements.words, wordMaps);
     return;
   }
   loadLegacyJsonMaps();
