@@ -241,7 +241,7 @@ export default function ConversationComposer(props) {
           />
         ) : null}
         {uploading ? (
-          <div className="vs-alert-brand mb-3">
+          <div className="vs-upload-progress-panel mb-3">
             <div className="flex items-center justify-between gap-3">
               <span>
                 {uploading.phase === "sending"

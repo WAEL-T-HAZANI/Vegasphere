@@ -143,6 +143,11 @@ function detectLatinLanguage(text) {
   const tokens = lower.split(/\s+/).filter(Boolean);
   if (!tokens.length) return "en";
 
+  // Single ASCII tokens (e.g. "car") are English — not French "car" (= because).
+  const singleAscii =
+    tokens.length === 1 && /^[a-z0-9'-]+$/i.test(tokens[0]);
+  if (singleAscii) return "en";
+
   if (FR_HINT_RE.test(lower)) return "fr";
   if (DE_HINT_RE.test(lower)) return "de";
   if (ES_HINT_RE.test(lower)) return "es";
@@ -1284,7 +1289,6 @@ function resolveDirection(source, target, text) {
   const tokens = normalizeKey(text).split(/\s+/).filter(Boolean);
   if (
     autoSource &&
-    tgt === "ar" &&
     tokens.length === 1 &&
     /^[a-z0-9'-]+$/i.test(tokens[0])
   ) {
