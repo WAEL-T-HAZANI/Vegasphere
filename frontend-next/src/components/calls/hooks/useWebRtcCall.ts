@@ -12,6 +12,14 @@ import { getRtcConfiguration } from "@/lib/webrtcRtcConfig";
 import { applyOutboundRtpCaps } from "@/lib/webrtcSendCaps";
 import { useCallDevicePreferences } from "@/components/calls/hooks/useCallDevicePreferences";
 import { stopIncomingCallRingtone } from "@/lib/callRingtone";
+import {
+  acquireCallMedia,
+  attachLocalStreamToPeer,
+  IceCandidateQueue,
+  mergeRemoteTrack,
+  applyIceCandidate,
+  buildCallMediaConstraints,
+} from "@/lib/webrtcCallMedia";
 
 function createCallSessionId(prefix = "call") {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -51,7 +59,7 @@ export function useWebRtcCall(myUserId) {
   const pcRef = useRef(null);
   const callActiveSinceRef = useRef(null);
   const remotePeerRef = useRef(null);
-  const pendingIceRef = useRef([]);
+  const iceQueueRef = useRef(new IceCandidateQueue());
   const convIdRef = useRef(null);
   const callSessionIdRef = useRef(null);
   const signalHandlerRef = useRef(() => {});
@@ -65,48 +73,6 @@ export function useWebRtcCall(myUserId) {
   const reconnectingRef = useRef(false);
   const disconnectTimerRef = useRef(null);
   const alertedSessionsRef = useRef(new Set());
-
-  const buildMediaConstraints = useCallback(
-    (wantVideo) => ({
-      audio: selectedAudioInputId
-        ? {
-            deviceId: { ideal: selectedAudioInputId },
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            // @ts-expect-error Chrome-specific AEC tuning
-            googEchoCancellation: true,
-            // @ts-expect-error Chrome-specific AEC tuning
-            googAutoGainControl: true,
-            // @ts-expect-error Chrome-specific AEC tuning
-            googNoiseSuppression: true,
-            // @ts-expect-error Chrome-specific AEC tuning
-            googHighpassFilter: true,
-          }
-        : {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            // @ts-expect-error Chrome-specific AEC tuning
-            googEchoCancellation: true,
-            // @ts-expect-error Chrome-specific AEC tuning
-            googAutoGainControl: true,
-            // @ts-expect-error Chrome-specific AEC tuning
-            googNoiseSuppression: true,
-            // @ts-expect-error Chrome-specific AEC tuning
-            googHighpassFilter: true,
-          },
-      video: wantVideo
-        ? selectedVideoInputId
-          ? {
-              deviceId: { ideal: selectedVideoInputId },
-              facingMode: { ideal: "user" },
-            }
-          : { facingMode: { ideal: "user" }, width: { ideal: 1280 }, height: { ideal: 720 } }
-        : false,
-    }),
-    [selectedAudioInputId, selectedVideoInputId]
-  );
 
   useEffect(() => {
     localStreamRef.current = localStream;
@@ -142,7 +108,7 @@ export function useWebRtcCall(myUserId) {
     reconnectingRef.current = false;
     setIceRestartPending(false);
 
-    pendingIceRef.current = [];
+    iceQueueRef.current.clear();
     setPeerConnectionState(null);
     pcRef.current?.close();
     pcRef.current = null;
@@ -169,28 +135,19 @@ export function useWebRtcCall(myUserId) {
   const flushIce = useCallback(async () => {
     const pc = pcRef.current;
     if (!pc?.remoteDescription) return;
-    const list = pendingIceRef.current.splice(0);
-    for (const c of list) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(c));
-      } catch {}
-    }
+    await iceQueueRef.current.flush(pc);
   }, []);
 
-  const addIce = useCallback(
-    async (candidate) => {
-      const pc = pcRef.current;
-      if (!pc || !candidate) return;
-      if (!pc.remoteDescription) {
-        pendingIceRef.current.push(candidate);
-        return;
-      }
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch {}
-    },
-    []
-  );
+  const addIce = useCallback(async (candidate) => {
+    const pc = pcRef.current;
+    const ready = iceQueueRef.current.push(
+      candidate,
+      Boolean(pc?.remoteDescription),
+    );
+    if (ready && pc) {
+      await applyIceCandidate(pc, ready);
+    }
+  }, []);
 
   const tryIceRestart = useCallback(async () => {
     const pc = pcRef.current;
@@ -234,6 +191,7 @@ export function useWebRtcCall(myUserId) {
       const pc = new RTCPeerConnection(getRtcConfiguration());
       pcRef.current = pc;
       setPeerConnectionState(pc.connectionState);
+
       pc.onconnectionstatechange = () => {
         const st = pc.connectionState;
         setPeerConnectionState(st);
@@ -242,6 +200,9 @@ export function useWebRtcCall(myUserId) {
           if (disconnectTimerRef.current) {
             clearTimeout(disconnectTimerRef.current);
             disconnectTimerRef.current = null;
+          }
+          if (callStateRef.current === "ringing_out") {
+            setCallState("active");
           }
           return;
         }
@@ -258,6 +219,14 @@ export function useWebRtcCall(myUserId) {
           tryIceRestartRef.current();
         }, delay);
       };
+
+      pc.oniceconnectionstatechange = () => {
+        const ice = pc.iceConnectionState;
+        if (ice === "connected" || ice === "completed") {
+          reconnectAttemptsRef.current = 0;
+        }
+      };
+
       pc.onicecandidate = (e) => {
         if (e.candidate && remotePeerRef.current && myUserId) {
           emit({
@@ -268,28 +237,16 @@ export function useWebRtcCall(myUserId) {
           });
         }
       };
+
       pc.ontrack = (e) => {
-        const track = e.track;
-        if (!track) return;
-        setRemoteStream((prev) => {
-          const tracks = prev ? [...prev.getTracks()] : [];
-          const sameKind = tracks.findIndex((t) => t.kind === track.kind);
-          if (sameKind >= 0) {
-            try {
-              tracks[sameKind].stop();
-            } catch {
-              /* ignore */
-            }
-            tracks[sameKind] = track;
-          } else {
-            tracks.push(track);
-          }
-          return new MediaStream(tracks);
-        });
+        setRemoteStream((prev) => mergeRemoteTrack(prev, e));
       };
+
+      void iceQueueRef.current.flush(pc);
+
       return pc;
     },
-    [emit, myUserId]
+    [emit, myUserId],
   );
 
   useEffect(() => {
@@ -312,28 +269,34 @@ export function useWebRtcCall(myUserId) {
     async (remoteId, wantVideo, conversationId) => {
       if (!myUserId || !remoteId) return;
       if (!conversationId) {
-        console.warn(
-          "WebRTC: missing conversationId — signaling is rejected by the server."
-        );
+        setCallNotice("failed");
         return;
       }
       closePeer();
       convIdRef.current = conversationId || null;
       callSessionIdRef.current = createCallSessionId("direct-call");
       try {
-        const stream = await navigator.mediaDevices.getUserMedia(
-          buildMediaConstraints(Boolean(wantVideo))
+        const stream = await acquireCallMedia(
+          Boolean(wantVideo),
+          selectedAudioInputId,
+          selectedVideoInputId,
         );
+        const videoCall = Boolean(wantVideo) && stream.getVideoTracks().length > 0;
         setLocalStream(stream);
-        setIsVideoCall(Boolean(wantVideo));
+        setIsVideoCall(videoCall);
         const a = stream.getAudioTracks()[0];
         const v = stream.getVideoTracks()[0];
         setMicMuted(a ? !a.enabled : false);
-        setCamOff(v ? !v.enabled : !wantVideo);
+        setCamOff(v ? !v.enabled : !videoCall);
+
         const pc = attachPeer(remoteId);
-        stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+        attachLocalStreamToPeer(pc, stream, videoCall);
         await applyOutboundRtpCaps(pc);
-        const offer = await pc.createOffer();
+
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: videoCall,
+        });
         await pc.setLocalDescription(offer);
         setCallState("ringing_out");
         emit({
@@ -341,15 +304,23 @@ export function useWebRtcCall(myUserId) {
           from: myUserId,
           type: "offer",
           sdp: offer.sdp,
-          callType: wantVideo ? "video" : "audio",
+          callType: videoCall ? "video" : "audio",
         });
         setCallNotice("");
       } catch (e) {
         console.warn("WebRTC start:", e);
-        closePeer();
+        setCallNotice("failed");
+        closePeer({ preserveNotice: true });
       }
     },
-    [attachPeer, buildMediaConstraints, closePeer, emit, myUserId]
+    [
+      attachPeer,
+      closePeer,
+      emit,
+      myUserId,
+      selectedAudioInputId,
+      selectedVideoInputId,
+    ],
   );
 
   const acceptIncoming = useCallback(async () => {
@@ -358,22 +329,34 @@ export function useWebRtcCall(myUserId) {
     const { from, sdp, callType } = incomingMeta;
     try {
       const wantVideo = callType === "video";
-      const stream = await navigator.mediaDevices.getUserMedia(
-        buildMediaConstraints(wantVideo)
+      const stream = await acquireCallMedia(
+        wantVideo,
+        selectedAudioInputId,
+        selectedVideoInputId,
       );
+      const videoCall = wantVideo && stream.getVideoTracks().length > 0;
       setLocalStream(stream);
-      setIsVideoCall(wantVideo);
+      setIsVideoCall(videoCall);
       const a = stream.getAudioTracks()[0];
       const v = stream.getVideoTracks()[0];
       setMicMuted(a ? !a.enabled : false);
-      setCamOff(v ? !v.enabled : !wantVideo);
-      const pc = attachPeer(from);
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      setCamOff(v ? !v.enabled : !videoCall);
+
+      let pc = pcRef.current;
+      if (!pc || pc.signalingState === "closed") {
+        pc = attachPeer(from);
+      }
+      attachLocalStreamToPeer(pc, stream, videoCall);
       await applyOutboundRtpCaps(pc);
-      await pc.setRemoteDescription({ type: "offer", sdp });
+
+      if (!pc.remoteDescription) {
+        await pc.setRemoteDescription({ type: "offer", sdp });
+      }
       await flushIce();
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+
       setIncomingMeta(null);
       setCallState("active");
       emit({
@@ -384,18 +367,21 @@ export function useWebRtcCall(myUserId) {
         conversationId: convIdRef.current,
         callSessionId: callSessionIdRef.current,
       });
+      await flushIce();
     } catch (e) {
       console.warn("WebRTC accept:", e);
-      closePeer();
+      setCallNotice("failed");
+      closePeer({ preserveNotice: true });
     }
   }, [
     attachPeer,
-    buildMediaConstraints,
     closePeer,
     emit,
     flushIce,
     incomingMeta,
     myUserId,
+    selectedAudioInputId,
+    selectedVideoInputId,
   ]);
 
   const rejectIncoming = useCallback(() => {
@@ -449,6 +435,7 @@ export function useWebRtcCall(myUserId) {
               type: "answer",
               sdp: answer.sdp,
             });
+            await flushIce();
           } catch (e) {
             console.warn("WebRTC renegotiation:", e);
           }
@@ -457,7 +444,9 @@ export function useWebRtcCall(myUserId) {
 
         convIdRef.current = payload.conversationId || null;
         callSessionIdRef.current =
-          payload.callSessionId || callSessionIdRef.current || createCallSessionId("direct-call");
+          payload.callSessionId ||
+          callSessionIdRef.current ||
+          createCallSessionId("direct-call");
         const alertKey = String(callSessionIdRef.current || "");
         if (
           alertKey &&
@@ -481,21 +470,28 @@ export function useWebRtcCall(myUserId) {
           } catch {}
         }
         setIsVideoCall((callType || "audio") === "video");
-        setIncomingMeta({
-          from,
-          sdp,
-          callType: callType || "audio",
-        });
+        setIncomingMeta({ from, sdp, callType: callType || "audio" });
         setCallState("ringing_in");
+
+        // Pre-create peer + apply offer so ICE from caller is not lost while ringing.
+        try {
+          if (!pcRef.current || pcRef.current.signalingState === "closed") {
+            attachPeer(from);
+          }
+          const pc = pcRef.current;
+          if (pc && !pc.remoteDescription) {
+            await pc.setRemoteDescription({ type: "offer", sdp });
+            await flushIce();
+          }
+        } catch (e) {
+          console.warn("WebRTC pre-accept offer:", e);
+        }
         return;
       }
 
       if (type === "answer" && sdp && pcRef.current) {
         try {
-          await pcRef.current.setRemoteDescription({
-            type: "answer",
-            sdp,
-          });
+          await pcRef.current.setRemoteDescription({ type: "answer", sdp });
           await flushIce();
           setCallState("active");
         } catch (e) {
@@ -516,9 +512,7 @@ export function useWebRtcCall(myUserId) {
             : callStateRef.current === "ringing_in"
               ? "missed"
               : "";
-        if (nextNotice) {
-          setCallNotice(nextNotice);
-        }
+        if (nextNotice) setCallNotice(nextNotice);
         closePeer({ preserveNotice: Boolean(nextNotice) });
         return;
       }
@@ -528,7 +522,7 @@ export function useWebRtcCall(myUserId) {
         closePeer({ preserveNotice: true });
       }
     },
-    [addIce, closePeer, emit, flushIce, myUserId, notificationPrefs, userDnd]
+    [addIce, attachPeer, closePeer, emit, flushIce, myUserId, notificationPrefs, userDnd],
   );
 
   useEffect(() => {
@@ -543,6 +537,8 @@ export function useWebRtcCall(myUserId) {
         to: remotePeerRef.current,
         from: myUserId,
         type: "call-hangup",
+        conversationId: convIdRef.current,
+        callSessionId: callSessionIdRef.current,
       });
     }
     closePeer();
@@ -611,7 +607,7 @@ export function useWebRtcCall(myUserId) {
       vt.onended = () => {
         screenStreamRef.current = null;
         const sender2 = pcRef.current?.getSenders().find(
-          (s) => s.track?.kind === "video"
+          (s) => s.track?.kind === "video",
         );
         const c = cameraVideoTrackRef.current;
         if (sender2 && c && c.readyState === "live") {
@@ -626,13 +622,7 @@ export function useWebRtcCall(myUserId) {
   }, [callState, isScreenSharing, isVideoCall]);
 
   const switchInputDevice = useCallback(
-    async ({
-      audioInputId,
-      videoInputId,
-    }: {
-      audioInputId?: string;
-      videoInputId?: string;
-    }) => {
+    async ({ audioInputId, videoInputId } = {}) => {
       const stream = localStreamRef.current;
       if (!stream || typeof navigator === "undefined") return;
 
@@ -640,18 +630,15 @@ export function useWebRtcCall(myUserId) {
       if (videoInputId !== undefined) setSelectedVideoInputId(videoInputId || "");
 
       const wantsVideo = Boolean(isVideoCallRef.current);
+      const audioId = audioInputId ?? selectedAudioInputId;
+      const videoId = videoInputId ?? selectedVideoInputId;
       try {
-        const nextStream = await navigator.mediaDevices.getUserMedia({
-          audio:
-            audioInputId || selectedAudioInputId
-              ? { deviceId: { exact: audioInputId || selectedAudioInputId } }
-              : true,
-          video: wantsVideo
-            ? videoInputId || selectedVideoInputId
-              ? { deviceId: { exact: videoInputId || selectedVideoInputId } }
-              : true
-            : false,
-        });
+        const constraints = buildCallMediaConstraints(
+          wantsVideo,
+          audioId,
+          videoId,
+        );
+        const nextStream = await navigator.mediaDevices.getUserMedia(constraints);
 
         const nextAudio = nextStream.getAudioTracks()[0] || null;
         const nextVideo = nextStream.getVideoTracks()[0] || null;
@@ -683,7 +670,7 @@ export function useWebRtcCall(myUserId) {
       selectedVideoInputId,
       setSelectedAudioInputId,
       setSelectedVideoInputId,
-    ]
+    ],
   );
 
   return {

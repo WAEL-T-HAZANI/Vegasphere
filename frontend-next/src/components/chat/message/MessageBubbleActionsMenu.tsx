@@ -8,6 +8,7 @@ import {
   triggerBrowserDownload,
   QUICK_REACTIONS,
 } from "@/lib/messageFormat";
+import { buildChatTranslatePayload } from "@/lib/chatTranslate";
 import { formatApiError } from "@/lib/apiError";
 import {
   DropdownPortal,
@@ -177,13 +178,10 @@ export default function MessageBubbleActionsMenu({
                     setTranslation("");
                     setTranslating(true);
                     try {
-                      const ui = (i18n.language || "en").split("-")[0].toLowerCase();
-                      const targetLanguage = ui === "ar" ? "en" : "ar";
-                      const { data } = await api.post("/ai/translate", {
-                        text,
-                        sourceLanguage: "auto",
-                        targetLanguage,
-                      });
+                      const { data } = await api.post(
+                        "/ai/translate",
+                        buildChatTranslatePayload(text, i18n.language || "en"),
+                      );
                       setTranslation(String(data?.translatedText || ""));
                     } catch (err) {
                       setTranslateErr(formatApiError(err, t, "translationFailed"));

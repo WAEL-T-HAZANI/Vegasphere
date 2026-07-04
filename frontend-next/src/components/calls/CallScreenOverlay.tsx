@@ -6,6 +6,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { User } from "lucide-react";
 import { cn } from "@/lib/classNames";
 import { kickCallRingtoneOnGesture } from "@/lib/callRingtone";
+import { playMediaElement } from "@/lib/webrtcCallMedia";
 import CallDevicePanel from "@/components/calls/CallDevicePanel";
 import CallControlsBar from "@/components/calls/CallControlsBar";
 import IncomingCallActions from "@/components/calls/IncomingCallActions";
@@ -86,16 +87,27 @@ export default function CallScreenOverlay({
     const el = remoteAudioRef.current;
     if (!el) return;
     el.srcObject = remoteStream || null;
-    if (remoteStream) {
-      void el.play?.().catch(() => {});
+    if (remoteStream?.getAudioTracks?.()?.length) {
+      void playMediaElement(el);
     }
   }, [remoteStream]);
+
+  useEffect(() => {
+    if (callState !== "active" || !remoteStream) return;
+    void playMediaElement(remoteAudioRef.current);
+  }, [callState, remoteStream]);
 
   useEffect(() => {
     const el = remoteAudioRef.current;
     if (!el || !selectedAudioOutputId || !showSpeakerOutput) return;
     el.setSinkId(selectedAudioOutputId).catch(() => {});
   }, [remoteStream, selectedAudioOutputId, showSpeakerOutput]);
+
+  const handleAcceptIncoming = useCallback(() => {
+    kickCallRingtoneOnGesture();
+    onAcceptIncoming?.();
+    void playMediaElement(remoteAudioRef.current);
+  }, [onAcceptIncoming]);
 
   const requestVideoPip = useCallback(async () => {
     const el = remoteRef.current;
@@ -117,8 +129,13 @@ export default function CallScreenOverlay({
       ? t("callStatusRingingOut")
       : t("callStatusActive");
 
-  const showRemoteVideo =
-    Boolean(remoteStream?.getVideoTracks?.()?.some((x) => x.readyState !== "ended"));
+  const showRemoteVideo = Boolean(
+    remoteStream?.getVideoTracks?.()?.some((x) => x.readyState !== "ended" && x.enabled),
+  );
+
+  const hasRemoteAudio = Boolean(
+    remoteStream?.getAudioTracks?.()?.some((x) => x.readyState === "live" && x.enabled),
+  );
 
   const showConnWarn =
     callState === "active" &&
@@ -193,7 +210,7 @@ export default function CallScreenOverlay({
               <IncomingCallActions
                 hint={t("incomingCallHint")}
                 isVideoCall={isVideoCall}
-                onAccept={onAcceptIncoming}
+                onAccept={handleAcceptIncoming}
                 onReject={onRejectIncoming}
               />
             ) : (
@@ -228,7 +245,9 @@ export default function CallScreenOverlay({
                   <span className="text-sm">
                     {callState === "ringing_out"
                       ? t("callWaitingRemote")
-                      : t("callAudioOnlyRemote")}
+                      : hasRemoteAudio
+                        ? t("callAudioOnlyRemote")
+                        : t("callWaitingRemote")}
                   </span>
                 </div>
               ) : null}

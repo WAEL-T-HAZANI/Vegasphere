@@ -231,8 +231,8 @@ function ChatMessageBubble({
 
   useEffect(() => {
     setMediaFailed(false);
-    setMediaLoading(Boolean(showImage && effectiveImageUrl));
-  }, [showImage, effectiveImageUrl, m._id]);
+    setMediaLoading(Boolean(effectiveImageUrl && !showVideo));
+  }, [m._id, effectiveImageUrl, effectiveVideoUrl, showVideo]);
 
   // Defensive: avoid rendering "empty bubbles" when a message has no usable payload.
   if (!hasAnyContent && !m.deletedForEveryone && !locallyExpired) return null;

@@ -8,7 +8,8 @@ const {
 const MAX_TRANSLATE_TEXT_CHARS = 5000;
 
 async function translateText(req, res) {
-  const { text, targetLanguage, sourceLanguage } = req.body || {};
+  const { text, targetLanguage, sourceLanguage, context, uiLanguage } =
+    req.body || {};
 
   const trimmedText = String(text || "").trim();
 
@@ -22,11 +23,19 @@ async function translateText(req, res) {
     );
   }
 
-  const result = translateTextLocal(
-    trimmedText,
-    sourceLanguage || "auto",
-    targetLanguage || "en",
-  );
+  let src = sourceLanguage || "auto";
+  let tgt = targetLanguage || "en";
+
+  // Chat: always auto-detect message language → user's UI reading language.
+  if (context === "chat") {
+    src = "auto";
+    const ui = String(uiLanguage || targetLanguage || "en")
+      .split("-")[0]
+      .toLowerCase();
+    tgt = ui.startsWith("ar") ? "ar" : "en";
+  }
+
+  const result = translateTextLocal(trimmedText, src, tgt);
 
   return res.json({
     translatedText: result.translatedText,
@@ -34,7 +43,8 @@ async function translateText(req, res) {
     dataSource: result.dataSource,
     method: result.method,
     detectedSource: result.detectedSource || null,
-    targetLanguage: result.targetLanguage || targetLanguage || "en",
+    targetLanguage: result.targetLanguage || tgt,
+    context: context === "chat" ? "chat" : "service",
   });
 }
 

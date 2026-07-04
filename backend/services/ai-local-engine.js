@@ -1124,9 +1124,6 @@ function getPhraseMap(src, tgt) {
 }
 
 function getWordMap(src, tgt) {
-  if (dictStore.isAvailable()) {
-    return null;
-  }
   return wordMaps.get(pairKey(src, tgt)) || null;
 }
 
@@ -1282,6 +1279,16 @@ function resolveDirection(source, target, text) {
     tgt = src === "ar" ? "en" : "ar";
   }
 
+  const tokens = normalizeKey(text).split(/\s+/).filter(Boolean);
+  if (
+    autoSource &&
+    tgt === "ar" &&
+    tokens.length === 1 &&
+    /^[a-z0-9'-]+$/i.test(tokens[0])
+  ) {
+    src = "en";
+  }
+
   return { src, tgt };
 }
 
@@ -1303,7 +1310,21 @@ function translateTextLocal(text, sourceLanguage, targetLanguage) {
     targetLanguage,
     trimmed,
   );
-  const result = pivotTranslate(trimmed, src, tgt);
+  let result = pivotTranslate(trimmed, src, tgt);
+  let detectedSource = src;
+
+  if (
+    normalizeKey(result.text) === normalizeKey(trimmed) &&
+    src !== "en" &&
+    tgt !== src
+  ) {
+    const enFallback = pivotTranslate(trimmed, "en", tgt);
+    if (normalizeKey(enFallback.text) !== normalizeKey(trimmed)) {
+      result = enFallback;
+      detectedSource = "en";
+    }
+  }
+
   const dataSource = getDataSource();
 
   return {
@@ -1311,7 +1332,7 @@ function translateTextLocal(text, sourceLanguage, targetLanguage) {
     provider: dataSource === "sqlite" ? "premium-sqlite" : "legacy-json",
     dataSource,
     method: result.method,
-    detectedSource: src,
+    detectedSource,
     targetLanguage: tgt,
   };
 }

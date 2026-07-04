@@ -40,15 +40,12 @@ type GroupConversationWorkspaceProps = {
   conversationId: string;
   conversation: Conversation | null;
   onConversationChange: (_conv: Conversation | null) => void;
-  /** When true, only render topic management (for canEditInfo non-admins). */
-  topicsOnly?: boolean;
 };
 
 export default function GroupConversationWorkspace({
   conversationId,
   conversation: activeConv,
   onConversationChange,
-  topicsOnly = false,
 }: GroupConversationWorkspaceProps) {
   const cid = String(conversationId || "");
   const { t, i18n } = useTranslation();
@@ -105,9 +102,6 @@ export default function GroupConversationWorkspace({
   const [banDraftUntil, setBanDraftUntil] = useState("");
   const [inviteLinks, setInviteLinks] = useState<Array<Record<string, unknown>>>([]);
   const [moderationLog, setModerationLog] = useState<Array<Record<string, unknown>>>([]);
-  const [topicName, setTopicName] = useState("");
-  const [topicEditId, setTopicEditId] = useState("");
-  const [topicEditName, setTopicEditName] = useState("");
   const [inviteEditToken, setInviteEditToken] = useState("");
   const [inviteEditLabel, setInviteEditLabel] = useState("");
   const [inviteEditMaxUses, setInviteEditMaxUses] = useState("");
@@ -158,11 +152,7 @@ export default function GroupConversationWorkspace({
   );
 
   if (!(activeConv?.isGroup || activeConv?.isChannel)) return null;
-
-  const memberRights = getEffectiveMemberRightsForPeer(activeConv, user?._id);
-  const canManageTopics = isGroupAdmin || Boolean(memberRights.canEditInfo);
-  if (!isGroupAdmin && !canManageTopics) return null;
-  if (topicsOnly && !canManageTopics) return null;
+  if (!isGroupAdmin) return null;
 
   const patchConv = (conv: Conversation) => {
     dispatch(patchConversationInList(conv));
@@ -192,120 +182,6 @@ export default function GroupConversationWorkspace({
   };
 
   const isChannel = Boolean(activeConv?.isChannel);
-
-  const topicsPanel =
-    canManageTopics && (activeConv?.isGroup || activeConv?.isChannel) ? (
-      <section className="vs-settings-card space-y-4">
-        <div className="text-start">
-          <h2 className="text-base font-semibold text-ink">{t("topicsManageTitle")}</h2>
-          <p className="mt-1 text-sm text-muted">
-            {isChannel ? t("topicsManageIntro") : t("groupTopicsManageIntro")}
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            className="vs-input min-w-0 flex-1"
-            value={topicName}
-            onChange={(e) => setTopicName(e.target.value)}
-            placeholder={t("topicCreatePlaceholder")}
-          />
-          <button
-            type="button"
-            className="vs-btn-primary-sm shrink-0"
-            disabled={!topicName.trim()}
-            onClick={async () => {
-              try {
-                const { data: conv } = await api.post(`/conversation/${cid}/topics`, {
-                  name: topicName.trim(),
-                });
-                patchConv(conv);
-                setTopicName("");
-                notify(t("topicCreated"));
-              } catch (e) {
-                notify(formatApiError(e, t, "inviteActionFailed"));
-              }
-            }}
-          >
-            {t("topicCreateAction")}
-          </button>
-        </div>
-        <ul className="space-y-2">
-          {(
-            (activeConv?.topics as Array<{
-              id?: string;
-              name?: string;
-              archived?: boolean;
-            }> | undefined) || []
-          )
-            .filter((topic) => !topic.archived)
-            .map((topic) => (
-              <li
-                key={String(topic.id)}
-                className="flex flex-col gap-2 rounded-xl border border-brand-200/45 px-3 py-2 sm:flex-row sm:items-center sm:justify-between dark:border-brand-800/35"
-              >
-                {topicEditId === topic.id ? (
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                    <input
-                      className="vs-input min-w-[8rem] flex-1 text-sm"
-                      value={topicEditName}
-                      onChange={(e) => setTopicEditName(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="vs-btn-primary-sm"
-                      disabled={!topicEditName.trim()}
-                      onClick={async () => {
-                        try {
-                          const { data: conv } = await api.patch(
-                            `/conversation/${cid}/topics/${topic.id}`,
-                            { name: topicEditName.trim() },
-                          );
-                          patchConv(conv);
-                          setTopicEditId("");
-                          notify(t("topicRenamed"));
-                        } catch (e) {
-                          notify(formatApiError(e, t, "inviteActionFailed"));
-                        }
-                      }}
-                    >
-                      {t("topicSaveAction")}
-                    </button>
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-muted"
-                      onClick={() => setTopicEditId("")}
-                    >
-                      {t("cancel")}
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <span className="font-medium text-ink">{topic.name || topic.id}</span>
-                    {String(topic.id) !== "general" ? (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          className="text-xs font-semibold text-brand-600"
-                          onClick={() => {
-                            setTopicEditId(String(topic.id));
-                            setTopicEditName(String(topic.name || topic.id));
-                          }}
-                        >
-                          {t("topicRenameAction")}
-                        </button>
-                      </div>
-                    ) : null}
-                  </>
-                )}
-              </li>
-            ))}
-        </ul>
-      </section>
-    ) : null;
-
-  if (topicsOnly) {
-    return <div dir={dir} className="space-y-6 pb-8">{topicsPanel}</div>;
-  }
 
   return (
     <div dir={dir} className="space-y-6 pb-8">
@@ -518,7 +394,6 @@ export default function GroupConversationWorkspace({
                               { key: "canPostMessages", label: t("memberPermPost") },
                               { key: "canAddMembers", label: t("memberPermAdd") },
                               { key: "canPinMessages", label: t("memberPermPin") },
-                              { key: "canEditInfo", label: t("memberPermEdit") },
                             ] as const
                           ).map((row) => (
                             <SettingsToggleRow
@@ -620,14 +495,6 @@ export default function GroupConversationWorkspace({
                     value: Boolean(
                       (activeConv?.defaultMemberRights as Record<string, boolean> | undefined)
                         ?.canPinMessages,
-                    ),
-                  },
-                  {
-                    key: "canEditInfo" as const,
-                    label: t("memberPermEdit"),
-                    value: Boolean(
-                      (activeConv?.defaultMemberRights as Record<string, boolean> | undefined)
-                        ?.canEditInfo,
                     ),
                   },
                 ]
@@ -901,7 +768,6 @@ export default function GroupConversationWorkspace({
           ) : null}
         </>
       ) : null}
-      {topicsPanel}
     </div>
   );
 }

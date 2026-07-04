@@ -24,6 +24,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import PresenceDot from "@/components/presence/PresenceDot";
 import { presenceStateForUser } from "@/hooks/usePresenceBatch";
 import { API_ORIGIN } from "@/lib/constants";
+import { resolveAvatarUrl } from "@/lib/avatarUrl";
 import ConversationCallButtons from "@/components/calls/ConversationCallButtons";
 import ConversationAvatarTile from "@/components/conversation/ConversationAvatarTile";
 import {
@@ -85,7 +86,7 @@ export default function ConversationHeader({
     if (fromParam) rememberChatBackFrom(fromParam);
   }, [fromParam]);
 
-  const avatarSrc = peerMember?.profilePic;
+  const avatarSrc = resolveAvatarUrl(peerMember?.profilePic);
   const useNextImage = isOptimizableAvatarUrl(avatarSrc);
   const groupChannelName = groupChannelDisplayName(activeConv);
   const headerTitle = groupChannelName || peerDisplayName || t("navChats");

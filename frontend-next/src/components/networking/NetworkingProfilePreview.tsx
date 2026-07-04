@@ -3,6 +3,7 @@
 import { useTranslation } from "react-i18next";
 import Link from "next/link";
 import { ExternalLink, UserRound } from "lucide-react";
+import UserAvatar from "@/components/user/UserAvatar";
 import { cn } from "@/lib/classNames";
 
 type NetworkingProfilePreviewProps = {
@@ -34,14 +35,7 @@ export default function NetworkingProfilePreview({
         {t("networkingProfilePreviewTitle")}
       </p>
       <div className="mt-3 flex items-center gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-2xl vs-icon-tile text-sm font-extrabold">
-          {profilePic ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profilePic} alt="" className="h-full w-full object-cover" />
-          ) : (
-            initials
-          )}
-        </div>
+        <UserAvatar name={label} profilePic={profilePic} size="sm" className="h-11 w-11" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-ink">{label}</div>
           <p className="mt-0.5 text-xs leading-relaxed text-muted">

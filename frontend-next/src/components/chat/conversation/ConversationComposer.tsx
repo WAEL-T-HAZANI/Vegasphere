@@ -22,6 +22,7 @@ import ComposerFloatingPanel from "@/components/chat/conversation/ComposerFloati
 import HorizontalScrollRail from "@/components/ui/HorizontalScrollRail";
 import { minDatetimeLocalValue } from "@/lib/localDateTimeInput";
 import { voiceFileExtension, normalizeAudioMime } from "@/lib/messageFormat";
+import { resolveAvatarUrl } from "@/lib/avatarUrl";
 
 const ComposerEmojiPicker = dynamic(
   () => import("@/components/chat/conversation/ComposerEmojiPicker"),
@@ -723,7 +724,11 @@ export default function ConversationComposer(props) {
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-100 text-sm font-semibold text-brand-800 vs-dark-brand-icon-tile">
                   {m?.profilePic ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.profilePic} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={resolveAvatarUrl(m.profilePic)}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     String(m?.name || m?.email || "?").trim().slice(0, 1).toUpperCase()
                   )}

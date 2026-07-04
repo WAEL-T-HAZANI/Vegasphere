@@ -4,6 +4,8 @@ const translateSchema = z.object({
   text: z.string().trim().min(1).max(5000),
   targetLanguage: z.string().trim().optional(),
   sourceLanguage: z.string().trim().optional(),
+  context: z.enum(["chat", "service"]).optional(),
+  uiLanguage: z.string().trim().optional(),
 });
 
 const smartReplyMessageSchema = z

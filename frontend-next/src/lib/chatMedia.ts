@@ -1,29 +1,10 @@
 // @ts-nocheck
-import { API_ORIGIN } from "@/lib/constants";
+import { resolveAssetUrl, isVideoLike } from "@/lib/messageFormat";
 
-function isVideoUrl(url, fileType = "", fileName = "") {
-  const ft = String(fileType || "");
-  if (ft.startsWith("video/")) return true;
-  const u = String(url || "");
-  const fn = String(fileName || "");
-  return (
-    /\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(u) ||
-    /\.(mp4|webm|ogg|mov|m4v)$/i.test(fn)
-  );
-}
-
-function resolveAssetUrl(raw) {
-  const v = String(raw ?? "").trim();
-  if (!v) return "";
-
-  if (/^https?:\/\//i.test(v) || /^data:/i.test(v) || /^blob:/i.test(v)) {
-    return v;
-  }
-
-  const base = String(API_ORIGIN ?? "").replace(/\/+$/, "");
-  const path = v.startsWith("/") ? v : `/${v}`;
-
-  return `${base}${path}`;
+function resolveMediaUrl(m) {
+  const imageUrl = resolveAssetUrl(m?.imageUrl || "");
+  const fileUrl = resolveAssetUrl(m?.fileData || m?.mediaUrl || "");
+  return imageUrl || fileUrl;
 }
 
 export function extractMediaItemsFromMessages(messages) {
@@ -34,12 +15,14 @@ export function extractMediaItemsFromMessages(messages) {
   for (const m of messages) {
     if (!m) continue;
 
-    const url = resolveAssetUrl(m.imageUrl || m.fileData || m.mediaUrl);
+    const url = resolveMediaUrl(m);
     if (!url) continue;
 
+    const fileType = String(m.fileType || "");
+    const fileName = String(m.fileName || "");
     const isVideo =
       m.messageType === "video" ||
-      isVideoUrl(url, m.fileType, m.fileName);
+      isVideoLike({ url, fileType, fileName });
 
     items.push({
       url,

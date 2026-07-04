@@ -4,6 +4,7 @@ import { useCallback, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { Languages, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { buildChatTranslatePayload } from "@/lib/chatTranslate";
 import { formatApiError } from "@/lib/apiError";
 import { cn } from "@/lib/classNames";
 
@@ -40,13 +41,10 @@ export default function ComposerTranslateButton({
     setBusy(true);
     setErr("");
     try {
-      const ui = (i18n.language || "en").split("-")[0].toLowerCase();
-      const targetLanguage = ui === "ar" ? "en" : "ar";
-      const { data } = await api.post("/ai/translate", {
-        text: input,
-        sourceLanguage: "auto",
-        targetLanguage,
-      });
+      const { data } = await api.post(
+        "/ai/translate",
+        buildChatTranslatePayload(input, i18n.language || "en"),
+      );
       const translated = String(data?.translatedText || "").trim();
       if (!translated) {
         setErr(t("translationFailed"));

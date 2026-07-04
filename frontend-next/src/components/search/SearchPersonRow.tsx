@@ -18,7 +18,8 @@ import {
 } from "@/lib/searchHub";
 import PresenceDot from "@/components/presence/PresenceDot";
 import { presenceStateForUser } from "@/hooks/usePresenceBatch";
-import type { User } from "@/types";
+import UserAvatar from "@/components/user/UserAvatar";
+import type { User } from "@/types/api";
 
 type SearchPersonRowProps = {
   user: User;
@@ -59,18 +60,7 @@ export default function SearchPersonRow({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="relative h-11 w-11 shrink-0">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt=""
-                className="h-11 w-11 rounded-2xl object-cover ring-1 ring-brand-200/60 dark:ring-brand-800/50"
-              />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl vs-icon-tile text-sm font-extrabold">
-                {initials || "V"}
-              </div>
-            )}
+            <UserAvatar name={label} profilePic={user.profilePic} size="sm" className="h-11 w-11" />
             <span className="pointer-events-none absolute bottom-0 end-0 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-surface ring-1 ring-brand-200/60 dark:bg-black dark:ring-white/10">
               <PresenceDot state={presenceStateForUser(presenceById, userId)} />
             </span>

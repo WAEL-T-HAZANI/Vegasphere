@@ -236,8 +236,12 @@ export default function MediaViewerHost() {
                 controls
                 autoPlay
                 playsInline
-                preload="metadata"
+                preload="auto"
                 className="max-h-full w-full min-h-[12rem] rounded-lg bg-black object-contain"
+                onLoadedData={(e) => {
+                  const node = e.currentTarget;
+                  void node.play().catch(() => undefined);
+                }}
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element

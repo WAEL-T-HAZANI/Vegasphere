@@ -19,6 +19,7 @@ import {
 } from "@/lib/networkingHub";
 import PresenceDot from "@/components/presence/PresenceDot";
 import { presenceStateForUser } from "@/hooks/usePresenceBatch";
+import UserAvatar from "@/components/user/UserAvatar";
 import {
   DropdownPortal,
   DropdownRoot,
@@ -93,7 +94,6 @@ export default function NetworkingMatchCard({
       .join(i18n.language?.startsWith("ar") ? "، " : ", ") ||
     t("networkingMemberFallback");
   const tags = [...(item.sharedSkills || []), ...(item.sharedInterests || [])].slice(0, 5);
-  const initials = label.slice(0, 2).toUpperCase();
 
   const toneOptions = [
     { value: "friendly", label: t("networkingIntroToneFriendly") },
@@ -125,14 +125,12 @@ export default function NetworkingMatchCard({
           className="relative block h-12 w-12 shrink-0"
           aria-label={t("viewProfile")}
         >
-          <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-2xl vs-icon-tile text-sm font-extrabold">
-            {target.profilePic ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={target.profilePic} alt="" className="h-full w-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
+          <UserAvatar
+            name={label}
+            profilePic={target.profilePic}
+            size="md"
+            className="h-12 w-12"
+          />
           <span className="pointer-events-none absolute bottom-0 end-0 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-surface ring-1 ring-brand-200/60 dark:bg-black dark:ring-white/10">
             <PresenceDot state={presenceStateForUser(presenceById, userId)} />
           </span>

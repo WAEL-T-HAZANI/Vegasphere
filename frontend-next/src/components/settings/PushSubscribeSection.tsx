@@ -67,12 +67,20 @@ export default function PushSubscribeSection({
       }
       const result = await subscribeToWebPush();
       if (result.ok === false) {
-        setMsg(t("pushSubscribeFailed"));
+        const msg =
+          result.error instanceof Error && result.error.message === "login_required"
+            ? t("apiUnauthorized")
+            : t("pushSubscribeFailed");
+        setMsg(msg);
         return;
       }
       if (!result.subscribed) {
         setDeviceSubscribed(false);
-        setMsg(t("pushSubscribeFailed"));
+        const reasonKey =
+          "reason" in result && result.reason === "not_configured"
+            ? "pushNotConfigured"
+            : "pushSubscribeFailed";
+        setMsg(t(reasonKey));
         return;
       }
       setDeviceSubscribed(true);

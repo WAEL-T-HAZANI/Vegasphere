@@ -28,6 +28,7 @@ import {
 } from "@/lib/channelsHub";
 import ChannelInfoOverview from "@/components/channels/ChannelInfoOverview";
 import GroupInfoOverview from "@/components/groups/GroupInfoOverview";
+import UserAvatar from "@/components/user/UserAvatar";
 import ConversationAvatarTile from "@/components/conversation/ConversationAvatarTile";
 import { groupInitials, isConversationAdmin } from "@/lib/groupsHub";
 import { isCustomConversationAvatar } from "@/lib/avatarUrl";
@@ -45,6 +46,7 @@ type MemberRow = {
   name: string;
   username: string;
   email: string;
+  profilePic?: string;
   isAdmin: boolean;
   isSelf: boolean;
 };
@@ -135,6 +137,7 @@ export default function ChatInfoPage() {
           name: String(m?.name || ""),
           username: String(m?.username || ""),
           email: String(m?.email || ""),
+          profilePic: String(m?.profilePic || ""),
           isAdmin: admins.has(id),
           isSelf: id === String(me?._id || ""),
         };
@@ -149,11 +152,6 @@ export default function ChatInfoPage() {
     : groupInitials(displayName, t("groupInitialFallback"));
   const channelSlugLabel = isChannel ? formatChannelSlug(String(conv?.channelSlug || "")) : "";
   const showAdminWorkspace = isGroupAdmin;
-  const canManageTopics = useMemo(() => {
-    if (!conv || !me?._id) return false;
-    if (isGroupAdmin) return true;
-    return Boolean(conv?.effectiveMemberRights?.canEditInfo);
-  }, [conv, isGroupAdmin, me?._id]);
   const memberCount =
     typeof conv?.memberCount === "number"
       ? conv.memberCount
@@ -527,9 +525,12 @@ export default function ChatInfoPage() {
                     className="flex flex-col gap-3 rounded-2xl border border-brand-200/45 bg-surface/85 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-brand-800/35 dark:bg-brand-900/15"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="vs-icon-tile grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-sm font-extrabold">
-                        {groupInitials(m.name || m.username || m.email, "?")}
-                      </div>
+                      <UserAvatar
+                        name={m.name || m.username || m.email}
+                        profilePic={m.profilePic}
+                        size="sm"
+                        className="h-10 w-10"
+                      />
                       <div className="min-w-0 text-start">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="truncate text-sm font-semibold text-ink">
@@ -571,12 +572,11 @@ export default function ChatInfoPage() {
           </section>
         ) : null}
 
-        {showAdminWorkspace || canManageTopics ? (
+        {showAdminWorkspace && isGroupOrChannel ? (
           <GroupConversationWorkspace
             conversationId={cid}
             conversation={conv}
             onConversationChange={setConv}
-            topicsOnly={!showAdminWorkspace && canManageTopics}
           />
         ) : null}
 

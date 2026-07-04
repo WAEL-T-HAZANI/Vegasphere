@@ -54,6 +54,20 @@ function isPushServiceUnavailableError(err: unknown) {
   );
 }
 
+function isNotConfiguredError(err: unknown) {
+  const status = (err as { response?: { status?: number } })?.response?.status;
+  if (status === 503) return true;
+  const msg = String(
+    err instanceof Error ? err.message : err || "",
+  ).toLowerCase();
+  return msg.includes("not configured") || msg.includes("web push not configured");
+}
+
+function isAuthError(err: unknown) {
+  const status = (err as { response?: { status?: number } })?.response?.status;
+  return status === 401 || status === 403;
+}
+
 export async function subscribeToWebPush(): Promise<PushSubscribeResult> {
   if (typeof window === "undefined") {
     return { ok: true, subscribed: false, reason: "unsupported" };
@@ -73,7 +87,15 @@ export async function subscribeToWebPush(): Promise<PushSubscribeResult> {
   }
 
   try {
-    const { data } = await api.get<{ publicKey?: string }>("/user/push/vapid-public");
+    let data: { publicKey?: string } | undefined;
+    try {
+      ({ data } = await api.get<{ publicKey?: string }>("/user/push/vapid-public"));
+    } catch (err) {
+      if (isNotConfiguredError(err)) {
+        return { ok: true, subscribed: false, reason: "not_configured" };
+      }
+      throw err;
+    }
     if (!data?.publicKey) {
       return { ok: true, subscribed: false, reason: "not_configured" };
     }
@@ -90,6 +112,12 @@ export async function subscribeToWebPush(): Promise<PushSubscribeResult> {
     await api.post("/user/push/subscribe", sub.toJSON());
     return { ok: true, subscribed: true };
   } catch (error) {
+    if (isAuthError(error)) {
+      return { ok: false, error: new Error("login_required") };
+    }
+    if (isNotConfiguredError(error)) {
+      return { ok: true, subscribed: false, reason: "not_configured" };
+    }
     if (isPushServiceUnavailableError(error)) {
       return { ok: true, subscribed: false, reason: "push_unavailable" };
     }

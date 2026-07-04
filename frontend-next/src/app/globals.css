@@ -335,7 +335,7 @@ body {
     @apply bg-white/10;
   }
   .dark .vs-dark-brand-progress-fill {
-    @apply bg-white/70;
+    @apply bg-gradient-to-r from-brand-500 to-brand-600;
   }
   .dark .vs-dark-brand-select {
     @apply border-brand-500/70 bg-gradient-to-br from-brand-600 via-brand-700 to-red-800 text-white;
@@ -893,19 +893,19 @@ body {
   font-weight: 500;
 }
 
-.dark .vs-networking-page .vs-muted-panel {
-  border-color: rgb(var(--vega-muted) / 0.28);
-  background: rgb(var(--vega-paper) / 0.08);
-  color: rgb(var(--vega-ink));
-}
-
 .vs-networking-page .vs-select-field {
   background: rgb(var(--vega-paper) / 0.95);
   color: rgb(var(--vega-ink));
 }
 
+.dark .vs-networking-page .vs-muted-panel {
+  border-color: rgb(var(--vega-muted) / 0.28);
+  background: rgb(80 17 38 / 0.22);
+  color: rgb(var(--vega-ink));
+}
+
 .dark .vs-networking-page .vs-select-field {
-  background: rgb(var(--vega-paper) / 0.08);
+  background: rgb(80 17 38 / 0.22);
   border-color: rgb(var(--vega-muted) / 0.28);
   color: rgb(var(--vega-ink));
 }
