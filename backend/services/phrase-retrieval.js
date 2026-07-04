@@ -223,14 +223,24 @@ function scorePhrase(phrase, ctx, lang = "en") {
 
 function isChatworthyPhrase(phrase, ctx, lang = "en") {
   const key = normalizeKey(phrase);
-  if (!key || key.length > 72) return false;
+  if (!key || key.length > 90) return false;
+  const words = key.split(/\s+/).filter(Boolean);
+  if (words.length < 2 || words.length > 14) return false;
   if (NEGATIVE_RE.test(key)) return false;
   if (ctx.ongoing && GREETING_RE.test(key)) return false;
 
   const specificTopics = [...(ctx.topics || [])].filter(
-    (t) => t.length >= 5 && !SEARCH_STOPWORDS.has(t),
+    (t) => t.length >= 4 && !SEARCH_STOPWORDS.has(t),
   );
   if (specificTopics.some((topic) => key.includes(topic))) return true;
+
+  if (ctx.ongoing && ctx.transcriptTokens) {
+    let overlap = 0;
+    for (const token of words) {
+      if (ctx.transcriptTokens.has(token)) overlap += 1;
+    }
+    if (overlap >= 2) return true;
+  }
 
   if (ctx.isQuestion) {
     const prefixes = WELLBEING_PREFIXES[lang] || WELLBEING_PREFIXES.en;
@@ -238,13 +248,20 @@ function isChatworthyPhrase(phrase, ctx, lang = "en") {
       const p = normalizeKey(prefix);
       return key === p || key.startsWith(`${p} `);
     });
-    if (!matched) return false;
-    const p = normalizeKey(matched);
-    if (key === p) return true;
-    const tail = key.slice(p.length + 1).trim();
-    const tailWords = tail.split(/\s+/).filter(Boolean);
-    return tailWords.length <= 3;
+    if (matched) {
+      const p = normalizeKey(matched);
+      if (key === p) return true;
+      const tail = key.slice(p.length + 1).trim();
+      const tailWords = tail.split(/\s+/).filter(Boolean);
+      return tailWords.length <= 3;
+    }
+    if (ctx.ongoing && (ANSWER_SHAPE_RE[lang] || ANSWER_SHAPE_RE.en).test(key)) {
+      return words.length >= 2 && words.length <= 12;
+    }
+    return false;
   }
+
+  if (ctx.ongoing && words.length >= 3 && words.length <= 10) return true;
 
   return false;
 }
@@ -281,18 +298,14 @@ function retrievePhraseReplies({
   const searchTokens = buildSearchTokens(messages, stats);
   const prefixes = REPLY_PREFIXES[lang] || REPLY_PREFIXES.en;
 
-  const tokenCandidates =
+  const tokenCandidates = dictStore.searchReplyPhraseCandidates(lang, searchTokens, {
+    limit: 100,
+  });
+
+  const prefixCandidates =
     ctx.isQuestion && ctx.ongoing
       ? []
-      : dictStore.searchReplyPhraseCandidates(lang, searchTokens, {
-          limit: 80,
-        });
-
-  const prefixCandidates = dictStore.searchReplyPhraseCandidates(
-    lang,
-    prefixes,
-    { limit: 100 },
-  );
+      : dictStore.searchReplyPhraseCandidates(lang, prefixes, { limit: 80 });
 
   const exact = normalizeKey(stats?.lastIncoming || "");
   const exactCandidates = exact
@@ -315,10 +328,10 @@ function retrievePhraseReplies({
 
   const ranked = merged
     .map((phrase) => ({ phrase, score: scorePhrase(phrase, ctx, lang) }))
-    .filter((row) => row.score >= 6)
+    .filter((row) => row.score >= (ctx.ongoing ? 4 : 6))
     .sort((a, b) => b.score - a.score);
 
-  if (ranked.length < 2) return [];
+  if (ranked.length < 1) return [];
 
   const seed = hashSeed(
     `${ctx.lastIncoming}::${[...ctx.topics].join(",")}::${variationSeed}`,

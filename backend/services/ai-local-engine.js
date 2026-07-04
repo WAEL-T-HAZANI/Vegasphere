@@ -9,6 +9,7 @@ const zlib = require("zlib");
 const dictStore = require("./dict-store");
 const { retrievePhraseReplies } = require("./phrase-retrieval.js");
 const { retrieveJsonPhraseReplies } = require("./json-reply-catalog.js");
+const { retrieveReplyPairs } = require("./reply-pairs.js");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 
@@ -435,19 +436,21 @@ function matchIntentForContext(text, preferredLang, stats) {
   loadEngine();
   const blockCategories = stats?.ongoing ? ["greeting"] : [];
   const blockIds = stats?.ongoing
-    ? ["greeting_general", "greeting_morning", "greeting_evening"]
+    ? [
+        "greeting_general",
+        "greeting_morning",
+        "greeting_evening",
+        "how_are_you",
+      ]
     : [];
 
-  if (isWellbeingQuestion(text)) {
+  if (isWellbeingQuestion(text) && !stats?.ongoing) {
     const wellbeing = intents.find((i) => i.id === "how_are_you");
     if (wellbeing) return wellbeing;
   }
 
-  if (stats?.ongoing && isPureGreeting(text)) {
-    const wellbeing = intents.find((i) => i.id === "how_are_you");
-    if (wellbeing && isWellbeingQuestion(text)) return wellbeing;
-    const gotIt = intents.find((i) => i.id === "got_it");
-    if (gotIt) return gotIt;
+  if (stats?.ongoing && (isWellbeingQuestion(text) || isPureGreeting(text))) {
+    return null;
   }
 
   const transcript = stats?.topics?.length
@@ -903,7 +906,7 @@ function resolveIntent(lastText, preferredLang, stats) {
     );
   }
 
-  if (!intent) {
+  if (!intent && !stats?.ongoing) {
     const question = /\?|؟/.test(lastText);
     const exclaim = /!/.test(lastText);
     if (isWellbeingQuestion(lastText)) {
@@ -994,22 +997,20 @@ function generateSmartReplies({
     effectiveTone,
   );
 
-  const phraseReplies = retrievePhraseReplies({
+  const pairReplies = retrieveReplyPairs({
+    messages,
+    language: preferredLang,
+    stats,
+    tone: effectiveTone,
+    variationSeed,
+  });
+
+  const dbPhrases = retrievePhraseReplies({
     messages,
     language: preferredLang,
     stats,
     variationSeed,
   });
-
-  const intent = resolveIntent(lastText, preferredLang, stats);
-  const intentReplies = buildIntentReplies(
-    intent,
-    language,
-    effectiveTone,
-    transcript,
-    subject,
-    variationSeed,
-  );
 
   const jsonPhrases = retrieveJsonPhraseReplies({
     messages,
@@ -1019,110 +1020,76 @@ function generateSmartReplies({
     lastText,
   });
 
-  const dbPhrases = phraseReplies;
+  const contextual = buildContextualReplies(
+    lastText,
+    language,
+    effectiveTone,
+    stats,
+  );
 
-  const primary = blendUniqueReplies([
-    stats.ongoing ? continuity.slice(0, 1) : [],
-    intentReplies,
-    jsonPhrases,
-  ]);
-
-  if (primary.length >= 2) {
-    const replies =
-      primary.length >= 3
-        ? primary
-        : blendUniqueReplies([primary, dbPhrases.slice(0, 1)]);
-    return {
-      replies,
-      intent:
-        intent?.id || (jsonPhrases.length ? "json-phrases" : "thread-continuity"),
-      provider: "local",
-      dataSource,
-      contextPreview,
-    };
-  }
-
-  if (continuity.length >= 2) {
-    const replies = blendUniqueReplies([
-      continuity,
-      jsonPhrases,
-      dbPhrases.slice(0, 1),
-    ]);
-    if (replies.length >= 2) {
-      return {
-        replies,
-        intent: "thread-continuity",
-        provider: "local",
-        dataSource,
-        contextPreview,
-      };
-    }
-  }
+  const intent = resolveIntent(lastText, preferredLang, stats);
+  const intentReplies = intent
+    ? buildIntentReplies(
+        intent,
+        language,
+        effectiveTone,
+        transcript,
+        subject,
+        variationSeed,
+      )
+    : [];
 
   const kind = String(conversationKind || "").toLowerCase();
   const groupish = kind === "group" || kind === "channel";
 
-  if (!intent) {
-    const contextual = buildContextualReplies(
-      lastText,
-      language,
-      effectiveTone,
-      stats,
-    );
-    if (contextual.length >= 2) {
-      const replies = blendUniqueReplies([
+  const generic =
+    langCode(language) === "ar"
+      ? groupish
+        ? ["تمام 👍", "حاضر", "شكراً للمشاركة"]
+        : ["تمام 👍", "حاضر", "أوكي"]
+      : groupish
+        ? ["👍", "Thanks for sharing", "Got it"]
+        : ["👍", "Sounds good", "OK"];
+
+  const blendOrder = stats.ongoing
+    ? [
+        pairReplies,
+        continuity,
         contextual,
+        dbPhrases,
         jsonPhrases,
-        dbPhrases.slice(0, 1),
-      ]);
-      return {
-        replies: replies.length >= 2 ? replies : contextual,
-        intent: "contextual",
-        provider: "local",
-        dataSource,
-        contextPreview,
-      };
-    }
+        intentReplies.slice(0, 1),
+      ]
+    : [pairReplies, intentReplies, jsonPhrases, dbPhrases, contextual];
 
-    if (dbPhrases.length >= 2) {
-      return {
-        replies: blendUniqueReplies([continuity.slice(0, 1), dbPhrases]),
-        intent: "phrase-retrieval",
-        provider: "local",
-        dataSource,
-        contextPreview,
-      };
-    }
+  const replies = blendUniqueReplies(blendOrder);
 
-    const generic =
-      langCode(language) === "ar"
-        ? groupish
-          ? ["تمام 👍", "حاضر", "شكراً للمشاركة"]
-          : ["تمام 👍", "حاضر", "أوكي"]
-        : groupish
-          ? ["👍", "Thanks for sharing", "Got it"]
-          : ["👍", "Sounds good", "OK"];
+  if (replies.length >= 2) {
+    let intentLabel = null;
+    if (pairReplies.length >= 2) intentLabel = "reply-pairs";
+    else if (continuity.length >= 2 && stats.ongoing) intentLabel = "thread-continuity";
+    else if (contextual.length >= 2) intentLabel = "contextual";
+    else if (dbPhrases.length >= 2) intentLabel = "phrase-retrieval";
+    else if (jsonPhrases.length >= 2) intentLabel = "json-phrases";
+    else intentLabel = intent?.id || null;
+
     return {
-      replies: generic,
-      intent: null,
+      replies,
+      intent: intentLabel,
       provider: "local",
       dataSource,
       contextPreview,
+      weak: false,
     };
   }
 
-  const replies = blendUniqueReplies([
-    intentReplies,
-    jsonPhrases,
-    dbPhrases.slice(0, 1),
-  ]);
-
   return {
-    replies: replies.length ? replies : ["👍", "OK", "Thanks!"],
-    intent: intent.id,
+    replies: generic,
+    intent: null,
     provider: "local",
     dataSource,
     contextPreview,
+    weak: true,
   };
 }
 
@@ -1397,4 +1364,5 @@ module.exports = {
   getEngineStats,
   getSupportedLanguages,
   getDataSource,
+  getConversationStats,
 };

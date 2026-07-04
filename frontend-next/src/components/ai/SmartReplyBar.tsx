@@ -123,7 +123,7 @@ export default function SmartReplyBar({
 
     let cancelled = false;
     const reqId = ++requestIdRef.current;
-    const debounceMs = autoGenerate ? 1800 : 0;
+    const debounceMs = autoGenerate ? 700 : 0;
 
     const timer = window.setTimeout(() => {
     (async () => {
@@ -148,7 +148,7 @@ export default function SmartReplyBar({
           payload.conversationKind = conversationKind;
         }
         const { data } = await aiClient.getSmartReplies(payload, {
-          timeout: 8000,
+          timeout: 6000,
         });
         if (cancelled || requestIdRef.current !== reqId) return;
         const next = data?.suggestions || data?.replies || [];
