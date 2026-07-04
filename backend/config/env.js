@@ -52,10 +52,21 @@ const S3_PUBLIC_BASE_URL = String(process.env.S3_PUBLIC_BASE_URL || "")
   .replace(/\/$/, "");
 
 // ---- CORS ---------------------------------------------------------------
+function normalizeOrigin(origin) {
+  const trimmed = String(origin || "").trim();
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return trimmed.replace(/\/+$/, "");
+  }
+}
+
 function parseOrigins(raw) {
   return String(raw || "")
     .split(",")
-    .map((s) => s.trim())
+    .map((s) => normalizeOrigin(s))
     .filter(Boolean);
 }
 
