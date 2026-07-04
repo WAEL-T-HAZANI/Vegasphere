@@ -9,7 +9,7 @@ import {
   useWebRtcSignaling,
 } from "@/components/calls/hooks/useWebRtcSignaling";
 import { applyOutboundRtpCaps } from "@/lib/webrtcSendCaps";
-import { getRtcConfiguration } from "@/lib/webrtcRtcConfig";
+import { getRtcConfiguration, ensureIceServersReady } from "@/lib/webrtcRtcConfig";
 import { useCallDevicePreferences } from "@/components/calls/hooks/useCallDevicePreferences";
 import { stopIncomingCallRingtone } from "@/lib/callRingtone";
 
@@ -395,6 +395,7 @@ export function useWebRtcGroupMesh(myUserId, conversationId) {
       callSessionIdRef.current = createCallSessionId("group-call");
 
       try {
+        await ensureIceServersReady();
         const stream = await navigator.mediaDevices.getUserMedia(
           buildMediaConstraints(Boolean(wantVideo))
         );

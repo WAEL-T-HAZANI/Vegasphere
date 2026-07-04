@@ -71,11 +71,32 @@ function rotatePick(items, seed) {
   return out;
 }
 
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isPureGreetingText(text) {
+  const key = normalizeKey(text);
+  if (!key) return false;
+  return /^(hi|hey|hello|yo|sup|howdy|hiya|good morning|good evening|good night|gm|gn|مرحب|أهلا|اهلا|هلا|سلام)\b/.test(
+    key,
+  );
+}
+
 function matchPattern(text, pattern) {
   const key = normalizeKey(text);
   const p = normalizeKey(pattern);
   if (!key || !p) return false;
   if (key === p) return true;
+
+  if (p.length <= 5 && !/[\^$]/.test(pattern)) {
+    try {
+      return new RegExp(`\\b${escapeRegex(p)}\\b`, "i").test(key);
+    } catch {
+      return false;
+    }
+  }
+
   if (key.includes(p) || p.includes(key)) return true;
   try {
     return new RegExp(pattern, "i").test(text);
@@ -117,6 +138,20 @@ function scorePair(entry, ctx) {
 
   if (entry.requiresOngoing && !ctx.ongoing) score -= 6;
   if (entry.requiresQuestion && !ctx.isQuestion) return -999;
+
+  if (ctx.isQuestion && !isPureGreetingText(ctx.lastIncoming)) {
+    const id = String(entry.id || "");
+    if (/greeting|intent_greeting/i.test(id)) return -999;
+    const patterns = entry.lastPatterns || [];
+    if (
+      patterns.some((pat) => {
+        const p = normalizeKey(pat);
+        return p.length <= 5 && /^(hi|hey|hello|yo|gm|gn|morning|evening|night)$/i.test(p);
+      })
+    ) {
+      return -999;
+    }
+  }
 
   return score;
 }

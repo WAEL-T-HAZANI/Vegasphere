@@ -1,13 +1,7 @@
 const {
   generateSmartReplies,
   getDataSource,
-  getConversationStats,
 } = require("./ai-local-engine.js");
-const { isWeakLocalResult } = require("./reply-pairs.js");
-const {
-  isEnabled: llmEnabled,
-  generateLlmSmartReplies,
-} = require("./ai-smart-replies-llm.js");
 
 const AI_SMART_REPLY_CACHE_MS = Math.max(
   0,
@@ -51,13 +45,6 @@ function mapMessageEntry(item) {
     sender: ["me", "user", "assistant"].includes(role) ? "me" : "them",
     text: sanitizeLine(item.content || item.text),
   };
-}
-
-function buildPreview(messages) {
-  return messages
-    .slice(-4)
-    .map((m) => `${m.sender}: ${m.text}`)
-    .join(" · ");
 }
 
 async function smartReplies(req, res) {
@@ -137,9 +124,7 @@ async function smartReplies(req, res) {
   }
 
   try {
-    const stats = getConversationStats(trimmedMessages);
-
-    let result = generateSmartReplies({
+    const result = generateSmartReplies({
       messages: trimmedMessages,
       language,
       tone,
@@ -147,26 +132,6 @@ async function smartReplies(req, res) {
       conversationKind,
       variationSeed,
     });
-
-    const useLlm =
-      llmEnabled() &&
-      (result.weak || isWeakLocalResult(result, stats) || body.forceLlm === true);
-
-    if (useLlm) {
-      const llm = await generateLlmSmartReplies({
-        messages: trimmedMessages,
-        language,
-        tone,
-        subject,
-        contextPreview: result.contextPreview || buildPreview(trimmedMessages),
-      });
-      if (llm?.replies?.length >= 2) {
-        result = {
-          ...llm,
-          dataSource: `${result.dataSource || getDataSource()}+llm`,
-        };
-      }
-    }
 
     delete result.weak;
 

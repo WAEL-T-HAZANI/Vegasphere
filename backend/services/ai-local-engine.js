@@ -84,7 +84,7 @@ function countMatches(text, re) {
 const LATIN_DETECT_LANGS = ["fr", "de", "es", "it", "pt", "en", "tr"];
 
 const FR_HINT_RE =
-  /\b(le|la|les|un|une|des|du|de|je|tu|il|elle|nous|vous|ils|elles|bonjour|merci|oui|non|aller|être|etre|avoir|faire|dire|voir|venir|pouvoir|vouloir|savoir|chez|avec|pour|dans|sur|sous|très|tres|bien|mal|au|aux|ce|cet|cette|ces|mon|ton|son|notre|votre|leur|mais|ou|où|ou|donc|car|parce|quoi|comment|quand|pourquoi|salut|bonsoir|au revoir|s il vous plait|svp)\b/i;
+  /\b(le|la|les|un|une|des|du|de|je|tu|il|elle|nous|vous|ils|elles|bonjour|merci|oui|non|aller|être|etre|avoir|faire|dire|voir|venir|pouvoir|vouloir|savoir|chez|avec|pour|dans|sur|sous|très|tres|bien|mal|au|aux|ce|cet|cette|ces|mon|ton|son|notre|votre|leur|mais|ou|où|ou|donc|parce|quoi|comment|quand|pourquoi|salut|bonsoir|au revoir|s il vous plait|svp)\b/i;
 
 const DE_HINT_RE =
   /\b(der|die|das|den|dem|des|ein|eine|ich|du|er|sie|wir|ihr|und|nicht|hallo|danke|bitte|guten|morgen|abend|tag|auf|aus|bei|mit|nach|von|zu|warum|wann|wo|wie|was|wer|haben|sein|werden|können|koennen|müssen|muessen|wollen|sollen|machen|gehen|kommen|sehen|wissen|gut|schlecht|sehr|auch|noch|schon|jetzt|hier|dort)\b/i;
@@ -148,6 +148,15 @@ function detectLatinLanguage(text) {
   const singleAscii =
     tokens.length === 1 && /^[a-z0-9'-]+$/i.test(tokens[0]);
   if (singleAscii) return "en";
+
+  // Common English questions (e.g. "where is the car") must not become French.
+  if (
+    /\b(where|what|when|who|why|how|which)\s+(is|are|was|were|do|does|did|can|could|will|would|should)\b/.test(
+      lower,
+    )
+  ) {
+    return "en";
+  }
 
   if (FR_HINT_RE.test(lower)) return "fr";
   if (DE_HINT_RE.test(lower)) return "de";
@@ -373,12 +382,27 @@ function reloadEngine() {
 function scorePattern(inputKey, entry) {
   const inputTokens = inputKey.split(/\s+/).filter(Boolean);
   const patternTokens = entry.tokens;
+  const pattern = entry.pattern;
 
-  if (!inputKey || !entry.pattern) return 0;
+  if (!inputKey || !pattern) return 0;
 
-  if (inputKey === entry.pattern) return 100;
-  if (inputKey.includes(entry.pattern) || entry.pattern.includes(inputKey)) {
-    return 80 + Math.min(entry.pattern.length, 20);
+  if (inputKey === pattern) return 100;
+
+  if (pattern.length <= 5) {
+    try {
+      const re = new RegExp(
+        `\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        "i",
+      );
+      if (re.test(inputKey)) return 80 + Math.min(pattern.length, 20);
+    } catch {
+      /* ignore */
+    }
+    return 0;
+  }
+
+  if (inputKey.includes(pattern) || pattern.includes(inputKey)) {
+    return 80 + Math.min(pattern.length, 20);
   }
 
   let overlap = 0;
@@ -674,9 +698,14 @@ function isWellbeingQuestion(text) {
     ) ||
     /\b(كيف حالك|كيفك|شلونك|شو أخبارك|كيف الحال|إيش أخبارك|شو الوضع)\b/.test(
       key,
-    ) ||
-    /\?/.test(text)
+    )
   );
+}
+
+function isSubstantiveQuestion(text) {
+  const raw = String(text || "");
+  if (!/\?|؟/.test(raw)) return false;
+  return !isWellbeingQuestion(text);
 }
 
 function isPureGreeting(text) {
@@ -700,7 +729,7 @@ function getConversationStats(messages) {
     tone,
     lastIncoming,
     lastOutgoing,
-    ongoing: depth >= 2,
+    ongoing: depth >= 2 || messages.some((m) => isSubstantiveQuestion(m?.text || m?.content)),
   };
 }
 
@@ -820,7 +849,33 @@ function buildContextualReplies(lastText, language, tone = "default", stats = nu
       ar: ["عفواً!", "أي وقت 👍", "العفو"],
     },
     {
-      re: /\?|how are|how.s it|what.s up|كيف حال|شلونك|كيفك/,
+      re: /\b(where is|where are|where's|where were|أين|وين)\b/i,
+      en: [
+        "Let me check — one moment",
+        "I'll find out for you",
+        "Good question — let me see",
+      ],
+      ar: [
+        "دعني أتحقق — لحظة",
+        "سأتأكد لك",
+        "سؤال جيد — دعني أرى",
+      ],
+    },
+    {
+      re: /\b(instrument|medication|symptom|prescription|dosage|side effect|patient|treatment|diagnosis|stethoscope|scalpel|أداة|دواء|عرض|مريض|علاج)\b/i,
+      en: [
+        "Good question — I'll clarify",
+        "Let me explain that",
+        "I'll check and get back to you",
+      ],
+      ar: [
+        "سؤال مهم — سأوضح",
+        "دعني أشرح لك",
+        "سأتحقق وأرد عليك",
+      ],
+    },
+    {
+      re: /\b(how are you|how r u|how's it going|what's up|كيف حالك|شلونك|كيفك)\b/i,
       en: ["Doing okay — you?", "All good here, thanks for asking", "Can't complain — how about you?"],
       ar: ["بخير — وأنت؟", "تمام، شكراً للسؤال", "الحمد لله — كيف أحوالك؟"],
     },
@@ -911,6 +966,11 @@ function resolveIntent(lastText, preferredLang, stats) {
     const exclaim = /!/.test(lastText);
     if (isWellbeingQuestion(lastText)) {
       intent = intents.find((i) => i.id === "how_are_you") || null;
+    } else if (question && isSubstantiveQuestion(lastText)) {
+      intent =
+        intents.find((i) => i.id === "demo_qa") ||
+        intents.find((i) => i.id === "question_what") ||
+        null;
     } else if (question) {
       intent = intents.find((i) => i.id === "question_what") || null;
     } else if (exclaim) {
@@ -1060,7 +1120,9 @@ function generateSmartReplies({
         jsonPhrases,
         intentReplies.slice(0, 1),
       ]
-    : [pairReplies, intentReplies, jsonPhrases, dbPhrases, contextual];
+    : isSubstantiveQuestion(lastText)
+      ? [contextual, pairReplies, intentReplies, jsonPhrases, dbPhrases]
+      : [pairReplies, intentReplies, jsonPhrases, dbPhrases, contextual];
 
   const replies = blendUniqueReplies(blendOrder);
 
@@ -1130,13 +1192,13 @@ function translateToken(token, src, tgt) {
   const key = normalizeKey(token);
   if (!key) return token;
 
+  const direct = getWordMap(src, tgt);
+  if (direct?.has(key)) return direct.get(key);
+
   if (dictStore.isAvailable()) {
     const hit = dictStore.lookupWord(src, tgt, token);
     if (normalizeKey(hit) !== key) return hit;
   }
-
-  const direct = getWordMap(src, tgt);
-  if (direct?.has(key)) return direct.get(key);
 
   return token;
 }

@@ -220,21 +220,52 @@ async function noteCallSignal(payload) {
 
 async function expireStaleRingingCalls() {
   const cutoff = new Date(Date.now() - STALE_RINGING_MS);
-  const result = await CallLog.updateMany(
-    {
-      status: "ringing",
-      answeredAt: null,
-      $or: [
-        { lastSignalAt: { $lte: cutoff } },
-        { lastSignalAt: null, updatedAt: { $lte: cutoff } },
-      ],
-    },
+  const stale = await CallLog.find({
+    status: "ringing",
+    answeredAt: null,
+    $or: [
+      { lastSignalAt: { $lte: cutoff } },
+      { lastSignalAt: null, updatedAt: { $lte: cutoff } },
+    ],
+  })
+    .select("sessionId conversationId participantIds initiatorId")
+    .limit(50)
+    .lean();
+
+  if (!stale.length) return 0;
+
+  await CallLog.updateMany(
+    { _id: { $in: stale.map((doc) => doc._id) } },
     { $set: { status: "missed", endedAt: new Date() } },
   );
-  if (result.modifiedCount > 0) {
-    publishCallsUpdated({ kind: "expire", userId: "" });
+
+  try {
+    const io = require("../../socket/index.js").getIO?.();
+    if (io) {
+      for (const doc of stale) {
+        const sessionId = String(doc.sessionId || "");
+        const conversationId = doc.conversationId
+          ? String(doc.conversationId)
+          : null;
+        const participants = (doc.participantIds || []).map(String);
+        for (const uid of participants) {
+          if (!uid) continue;
+          io.to(uid).emit("call:hangup", {
+            to: uid,
+            from: String(doc.initiatorId || ""),
+            conversationId,
+            callSessionId: sessionId,
+            reason: "no-answer",
+          });
+        }
+      }
+    }
+  } catch {
+    /* socket optional during startup */
   }
-  return result.modifiedCount;
+
+  publishCallsUpdated({ kind: "expire", userId: "" });
+  return stale.length;
 }
 
 async function sendDueCallInviteReminders() {

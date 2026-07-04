@@ -133,9 +133,14 @@ function isWellbeingQuestion(text) {
     /\b(how are you|how r u|how are u|how you doing|how s it going|how is it going|what s up|whats up)\b/.test(
       key,
     ) ||
-    /\b(كيف حالك|كيفك|شلونك|شو أخبارك|كيف الحال)\b/.test(key) ||
-    /\?/.test(String(text || ""))
+    /\b(كيف حالك|كيفك|شلونك|شو أخبارك|كيف الحال)\b/.test(key)
   );
+}
+
+function isSubstantiveQuestion(text) {
+  const raw = String(text || "");
+  if (!/\?|؟/.test(raw)) return false;
+  return !isWellbeingQuestion(text);
 }
 
 function tokenize(text) {
@@ -176,7 +181,10 @@ function buildContextProfile(messages, stats) {
     myRecent,
     ongoing: Boolean(stats?.ongoing),
     tone: stats?.tone || "default",
-    isQuestion: isWellbeingQuestion(stats?.lastIncoming || ""),
+    isQuestion:
+      isWellbeingQuestion(stats?.lastIncoming || "") ||
+      isSubstantiveQuestion(stats?.lastIncoming || ""),
+    isSubstantiveQuestion: isSubstantiveQuestion(stats?.lastIncoming || ""),
   };
 }
 
@@ -254,6 +262,9 @@ function isChatworthyPhrase(phrase, ctx, lang = "en") {
       const tail = key.slice(p.length + 1).trim();
       const tailWords = tail.split(/\s+/).filter(Boolean);
       return tailWords.length <= 3;
+    }
+    if (ctx.isSubstantiveQuestion) {
+      return words.length >= 2 && words.length <= 12;
     }
     if (ctx.ongoing && (ANSWER_SHAPE_RE[lang] || ANSWER_SHAPE_RE.en).test(key)) {
       return words.length >= 2 && words.length <= 12;

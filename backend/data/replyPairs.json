@@ -3,6 +3,79 @@
   "source": "Curated + smartReplies.json expansion",
   "pairs": [
     {
+      "id": "demo_where_location",
+      "requiresQuestion": true,
+      "lastPatterns": [
+        "where is",
+        "where are",
+        "where's",
+        "أين",
+        "وين"
+      ],
+      "replies": {
+        "en": {
+          "default": [
+            "Let me check — one moment",
+            "I'll find out for you",
+            "Good question — let me see where it is"
+          ]
+        },
+        "ar": {
+          "default": [
+            "دعني أتحقق — لحظة",
+            "سأتأكد لك",
+            "سؤال جيد — دعني أرى"
+          ]
+        }
+      }
+    },
+    {
+      "id": "demo_medical_qa",
+      "requiresQuestion": true,
+      "lastPatterns": [
+        "instrument",
+        "medication",
+        "symptom",
+        "prescription",
+        "side effect",
+        "dosage",
+        "what is this",
+        "what is that",
+        "patient",
+        "treatment",
+        "أداة",
+        "دواء",
+        "عرض",
+        "مريض"
+      ],
+      "replies": {
+        "en": {
+          "default": [
+            "Good question — I'll clarify",
+            "Let me explain that",
+            "I'll check and get back to you"
+          ],
+          "formal": [
+            "Thank you for your question. I will clarify shortly.",
+            "Allow me a moment to verify that.",
+            "I will provide a clear answer shortly."
+          ]
+        },
+        "ar": {
+          "default": [
+            "سؤال جيد — سأوضح",
+            "دعني أشرح لك",
+            "سأتحقق وأرد عليك"
+          ],
+          "formal": [
+            "شكراً على سؤالك. سأوضح ذلك قريباً.",
+            "اسمح لي لحظة للتحقق.",
+            "سأقدم إجابة واضحة قريباً."
+          ]
+        }
+      }
+    },
+    {
       "id": "wellbeing_mid_thread_notification",
       "minDepth": 2,
       "requiresOngoing": true,

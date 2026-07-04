@@ -10,6 +10,11 @@ export function getSocket() {
     socketSingleton = io(API_ORIGIN, {
       transports: ["websocket", "polling"],
       auth: { token: "" },
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 8000,
+      timeout: 25000,
     });
   }
   const token = localStorage.getItem("token") || "";

@@ -45,24 +45,38 @@ function mergeIceServers(...groups) {
 }
 
 let serverIceServers = [];
+let prefetchPromise = null;
 
 /** Merge ICE from backend `/calls/ice-servers` (call after login). */
 export function setServerIceServers(servers) {
   serverIceServers = Array.isArray(servers) ? servers.filter(Boolean) : [];
 }
 
-export async function prefetchIceServers() {
-  if (typeof window === "undefined") return;
-  if (serverIceServers.length) return;
-  try {
-    const { api } = await import("./api");
-    const { data } = await api.get("/calls/ice-servers");
-    if (Array.isArray(data?.iceServers)) {
-      setServerIceServers(data.iceServers);
-    }
-  } catch {
-    /* env / STUN defaults still apply */
+export async function ensureIceServersReady(force = false) {
+  if (!force && serverIceServers.length) return;
+  if (prefetchPromise && !force) {
+    await prefetchPromise;
+    return;
   }
+  if (typeof window === "undefined") return;
+
+  prefetchPromise = (async () => {
+    try {
+      const { api } = await import("./api");
+      const { data } = await api.get("/calls/ice-servers");
+      if (Array.isArray(data?.iceServers) && data.iceServers.length) {
+        setServerIceServers(data.iceServers);
+      }
+    } catch {
+      /* env / STUN defaults still apply */
+    }
+  })();
+
+  await prefetchPromise;
+}
+
+export async function prefetchIceServers() {
+  await ensureIceServersReady(false);
 }
 
 export function getRtcConfiguration() {

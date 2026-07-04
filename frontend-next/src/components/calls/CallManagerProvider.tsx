@@ -17,6 +17,8 @@ import {
 } from "@/lib/callContext";
 import { setSidebarOpen } from "@/store/slices/uiSlice";
 import { callsClient } from "@/lib/clients";
+import { getSocket } from "@/lib/socket";
+import { prefetchIceServers } from "@/lib/webrtcRtcConfig";
 import { useWebRtcCall } from "@/components/calls/hooks/useWebRtcCall";
 import { useWebRtcGroupMesh } from "@/components/calls/hooks/useWebRtcGroupMesh";
 import CallScreenOverlay from "@/components/calls/CallScreenOverlay";
@@ -28,6 +30,7 @@ export default function CallManagerProvider() {
   const user = useAppSelector((s) => s.auth.user);
   const notificationPrefs = useAppSelector((s) => s.ui.notificationPrefs);
   const conversations = useAppSelector((s) => s.chat.conversations);
+  const socketReady = useAppSelector((s) => s.chat.socketReady);
   const myUserId = user?._id ? String(user._id) : "";
   const userDnd = Boolean(user?.doNotDisturb);
   const pathname = usePathname();
@@ -60,6 +63,7 @@ export default function CallManagerProvider() {
   groupCallRef.current = groupCall;
 
   const mode = searchParams.get("autocall");
+  const incomingCallParam = searchParams.get("incomingCall");
   const wantsAutocall = mode === "audio" || mode === "video";
   const fromParam = searchParams.get("from");
 
@@ -109,8 +113,27 @@ export default function CallManagerProvider() {
   }, [wantsAutocall, chatId, mode]);
 
   useEffect(() => {
+    if (incomingCallParam !== "1" || !chatId) return;
+    const socket = getSocket();
+    if (!socket) return;
+    socket.auth = {
+      ...(socket.auth || {}),
+      token:
+        typeof window !== "undefined"
+          ? localStorage.getItem("token") || ""
+          : "",
+    };
+    if (!socket.connected) socket.connect();
+    socket.emit("setup");
+    prefetchIceServers().catch(() => {});
+  }, [incomingCallParam, chatId]);
+
+  useEffect(() => {
     if (autocallStartedRef.current) return;
     if (!myUserId || !chatId || !wantsAutocall || !targets) return;
+    if (!socketReady) return;
+    const socket = getSocket();
+    if (!socket?.connected) return;
     if (dmCallRef.current.callState !== "idle") return;
     if (groupCallRef.current.callState !== "idle") return;
 
@@ -144,7 +167,7 @@ export default function CallManagerProvider() {
         dmCallRef.current.startOutgoing(targets.peerUserId, wantVideo, chatId);
       }
     })();
-  }, [myUserId, chatId, wantsAutocall, mode, targets, pathname, router, searchParams]);
+  }, [myUserId, chatId, wantsAutocall, mode, targets, pathname, router, searchParams, socketReady]);
 
   useEffect(() => {
     const anyActive =

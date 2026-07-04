@@ -12,6 +12,7 @@ import { attachSocketChatListeners } from "@/lib/socketChatListeners";
 import { flushMessageOutbox } from "@/lib/chatCompose";
 import { pullMessageSync } from "@/lib/messageSync";
 import { playVegasphereNotifySound } from "@/lib/notificationSound";
+import { prefetchIceServers } from "@/lib/webrtcRtcConfig";
 
 export default function SocketBridge() {
   const dispatch = useAppDispatch();
@@ -96,6 +97,8 @@ export default function SocketBridge() {
           (typeof window !== "undefined" ? localStorage.getItem("token") || "" : ""),
       };
       if (uid) socket.emit("setup");
+      dispatch(setSocketReady(true));
+      prefetchIceServers().catch(() => {});
       const activeCid =
         activeConversationId || store.getState()?.chat?.activeConversationId;
       if (activeCid && uid) {

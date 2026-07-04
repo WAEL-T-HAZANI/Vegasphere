@@ -47,5 +47,10 @@ export function useWebRtcSignaling(onSignal) {
 export function emitWebRtcSignal(payload) {
   const event = OUT_EVENT_BY_TYPE[payload?.type];
   if (!event) return;
-  getSocket()?.emit(event, payload);
+  const socket = getSocket();
+  if (!socket) return;
+  if (!socket.connected) {
+    socket.connect();
+  }
+  socket.emit(event, payload);
 }

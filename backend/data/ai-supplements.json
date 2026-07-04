@@ -17,6 +17,12 @@
       "see you later": "أراك لاحقاً",
       "nice to meet you": "تشرفت بمعرفتك",
       "where are you": "أين أنت",
+      "where is the car": "أين السيارة",
+      "where is": "أين",
+      "where are": "أين",
+      "what is this": "ما هذا",
+      "what is that": "ما ذلك",
+      "what is this instrument": "ما هذه الأداة",
       "what time is it": "كم الساعة",
       "i am fine thank you": "أنا بخير شكراً",
       "have a good day": "أتمنى لك يوماً سعيداً",
@@ -206,7 +212,9 @@
       "sad": "حزين",
       "love": "حب",
       "help": "مساعدة",
-      "instrument": "آلة",
+      "instrument": "أداة",
+      "surgical instrument": "أداة جراحية",
+      "medical instrument": "أداة طبية",
       "music": "موسيقى",
       "guitar": "جيتار",
       "piano": "بيانو",
@@ -396,6 +404,7 @@
       "قهوة": "coffee",
       "مساعدة": "help",
       "آلة": "instrument",
+      "أداة": "instrument",
       "موسيقى": "music",
       "كتاب": "book",
       "حاسوب": "computer",
@@ -448,6 +457,79 @@
     }
   },
   "intents": [
+    {
+      "id": "demo_qa",
+      "category": "question",
+      "patterns": {
+        "en": [
+          "where is",
+          "where are",
+          "what is this",
+          "what is that",
+          "what is the",
+          "instrument",
+          "medication",
+          "symptom",
+          "prescription",
+          "side effect",
+          "dosage",
+          "doctor",
+          "patient",
+          "treatment",
+          "diagnosis"
+        ],
+        "ar": [
+          "أين",
+          "وين",
+          "ما هذا",
+          "ما هذه",
+          "أداة",
+          "دواء",
+          "عرض",
+          "وصفة",
+          "جرعة",
+          "طبيب",
+          "مريض",
+          "علاج"
+        ]
+      },
+      "replies": {
+        "en": {
+          "default": [
+            "Good question — I'll clarify",
+            "Let me check and get back to you",
+            "I'll explain that in a moment"
+          ],
+          "formal": [
+            "Thank you for your question. I will clarify shortly.",
+            "Allow me a moment to verify that.",
+            "I will provide a clear answer shortly."
+          ],
+          "short": [
+            "Let me check",
+            "One moment",
+            "I'll clarify"
+          ]
+        },
+        "ar": {
+          "default": [
+            "سؤال جيد — سأوضح",
+            "دعني أتحقق وأرد عليك",
+            "سأشرح لك بعد لحظة"
+          ],
+          "formal": [
+            "شكراً على سؤالك. سأوضح ذلك قريباً.",
+            "اسمح لي لحظة للتحقق.",
+            "سأقدم إجابة واضحة قريباً."
+          ],
+          "short": [
+            "سأتحقق",
+            "لحظة",
+            "سأوضح"
+          ]
+        }
+      }
+    },
     {
       "id": "payment_request",
       "category": "question",

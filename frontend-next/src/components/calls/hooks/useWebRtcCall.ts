@@ -8,10 +8,15 @@ import {
   emitWebRtcSignal,
   useWebRtcSignaling,
 } from "@/components/calls/hooks/useWebRtcSignaling";
-import { getRtcConfiguration } from "@/lib/webrtcRtcConfig";
+import { getRtcConfiguration, ensureIceServersReady } from "@/lib/webrtcRtcConfig";
 import { applyOutboundRtpCaps } from "@/lib/webrtcSendCaps";
 import { useCallDevicePreferences } from "@/components/calls/hooks/useCallDevicePreferences";
 import { stopIncomingCallRingtone } from "@/lib/callRingtone";
+import {
+  mapCallMediaError,
+  OUTGOING_RING_TIMEOUT_MS,
+  INCOMING_RING_TIMEOUT_MS,
+} from "@/lib/webrtcCallErrors";
 import {
   acquireCallMedia,
   attachLocalStreamToPeer,
@@ -72,6 +77,7 @@ export function useWebRtcCall(myUserId) {
   const reconnectAttemptsRef = useRef(0);
   const reconnectingRef = useRef(false);
   const disconnectTimerRef = useRef(null);
+  const ringTimeoutRef = useRef(null);
   const alertedSessionsRef = useRef(new Set());
 
   useEffect(() => {
@@ -99,6 +105,10 @@ export function useWebRtcCall(myUserId) {
     if (disconnectTimerRef.current) {
       clearTimeout(disconnectTimerRef.current);
       disconnectTimerRef.current = null;
+    }
+    if (ringTimeoutRef.current) {
+      clearTimeout(ringTimeoutRef.current);
+      ringTimeoutRef.current = null;
     }
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current = null;
@@ -153,7 +163,10 @@ export function useWebRtcCall(myUserId) {
     const pc = pcRef.current;
     if (!pc || pc.signalingState === "closed") return;
     if (reconnectingRef.current) return;
-    if (reconnectAttemptsRef.current >= 5) return;
+    if (reconnectAttemptsRef.current >= 5) {
+      setCallNotice("connection-failed");
+      return;
+    }
     if (callStateRef.current !== "active") return;
     const remote = remotePeerRef.current;
     if (!remote || !myUserId) return;
@@ -249,6 +262,68 @@ export function useWebRtcCall(myUserId) {
     [emit, myUserId],
   );
 
+  const preparePeerConnection = useCallback(
+    async (remoteId) => {
+      await ensureIceServersReady();
+      return attachPeer(remoteId);
+    },
+    [attachPeer],
+  );
+
+  useEffect(() => {
+    if (callState !== "ringing_out" && callState !== "ringing_in") {
+      if (ringTimeoutRef.current) {
+        clearTimeout(ringTimeoutRef.current);
+        ringTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    const delay =
+      callState === "ringing_out"
+        ? OUTGOING_RING_TIMEOUT_MS
+        : INCOMING_RING_TIMEOUT_MS;
+
+    ringTimeoutRef.current = setTimeout(() => {
+      ringTimeoutRef.current = null;
+      if (callStateRef.current === "ringing_out") {
+        if (remotePeerRef.current && myUserId) {
+          emit({
+            to: remotePeerRef.current,
+            from: myUserId,
+            type: "call-hangup",
+            conversationId: convIdRef.current,
+            callSessionId: callSessionIdRef.current,
+          });
+        }
+        setCallNotice("no-answer");
+        closePeer({ preserveNotice: true });
+        return;
+      }
+      if (callStateRef.current === "ringing_in") {
+        stopIncomingCallRingtone();
+        if (incomingMeta?.from && myUserId) {
+          emit({
+            to: incomingMeta.from,
+            from: myUserId,
+            type: "call-decline",
+            conversationId: convIdRef.current,
+            callSessionId: callSessionIdRef.current,
+          });
+        }
+        setCallNotice("missed");
+        closePeer({ preserveNotice: true });
+      }
+    }, delay);
+
+    return () => {
+      if (ringTimeoutRef.current) {
+        clearTimeout(ringTimeoutRef.current);
+        ringTimeoutRef.current = null;
+      }
+    };
+  }, [callState, closePeer, emit, incomingMeta, myUserId]);
+
   useEffect(() => {
     if (callState !== "active") {
       callActiveSinceRef.current = null;
@@ -289,7 +364,7 @@ export function useWebRtcCall(myUserId) {
         setMicMuted(a ? !a.enabled : false);
         setCamOff(v ? !v.enabled : !videoCall);
 
-        const pc = attachPeer(remoteId);
+        const pc = await preparePeerConnection(remoteId);
         attachLocalStreamToPeer(pc, stream, videoCall);
         await applyOutboundRtpCaps(pc);
 
@@ -309,12 +384,12 @@ export function useWebRtcCall(myUserId) {
         setCallNotice("");
       } catch (e) {
         console.warn("WebRTC start:", e);
-        setCallNotice("failed");
+        setCallNotice(mapCallMediaError(e));
         closePeer({ preserveNotice: true });
       }
     },
     [
-      attachPeer,
+      preparePeerConnection,
       closePeer,
       emit,
       myUserId,
@@ -344,7 +419,7 @@ export function useWebRtcCall(myUserId) {
 
       let pc = pcRef.current;
       if (!pc || pc.signalingState === "closed") {
-        pc = attachPeer(from);
+        pc = await preparePeerConnection(from);
       }
       attachLocalStreamToPeer(pc, stream, videoCall);
       await applyOutboundRtpCaps(pc);
@@ -370,11 +445,11 @@ export function useWebRtcCall(myUserId) {
       await flushIce();
     } catch (e) {
       console.warn("WebRTC accept:", e);
-      setCallNotice("failed");
+      setCallNotice(mapCallMediaError(e));
       closePeer({ preserveNotice: true });
     }
   }, [
-    attachPeer,
+    preparePeerConnection,
     closePeer,
     emit,
     flushIce,
@@ -475,6 +550,7 @@ export function useWebRtcCall(myUserId) {
 
         // Pre-create peer + apply offer so ICE from caller is not lost while ringing.
         try {
+          await ensureIceServersReady();
           if (!pcRef.current || pcRef.current.signalingState === "closed") {
             attachPeer(from);
           }
@@ -509,9 +585,13 @@ export function useWebRtcCall(myUserId) {
         const nextNotice =
           type === "call-decline"
             ? "declined"
-            : callStateRef.current === "ringing_in"
-              ? "missed"
-              : "";
+            : payload.reason === "no-answer"
+              ? "no-answer"
+              : callStateRef.current === "ringing_in"
+                ? "missed"
+                : callStateRef.current === "ringing_out"
+                  ? "no-answer"
+                  : "";
         if (nextNotice) setCallNotice(nextNotice);
         closePeer({ preserveNotice: Boolean(nextNotice) });
         return;

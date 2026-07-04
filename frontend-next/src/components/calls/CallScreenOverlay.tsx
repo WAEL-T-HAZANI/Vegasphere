@@ -18,6 +18,33 @@ function formatCallDuration(totalSec) {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
+function callNoticeMessage(notice, t) {
+  switch (notice) {
+    case "busy":
+      return t("callBusyRemote");
+    case "declined":
+      return t("callDeclinedRemote");
+    case "missed":
+      return t("callMissedRemote");
+    case "no-answer":
+      return t("callNoAnswer");
+    case "permission-denied":
+      return t("callPermissionDenied");
+    case "no-device":
+      return t("callNoDevice");
+    case "device-busy":
+      return t("callDeviceBusy");
+    case "device-constraint":
+      return t("callDeviceConstraint");
+    case "connection-failed":
+      return t("callConnectionFailed");
+    case "failed":
+      return t("callMediaFailed");
+    default:
+      return "";
+  }
+}
+
 function supportsAudioSinkSelection() {
   return (
     typeof HTMLMediaElement !== "undefined" &&
@@ -194,13 +221,7 @@ export default function CallScreenOverlay({
             ) : null}
             {callNotice ? (
               <p className="mt-1 text-xs text-brand-200/90" role="status">
-                {callNotice === "busy"
-                  ? t("callBusyRemote")
-                  : callNotice === "declined"
-                    ? t("callDeclinedRemote")
-                    : callNotice === "missed"
-                      ? t("callMissedRemote")
-                    : ""}
+                {callNoticeMessage(callNotice, t)}
               </p>
             ) : null}
           </div>
