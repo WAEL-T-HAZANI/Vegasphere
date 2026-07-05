@@ -256,6 +256,7 @@ export default function CallManagerProvider() {
       onRejectIncoming={call.rejectIncoming}
       onHangup={call.hangup}
       onJitsiReadyToClose={call.onJitsiReadyToClose}
+      onVideoConferenceJoined={call.notifyJitsiJoined}
     />
   );
 }

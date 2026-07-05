@@ -64,8 +64,6 @@ export function buildJitsiEmbedOptions({
       disableDeepLinking: true,
       hideConferenceSubject: true,
       disableModeratorIndicator: true,
-      enableLobby: false,
-      autoKnockLobby: true,
       requireDisplayName: false,
       enableInsecureRoomNameWarning: false,
       disableProfile: true,
@@ -121,7 +119,7 @@ export function buildJitsiEmbedOptions({
   };
 }
 
-export function wireJitsiCallApi(api, { displayName, audioOnly }) {
+export function wireJitsiCallApi(api, { displayName, audioOnly, afterJoin = false }) {
   if (!api) return;
 
   const name = String(displayName || "Vegasphere user").trim();
@@ -147,10 +145,14 @@ export function wireJitsiCallApi(api, { displayName, audioOnly }) {
     }
   }
 
-  try {
-    api.executeCommand("toggleLobby", false);
-  } catch {
-    /* ignore */
+  // Only disable lobby after we have joined — calling before join can trigger
+  // members-only lobby knocking on meet.jit.si.
+  if (afterJoin) {
+    try {
+      api.executeCommand("toggleLobby", false);
+    } catch {
+      /* ignore */
+    }
   }
 }
 

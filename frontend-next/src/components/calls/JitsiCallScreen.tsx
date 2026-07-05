@@ -100,6 +100,7 @@ export default function JitsiCallScreen({
   onRejectIncoming,
   onHangup,
   onJitsiReadyToClose,
+  onVideoConferenceJoined,
 }) {
   const { t } = useTranslation();
   const containerRef = useRef(null);
@@ -109,6 +110,7 @@ export default function JitsiCallScreen({
   const joinedRef = useRef(false);
   const embedKeyRef = useRef("");
   const onReadyToCloseRef = useRef(onJitsiReadyToClose);
+  const onJoinedRef = useRef(onVideoConferenceJoined);
   const [jitsiLoading, setJitsiLoading] = useState(false);
   const [jitsiError, setJitsiError] = useState("");
 
@@ -120,6 +122,7 @@ export default function JitsiCallScreen({
   const embedKey = showJitsi ? String(roomName) : "";
 
   onReadyToCloseRef.current = onJitsiReadyToClose;
+  onJoinedRef.current = onVideoConferenceJoined;
 
   useEffect(() => {
     if (!open) return;
@@ -203,8 +206,10 @@ export default function JitsiCallScreen({
           wireJitsiCallApi(api, {
             displayName: userDisplayName,
             audioOnly: !isVideoCall,
+            afterJoin: true,
           });
           markJoined();
+          onJoinedRef.current?.();
         });
       } catch (e) {
         console.warn("Jitsi embed failed:", e);

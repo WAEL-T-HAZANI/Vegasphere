@@ -114,6 +114,7 @@ export const SHELL_TAB_WIRING: ShellTabWiring[] = [
       "call:rejected",
       "call:ended",
       "call:busy",
+      "call:jitsi-ready",
     ],
   },
   {
@@ -171,7 +172,7 @@ export function wiringForPath(pathname: string): ShellTabWiring | undefined {
 }
 
 export function allShellHrefs(): string[] {
-  return SHELL_TAB_WIRING.map((row) => row.href);
+  return SHELL_TAB_WIRING.filter((row) => row.nav != null).map((row) => row.href);
 }
 
 export type { ShellNavItem, LucideIcon };

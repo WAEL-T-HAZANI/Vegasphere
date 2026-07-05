@@ -88,12 +88,11 @@ export async function ensurePushServiceWorker(
   }
 
   let reg = await navigator.serviceWorker.getRegistration(SW_SCOPE);
-  if (!reg) {
-    reg = await navigator.serviceWorker.register(SW_URL, {
-      scope: SW_SCOPE,
-      updateViaCache: "none",
-    });
-  }
+  reg = await navigator.serviceWorker.register(SW_URL, {
+    scope: SW_SCOPE,
+    type: "module",
+    updateViaCache: "none",
+  });
 
   await waitForActiveWorker(reg, timeoutMs);
 
