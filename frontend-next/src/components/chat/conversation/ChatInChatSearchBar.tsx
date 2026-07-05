@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { cn } from "@/lib/classNames";
+import { isSearchQueryLongEnough } from "@/lib/searchQuery";
 
 export default function ChatInChatSearchBar({
   rtl = false,
@@ -11,13 +12,13 @@ export default function ChatInChatSearchBar({
   onSearchKeyDown,
   searchInputRef,
   searchBusy = false,
-  globalSearchQuery,
   searchResults = [],
   activeSearchIndex = 0,
   stepSearchResult,
   resetSearch,
 }) {
-  const hasQuery = Boolean(String(globalSearchQuery || "").trim());
+  const typed = String(search || "").trim();
+  const hasQuery = Boolean(typed) && isSearchQueryLongEnough(typed);
   const total = searchResults.length;
   const showNav = hasQuery || searchBusy;
   const PrevIcon = rtl ? ChevronRight : ChevronLeft;

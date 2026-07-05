@@ -1049,9 +1049,9 @@ export default function ChatConversationScreen() {
         search={search}
         onSearchChange={(e) => setSearch(e.target.value)}
         onSearchKeyDown={(e) => {
-          if (e.key === "Enter") {
+          if (e.key === "Enter" && !e.nativeEvent.isComposing) {
             e.preventDefault();
-            void runSearch();
+            void runSearch(search);
           }
           if (e.key === "Escape") {
             resetSearch();
@@ -1059,7 +1059,6 @@ export default function ChatConversationScreen() {
         }}
         searchInputRef={searchInputRef}
         searchBusy={searchBusy}
-        globalSearchQuery={globalSearchQuery}
         searchResults={searchResults}
         activeSearchIndex={activeSearchIndex}
         stepSearchResult={stepSearchResult}

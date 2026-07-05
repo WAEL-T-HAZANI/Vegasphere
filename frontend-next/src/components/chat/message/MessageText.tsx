@@ -1,5 +1,8 @@
 import { cn } from "@/lib/classNames";
-import { escapeRegExp } from "@/lib/messageFormat";
+import {
+  findOriginalSearchMatchRange,
+  isSearchQueryLongEnough,
+} from "@/lib/searchQuery";
 
 export function formatTextWithAtHighlights(text, isMine) {
   if (!text) return null;
@@ -26,18 +29,41 @@ export function formatTextWithAtHighlights(text, isMine) {
 export function renderHighlightedText(content, query) {
   const source = String(content || "");
   const q = String(query || "").trim();
-  if (!source || !q) return source;
-  const parts = source.split(new RegExp(`(${escapeRegExp(q)})`, "ig"));
-  return parts.map((part, idx) =>
-    part.toLowerCase() === q.toLowerCase() ? (
-      <mark
-        key={`${part}-${idx}`}
-        className="rounded bg-brand-200/90 px-0.5 text-brand-950 dark:bg-brand-800/70 dark:text-[rgb(var(--vega-ink))]"
-      >
-        {part}
-      </mark>
-    ) : (
-      <span key={`${part}-${idx}`}>{part}</span>
-    )
+  if (!source || !q || !isSearchQueryLongEnough(q)) return source;
+
+  const parts: Array<{ text: string; match: boolean }> = [];
+  let cursor = 0;
+  while (cursor < source.length) {
+    const tail = source.slice(cursor);
+    const range = findOriginalSearchMatchRange(tail, q);
+    if (!range) {
+      parts.push({ text: source.slice(cursor), match: false });
+      break;
+    }
+    const [relStart, relEnd] = range;
+    const absStart = cursor + relStart;
+    const absEnd = cursor + relEnd;
+    if (relStart > 0) {
+      parts.push({ text: source.slice(cursor, absStart), match: false });
+    }
+    parts.push({ text: source.slice(absStart, absEnd), match: true });
+    cursor = absEnd;
+  }
+
+  return (
+    <>
+      {parts.map((part, idx) =>
+        part.match ? (
+          <mark
+            key={`m-${idx}`}
+            className="rounded bg-brand-200/90 px-0.5 text-brand-950 dark:bg-brand-800/70 dark:text-[rgb(var(--vega-ink))]"
+          >
+            {part.text}
+          </mark>
+        ) : (
+          <span key={`t-${idx}`}>{part.text}</span>
+        ),
+      )}
+    </>
   );
 }

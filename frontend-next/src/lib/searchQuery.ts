@@ -33,6 +33,33 @@ export function isSearchQueryTooShort(query: string): boolean {
   return !isSearchQueryLongEnough(trimmed);
 }
 
+export function findOriginalSearchMatchRange(
+  source: string,
+  query: string,
+): [number, number] | null {
+  const src = String(source || "");
+  const needle = normalizeSearchQuery(query).toLocaleLowerCase("en");
+  if (!src || !needle || !isSearchQueryLongEnough(query)) return null;
+
+  const normChars: string[] = [];
+  const normToOrigStart: number[] = [];
+  for (let i = 0; i < src.length; i += 1) {
+    const folded = normalizeSearchQuery(src[i]).toLocaleLowerCase("en");
+    for (const ch of folded) {
+      normChars.push(ch);
+      normToOrigStart.push(i);
+    }
+  }
+
+  const hay = normChars.join("");
+  const idx = hay.indexOf(needle);
+  if (idx < 0) return null;
+
+  const start = normToOrigStart[idx] ?? 0;
+  const endMark = normToOrigStart[idx + needle.length - 1] ?? start;
+  return [start, endMark + 1];
+}
+
 export function matchesSearchText(haystack: string, query: string): boolean {
   const needle = normalizeSearchQuery(query).toLocaleLowerCase("en");
   if (!isSearchQueryLongEnough(query) || !needle) return false;
