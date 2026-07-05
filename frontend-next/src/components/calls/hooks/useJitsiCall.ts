@@ -69,8 +69,6 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
   const alertedSessionsRef = useRef(new Set());
   const endingRef = useRef(false);
   const hangupRef = useRef(() => {});
-  const isOutgoingCallRef = useRef(false);
-  const jitsiReadyResolverRef = useRef(null);
 
   useEffect(() => {
     callStateRef.current = callState;
@@ -99,10 +97,6 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
     remotePeerRef.current = null;
     ringTargetsRef.current = [];
     endingRef.current = false;
-    isOutgoingCallRef.current = false;
-    if (jitsiReadyResolverRef.current) {
-      jitsiReadyResolverRef.current = null;
-    }
     setAcceptingIncoming(false);
     setRoomName("");
     setJitsiActive(false);
@@ -185,7 +179,6 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
       resetCall();
       convIdRef.current = conversationId;
       callSessionIdRef.current = createCallSessionId("jitsi-call");
-      isOutgoingCallRef.current = true;
       setIsVideoCall(Boolean(wantVideo));
       setIsGroupCall(Boolean(groupCall));
       ringTargetsRef.current = peerIds;
@@ -252,23 +245,6 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
     if (!sent) {
       setAcceptingIncoming(false);
       finishCall("failed", { force: true });
-      return;
-    }
-
-    // Wait until the caller has joined Jitsi (moderator) before we connect.
-    const jitsiReady = new Promise((resolve) => {
-      jitsiReadyResolverRef.current = resolve;
-    });
-    const timedOut = await Promise.race([
-      jitsiReady.then(() => false),
-      new Promise((resolve) => setTimeout(() => resolve(true), 12000)),
-    ]);
-    jitsiReadyResolverRef.current = null;
-    if (timedOut) {
-      console.warn("Jitsi accept: caller join signal timed out, joining anyway");
-    }
-    if (!callSessionIdRef.current || callStateRef.current === "idle") {
-      setAcceptingIncoming(false);
       return;
     }
 
@@ -401,12 +377,6 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
 
       if (type === "call-busy") {
         finishCall("busy", { force: true });
-        return;
-      }
-
-      if (type === "call-jitsi-ready") {
-        jitsiReadyResolverRef.current?.();
-        jitsiReadyResolverRef.current = null;
       }
     },
     [
@@ -491,19 +461,6 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
     hangupRef.current?.();
   }, []);
 
-  const notifyJitsiJoined = useCallback(() => {
-    if (!myUserId || !isOutgoingCallRef.current) return;
-    const to = remotePeerRef.current;
-    if (!to) return;
-    void emitJitsiSignal({
-      to,
-      from: myUserId,
-      type: "call-jitsi-ready",
-      conversationId: convIdRef.current,
-      callSessionId: callSessionIdRef.current,
-    });
-  }, [myUserId]);
-
   return {
     callState,
     incomingMeta,
@@ -521,6 +478,5 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
     rejectIncoming,
     hangup,
     onJitsiReadyToClose,
-    notifyJitsiJoined,
   };
 }

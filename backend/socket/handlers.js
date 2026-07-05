@@ -239,11 +239,6 @@ module.exports = (io, socket) => {
     relayToPeer("call:busy", payload);
   });
 
-  socket.on("call:jitsi-ready", (payload) => {
-    if (!requireCallFields(payload, ["to", "callSessionId"])) return;
-    relayToPeer("call:jitsi-ready", payload);
-  });
-
   // ---- Chat messages (persist + fan-out via delivery / direct emit) --------
 
   registerMessageSocketHandlers(io, socket);

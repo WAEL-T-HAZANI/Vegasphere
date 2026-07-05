@@ -114,7 +114,6 @@ export const SHELL_TAB_WIRING: ShellTabWiring[] = [
       "call:rejected",
       "call:ended",
       "call:busy",
-      "call:jitsi-ready",
     ],
   },
   {

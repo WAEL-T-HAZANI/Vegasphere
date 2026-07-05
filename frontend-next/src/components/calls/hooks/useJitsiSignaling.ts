@@ -10,7 +10,6 @@ const OUT_EVENT_BY_TYPE = {
   "call-rejected": "call:rejected",
   "call-ended": "call:ended",
   "call-busy": "call:busy",
-  "call-jitsi-ready": "call:jitsi-ready",
 };
 
 const IN_TYPE_BY_EVENT = {
@@ -19,7 +18,6 @@ const IN_TYPE_BY_EVENT = {
   "call:rejected": "call-rejected",
   "call:ended": "call-ended",
   "call:busy": "call-busy",
-  "call:jitsi-ready": "call-jitsi-ready",
 };
 
 function waitForSocketConnected(socket, timeoutMs = 8000) {

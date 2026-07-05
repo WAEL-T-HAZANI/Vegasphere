@@ -100,7 +100,6 @@ export default function JitsiCallScreen({
   onRejectIncoming,
   onHangup,
   onJitsiReadyToClose,
-  onVideoConferenceJoined,
 }) {
   const { t } = useTranslation();
   const containerRef = useRef(null);
@@ -108,9 +107,6 @@ export default function JitsiCallScreen({
   const closedRef = useRef(false);
   const joinTimeoutRef = useRef(null);
   const joinedRef = useRef(false);
-  const embedKeyRef = useRef("");
-  const onReadyToCloseRef = useRef(onJitsiReadyToClose);
-  const onJoinedRef = useRef(onVideoConferenceJoined);
   const [jitsiLoading, setJitsiLoading] = useState(false);
   const [jitsiError, setJitsiError] = useState("");
 
@@ -119,10 +115,6 @@ export default function JitsiCallScreen({
   const isActive = callState === "active";
   const showJitsi = jitsiActive && isActive && Boolean(roomName);
   const showRingUi = isIncoming || isOutgoing;
-  const embedKey = showJitsi ? String(roomName) : "";
-
-  onReadyToCloseRef.current = onJitsiReadyToClose;
-  onJoinedRef.current = onVideoConferenceJoined;
 
   useEffect(() => {
     if (!open) return;
@@ -130,12 +122,10 @@ export default function JitsiCallScreen({
   }, [open]);
 
   useEffect(() => {
-    if (!embedKey || embedKeyRef.current === embedKey) return;
-    embedKeyRef.current = embedKey;
     closedRef.current = false;
     joinedRef.current = false;
     setJitsiError("");
-  }, [embedKey]);
+  }, [roomName, jitsiActive, callState]);
 
   useEffect(() => {
     if (!showJitsi || !containerRef.current || !roomName) {
@@ -152,14 +142,14 @@ export default function JitsiCallScreen({
     const notifyClose = () => {
       if (closedRef.current) return;
       closedRef.current = true;
-      onReadyToCloseRef.current?.();
+      onJitsiReadyToClose?.();
     };
 
     joinTimeoutRef.current = setTimeout(() => {
       if (disposed || joinedRef.current) return;
       setJitsiLoading(false);
       setJitsiError(t("callMediaFailed"));
-    }, 45000);
+    }, 20000);
 
     void (async () => {
       try {
@@ -206,11 +196,10 @@ export default function JitsiCallScreen({
           wireJitsiCallApi(api, {
             displayName: userDisplayName,
             audioOnly: !isVideoCall,
-            afterJoin: true,
           });
           markJoined();
-          onJoinedRef.current?.();
         });
+        api.addListener("participantJoined", markJoined);
       } catch (e) {
         console.warn("Jitsi embed failed:", e);
         if (!disposed) {
@@ -232,7 +221,15 @@ export default function JitsiCallScreen({
       apiRef.current = null;
       if (container) container.innerHTML = "";
     };
-  }, [showJitsi, roomName, isVideoCall, userDisplayName, userEmail, t]);
+  }, [
+    showJitsi,
+    roomName,
+    isVideoCall,
+    userDisplayName,
+    userEmail,
+    onJitsiReadyToClose,
+    t,
+  ]);
 
   const statusLabel = isIncoming
     ? t("callStatusRingingIn")
