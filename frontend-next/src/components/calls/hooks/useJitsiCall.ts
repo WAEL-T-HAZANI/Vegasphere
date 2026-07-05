@@ -17,7 +17,10 @@ import { callsClient } from "@/lib/clients";
 import { showAppToast } from "@/lib/appToast";
 
 function createCallSessionId(prefix = "jitsi") {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return `${prefix}-${crypto.randomUUID()}`;
   }
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -83,31 +86,28 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
     [t],
   );
 
-  const resetCall = useCallback(
-    (options = {}) => {
-      const preserveNotice = options?.preserveNotice === true;
-      if (ringTimeoutRef.current) {
-        clearTimeout(ringTimeoutRef.current);
-        ringTimeoutRef.current = null;
-      }
-      convIdRef.current = null;
-      callSessionIdRef.current = null;
-      remotePeerRef.current = null;
-      ringTargetsRef.current = [];
-      endingRef.current = false;
-      setAcceptingIncoming(false);
-      setRoomName("");
-      setJitsiActive(false);
-      setCallState("idle");
-      setIncomingMeta(null);
-      setIsVideoCall(false);
-      setIsGroupCall(false);
-      callActiveSinceRef.current = null;
-      setCallElapsedSec(0);
-      if (!preserveNotice) setCallNotice("");
-    },
-    [],
-  );
+  const resetCall = useCallback((options = {}) => {
+    const preserveNotice = options?.preserveNotice === true;
+    if (ringTimeoutRef.current) {
+      clearTimeout(ringTimeoutRef.current);
+      ringTimeoutRef.current = null;
+    }
+    convIdRef.current = null;
+    callSessionIdRef.current = null;
+    remotePeerRef.current = null;
+    ringTargetsRef.current = [];
+    endingRef.current = false;
+    setAcceptingIncoming(false);
+    setRoomName("");
+    setJitsiActive(false);
+    setCallState("idle");
+    setIncomingMeta(null);
+    setIsVideoCall(false);
+    setIsGroupCall(false);
+    callActiveSinceRef.current = null;
+    setCallElapsedSec(0);
+    if (!preserveNotice) setCallNotice("");
+  }, []);
 
   const resolveRoom = useCallback(async (conversationId, _groupCall) => {
     const { data } = await callsClient.getJitsiRoom(conversationId);
@@ -186,6 +186,8 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
 
       try {
         const resolvedRoom = await resolveRoom(conversationId, groupCall);
+        setRoomName(resolvedRoom);
+        setJitsiActive(true);
         setCallState("ringing_out");
         setCallNotice("");
 
@@ -288,8 +290,14 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
   const handleSignal = useCallback(
     async (payload) => {
       if (!payload || !myUserId) return;
-      const { type, from, to, roomName: payloadRoom, callType, groupCall } =
-        payload;
+      const {
+        type,
+        from,
+        to,
+        roomName: payloadRoom,
+        callType,
+        groupCall,
+      } = payload;
       if (String(to) !== String(myUserId)) return;
 
       if (type === "call-user") {

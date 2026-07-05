@@ -14,6 +14,8 @@ type HorizontalScrollRailProps = {
   rtl?: boolean;
   ariaLabel: string;
   className?: string;
+  /** Use full container width for the track (composer toolbar). */
+  fullWidth?: boolean;
   /** Hide the rail above this breakpoint when content fits (still hidden when not scrollable). */
   hideFrom?: "sm" | "md" | "lg" | "never";
 };
@@ -23,6 +25,7 @@ export default function HorizontalScrollRail({
   rtl = false,
   ariaLabel,
   className,
+  fullWidth = false,
   hideFrom = "never",
 }: HorizontalScrollRailProps) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -170,7 +173,10 @@ export default function HorizontalScrollRail({
         onPointerMove={onTrackPointerMove}
         onPointerUp={onTrackPointerUp}
         onPointerCancel={onTrackPointerUp}
-        className="relative mx-auto h-1.5 w-full max-w-[9rem] cursor-grab rounded-full bg-brand-200/80 active:cursor-grabbing vs-dark-brand-progress-track"
+        className={cn(
+          "relative mx-auto h-1.5 w-full cursor-grab rounded-full bg-brand-200/80 active:cursor-grabbing vs-dark-brand-progress-track",
+          fullWidth ? "max-w-none" : "max-w-[9rem]",
+        )}
       >
         <span
           aria-hidden

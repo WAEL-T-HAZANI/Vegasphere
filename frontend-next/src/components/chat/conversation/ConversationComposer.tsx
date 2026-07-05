@@ -124,15 +124,10 @@ export default function ConversationComposer(props) {
   const [voiceElapsed, setVoiceElapsed] = useState(0);
   const [voiceMicHeard, setVoiceMicHeard] = useState(false);
   const isDirectConversation = Boolean(
-    peerUserId &&
-      activeConv &&
-      !activeConv.isGroup &&
-      !activeConv.isChannel,
+    peerUserId && activeConv && !activeConv.isGroup && !activeConv.isChannel,
   );
   const showE2eSetupHint = Boolean(
-    isDirectConversation &&
-      !dmE2eActive &&
-      !canEnableE2e,
+    isDirectConversation && !dmE2eActive && !canEnableE2e,
   );
 
   const closeComposerPanels = () => {
@@ -159,6 +154,20 @@ export default function ConversationComposer(props) {
   return (
     <>
       <div className="sticky bottom-0 z-10 border-t border-brand-200/45 bg-surface/92 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_-8px_rgba(168,42,96,0.18)] backdrop-blur-xl dark:border-white/10 dark:bg-black/85 dark:shadow-black/30 md:p-4">
+        {!pollOpen && !sendBlocked && smartReplyTriggerKey ? (
+          <SmartReplyBar
+            recentMessages={smartReplyMessages}
+            subject={smartReplySubject}
+            conversationKind={smartReplyConversationKind}
+            triggerKey={smartReplyTriggerKey}
+            autoGenerate
+            showControls={false}
+            onPick={(value) => {
+              setText(String(value || ""));
+              textInputRef.current?.focus?.({ preventScroll: true });
+            }}
+          />
+        ) : null}
         {canEnableE2e ? (
           <div className="vs-composer-panel mb-2 flex flex-col items-center gap-2 border-brand-300/50 sm:flex-row sm:justify-between">
             <p className="text-center text-xs font-semibold text-ink sm:text-start">
@@ -303,7 +312,10 @@ export default function ConversationComposer(props) {
             className="mb-2 flex items-center gap-2 rounded-2xl border border-brand-300/60 bg-brand-50/90 px-3 py-2 dark:border-brand-700/45 dark:bg-brand-950/35"
             dir={rtl ? "rtl" : "ltr"}
           >
-            <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" aria-hidden />
+            <span
+              className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500"
+              aria-hidden
+            />
             <span className="text-xs font-semibold text-red-700 dark:text-red-200">
               {t("recording")} · {voiceElapsed}s
             </span>
@@ -311,20 +323,6 @@ export default function ConversationComposer(props) {
               {voiceMicHeard ? t("voiceMicHint") : t("voiceMicWaiting")}
             </span>
           </div>
-        ) : null}
-        {!pollOpen && !sendBlocked && smartReplyTriggerKey ? (
-          <SmartReplyBar
-            recentMessages={smartReplyMessages}
-            subject={smartReplySubject}
-            conversationKind={smartReplyConversationKind}
-            triggerKey={smartReplyTriggerKey}
-            autoGenerate
-            showControls={false}
-            onPick={(value) => {
-              setText(String(value || ""));
-              textInputRef.current?.focus?.({ preventScroll: true });
-            }}
-          />
         ) : null}
         <form
           className="flex min-w-0 flex-col gap-2 md:flex-row md:items-center md:gap-1.5 lg:gap-2"
@@ -336,244 +334,245 @@ export default function ConversationComposer(props) {
           <input
             ref={fileRef}
             type="file"
-            accept={attachAccept || "image/*,video/*,audio/*,.png,.jpeg,.jpg,.gif,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"}
+            accept={
+              attachAccept ||
+              "image/*,video/*,audio/*,.png,.jpeg,.jpg,.gif,.mp4,.mp3,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"
+            }
             className="hidden"
             onChange={onFileChange}
           />
-          <div className="relative min-w-0 w-full md:w-auto md:shrink-0">
+          <div className="relative min-w-0 w-full max-md:-mx-3 max-md:px-3 md:w-auto md:shrink-0">
             <div
               ref={toolsScrollRef}
               dir={rtl ? "rtl" : "ltr"}
               className="vs-composer-tools-scroll"
             >
-            <button
-              ref={emojiBtnRef}
-              type="button"
-              onClick={() => {
-                const next = !emojiComposerOpen;
-                closeComposerPanels();
-                setEmojiComposerOpen(next);
-              }}
-              className={cn(
-                "vs-composer-icon-btn vs-composer-icon-btn-sm",
-                emojiComposerOpen
-                  ? COMPOSER_ACTIVE_CLASS
-                  : "",
-              )}
-              title={t("reactMessage") || "Emoji"}
-              aria-label={t("reactMessage") || "Emoji"}
-            >
-              <Smile className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              disabled={Boolean(uploading)}
-              onClick={() => {
-                closeComposerPanels();
-                fileRef.current?.click();
-              }}
-              className="vs-composer-icon-btn vs-composer-icon-btn-sm"
-              title={t("attach")}
-              aria-label={t("attach")}
-            >
-              <Paperclip className="h-5 w-5" aria-hidden />
-            </button>
-            <button
-              ref={locationBtnRef}
-              type="button"
-              disabled={!user?._id || shareContactBusy}
-              onClick={() => {
-                const next = !shareLocationOpen;
-                closeComposerPanels();
-                setShareLocationOpen(next);
-              }}
-              className={cn(
-                "vs-composer-icon-btn vs-composer-icon-btn-sm shadow-sm transition",
-                shareLocationOpen
-                  ? COMPOSER_ACTIVE_CLASS
-                  : "",
-              )}
-              title={t("shareLocation")}
-            >
-              <MapPin className="h-5 w-5" />
-            </button>
-            <button
-              ref={contactBtnRef}
-              type="button"
-              disabled={!user?._id || shareContactBusy}
-              onClick={() => {
-                const next = !shareContactOpen;
-                closeComposerPanels();
-                setShareContactOpen(next);
-              }}
-              className={cn(
-                "vs-composer-icon-btn vs-composer-icon-btn-sm shadow-sm transition",
-                shareContactOpen
-                  ? COMPOSER_ACTIVE_CLASS
-                  : "",
-              )}
-              title={t("shareContact")}
-            >
-              <UserRound className="h-5 w-5" />
-            </button>
-            <VoiceRecorderButton
-              disabled={!user?._id || Boolean(uploading)}
-              onRecordingChange={(active, sec, meta) => {
-                setVoiceRecording(active);
-                setVoiceElapsed(sec);
-                setVoiceMicHeard(Boolean(meta?.heard));
-                if (active) closeComposerPanels();
-              }}
-              onError={(msg) => {
-                setVoiceMsg(msg);
-                closeVoicePreview();
-                setVoiceRecording(false);
-                setVoiceMicHeard(false);
-              }}
-              onRecorded={(blob, mime, sec) => {
-                setVoiceMsg("");
-                setVoiceRecording(false);
-                setVoiceMicHeard(false);
-                setVoiceDraft((prev) => {
-                  if (prev?.previewUrl) {
-                    try {
-                      URL.revokeObjectURL(prev.previewUrl);
-                    } catch {
-                      /* ignore */
+              <button
+                ref={emojiBtnRef}
+                type="button"
+                onClick={() => {
+                  const next = !emojiComposerOpen;
+                  closeComposerPanels();
+                  setEmojiComposerOpen(next);
+                }}
+                className={cn(
+                  "vs-composer-icon-btn vs-composer-icon-btn-sm",
+                  emojiComposerOpen ? COMPOSER_ACTIVE_CLASS : "",
+                )}
+                title={t("reactMessage") || "Emoji"}
+                aria-label={t("reactMessage") || "Emoji"}
+              >
+                <Smile className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                disabled={Boolean(uploading)}
+                onClick={() => {
+                  closeComposerPanels();
+                  fileRef.current?.click();
+                }}
+                className="vs-composer-icon-btn vs-composer-icon-btn-sm"
+                title={t("attach")}
+                aria-label={t("attach")}
+              >
+                <Paperclip className="h-5 w-5" aria-hidden />
+              </button>
+              <button
+                ref={locationBtnRef}
+                type="button"
+                disabled={!user?._id || shareContactBusy}
+                onClick={() => {
+                  const next = !shareLocationOpen;
+                  closeComposerPanels();
+                  setShareLocationOpen(next);
+                }}
+                className={cn(
+                  "vs-composer-icon-btn vs-composer-icon-btn-sm shadow-sm transition",
+                  shareLocationOpen ? COMPOSER_ACTIVE_CLASS : "",
+                )}
+                title={t("shareLocation")}
+              >
+                <MapPin className="h-5 w-5" />
+              </button>
+              <button
+                ref={contactBtnRef}
+                type="button"
+                disabled={!user?._id || shareContactBusy}
+                onClick={() => {
+                  const next = !shareContactOpen;
+                  closeComposerPanels();
+                  setShareContactOpen(next);
+                }}
+                className={cn(
+                  "vs-composer-icon-btn vs-composer-icon-btn-sm shadow-sm transition",
+                  shareContactOpen ? COMPOSER_ACTIVE_CLASS : "",
+                )}
+                title={t("shareContact")}
+              >
+                <UserRound className="h-5 w-5" />
+              </button>
+              <VoiceRecorderButton
+                disabled={!user?._id || Boolean(uploading)}
+                onRecordingChange={(active, sec, meta) => {
+                  setVoiceRecording(active);
+                  setVoiceElapsed(sec);
+                  setVoiceMicHeard(Boolean(meta?.heard));
+                  if (active) closeComposerPanels();
+                }}
+                onError={(msg) => {
+                  setVoiceMsg(msg);
+                  closeVoicePreview();
+                  setVoiceRecording(false);
+                  setVoiceMicHeard(false);
+                }}
+                onRecorded={(blob, mime, sec) => {
+                  setVoiceMsg("");
+                  setVoiceRecording(false);
+                  setVoiceMicHeard(false);
+                  setVoiceDraft((prev) => {
+                    if (prev?.previewUrl) {
+                      try {
+                        URL.revokeObjectURL(prev.previewUrl);
+                      } catch {
+                        /* ignore */
+                      }
                     }
+                    return {
+                      blob,
+                      mime,
+                      sec,
+                      previewUrl: URL.createObjectURL(blob),
+                    };
+                  });
+                  setVoiceOpen(true);
+                }}
+              />
+              {activeConv?.isGroup || activeConv?.isChannel ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeComposerPanels();
+                    setMentionsOnly(!mentionsOnly);
+                  }}
+                  className={cn(
+                    "vs-composer-icon-btn vs-composer-icon-btn-sm shadow-sm transition",
+                    mentionsOnly ? COMPOSER_ACTIVE_CLASS : "",
+                  )}
+                  title={
+                    mentionsOnly
+                      ? t("mentionsOnlyActive")
+                      : t("chatMentionsOnlyToggle")
                   }
-                  return {
-                    blob,
-                    mime,
-                    sec,
-                    previewUrl: URL.createObjectURL(blob),
-                  };
-                });
-                setVoiceOpen(true);
-              }}
-            />
-            {activeConv?.isGroup || activeConv?.isChannel ? (
+                  aria-label={
+                    mentionsOnly
+                      ? t("mentionsOnlyActive")
+                      : t("chatMentionsOnlyToggle")
+                  }
+                >
+                  <AtSign className="h-5 w-5" />
+                </button>
+              ) : null}
+              {activeConv?.isGroup || activeConv?.isChannel ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeComposerPanels();
+                    setPollOpen((value) => !value);
+                  }}
+                  className={cn(
+                    "vs-composer-icon-btn vs-composer-icon-btn-sm shadow-sm transition",
+                    pollOpen ? COMPOSER_ACTIVE_CLASS : "",
+                  )}
+                  title={t("pollCreateTitle")}
+                >
+                  <BarChart3 className="h-5 w-5" />
+                </button>
+              ) : null}
               <button
+                ref={scheduleBtnRef}
                 type="button"
                 onClick={() => {
+                  const next = !scheduleOpen;
                   closeComposerPanels();
-                  setMentionsOnly(!mentionsOnly);
+                  setScheduleOpen(next);
+                  setPollOpen(false);
                 }}
                 className={cn(
-                  "vs-composer-icon-btn vs-composer-icon-btn-sm shadow-sm transition",
-                  mentionsOnly
-                    ? COMPOSER_ACTIVE_CLASS
-                    : "",
+                  "vs-composer-icon-btn vs-composer-icon-btn-sm text-muted shadow-sm transition",
+                  scheduledFor || scheduleOpen ? COMPOSER_ACTIVE_CLASS : "",
                 )}
-                title={mentionsOnly ? t("mentionsOnlyActive") : t("chatMentionsOnlyToggle")}
-                aria-label={mentionsOnly ? t("mentionsOnlyActive") : t("chatMentionsOnlyToggle")}
+                title={t("scheduleMessage")}
               >
-                <AtSign className="h-5 w-5" />
+                <Clock3 className="h-5 w-5" />
               </button>
-            ) : null}
-            {activeConv?.isGroup || activeConv?.isChannel ? (
-              <button
-                type="button"
-                onClick={() => {
-                  closeComposerPanels();
-                  setPollOpen((value) => !value);
-                }}
-                className={cn(
-                  "vs-composer-icon-btn vs-composer-icon-btn-sm shadow-sm transition",
-                  pollOpen
-                    ? COMPOSER_ACTIVE_CLASS
-                    : "",
-                )}
-                title={t("pollCreateTitle")}
-              >
-                <BarChart3 className="h-5 w-5" />
-              </button>
-            ) : null}
-            <button
-              ref={scheduleBtnRef}
-              type="button"
-              onClick={() => {
-                const next = !scheduleOpen;
-                closeComposerPanels();
-                setScheduleOpen(next);
-                setPollOpen(false);
-              }}
-              className={cn(
-                "vs-composer-icon-btn vs-composer-icon-btn-sm text-muted shadow-sm transition",
-                scheduledFor || scheduleOpen
-                  ? COMPOSER_ACTIVE_CLASS
-                  : "",
-              )}
-              title={t("scheduleMessage")}
-            >
-              <Clock3 className="h-5 w-5" />
-            </button>
             </div>
             <HorizontalScrollRail
               listRef={toolsScrollRef}
               rtl={rtl}
               ariaLabel={t("composerToolsScroll")}
-              className="mt-1.5 md:hidden"
+              className="mt-1.5 w-full md:hidden"
+              fullWidth
               hideFrom="md"
             />
           </div>
           <div className="flex min-w-0 flex-1 items-end gap-1.5 sm:gap-2 md:contents">
-          <textarea
-            ref={textInputRef}
-            rows={1}
-            className="vs-composer-input min-w-0 flex-1"
-            value={text}
-            placeholder={t("addMessage")}
-            onChange={(e) => {
-              setText(e.target.value);
-              bumpTyping();
-            }}
-            onKeyDown={(e) => {
-              if (mentionSuggestions.length) {
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setMentionIndex((i) => (i + 1) % mentionSuggestions.length);
-                  return;
+            <textarea
+              ref={textInputRef}
+              rows={1}
+              className="vs-composer-input min-w-0 flex-1"
+              value={text}
+              placeholder={t("addMessage")}
+              onChange={(e) => {
+                setText(e.target.value);
+                bumpTyping();
+              }}
+              onKeyDown={(e) => {
+                if (mentionSuggestions.length) {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setMentionIndex((i) => (i + 1) % mentionSuggestions.length);
+                    return;
+                  }
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setMentionIndex(
+                      (i) =>
+                        (i - 1 + mentionSuggestions.length) %
+                        mentionSuggestions.length,
+                    );
+                    return;
+                  }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    insertMention(
+                      mentionSuggestions[mentionIndex] || mentionSuggestions[0],
+                    );
+                    return;
+                  }
                 }
-                if (e.key === "ArrowUp") {
+                const enterToSend =
+                  readLocalPref("vs_enter_to_send", true) !== false;
+                if (e.key === "Enter" && !e.shiftKey && enterToSend) {
                   e.preventDefault();
-                  setMentionIndex(
-                    (i) =>
-                      (i - 1 + mentionSuggestions.length) %
-                      mentionSuggestions.length,
-                  );
-                  return;
+                  send();
                 }
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  insertMention(
-                    mentionSuggestions[mentionIndex] || mentionSuggestions[0],
-                  );
-                  return;
-                }
+              }}
+              dir={rtl ? "rtl" : "ltr"}
+            />
+            <button
+              type="submit"
+              disabled={sendBlocked}
+              title={
+                sendBlocked
+                  ? dmE2eActive && !e2eConvKey
+                    ? t("e2eCannotSend")
+                    : cannotPostHint || t("chatCannotPostHint")
+                  : undefined
               }
-              const enterToSend = readLocalPref("vs_enter_to_send", true) !== false;
-              if (e.key === "Enter" && !e.shiftKey && enterToSend) {
-                e.preventDefault();
-                send();
-              }
-            }}
-            dir={rtl ? "rtl" : "ltr"}
-          />
-          <button
-            type="submit"
-            disabled={sendBlocked}
-            title={
-              sendBlocked
-                ? dmE2eActive && !e2eConvKey
-                  ? t("e2eCannotSend")
-                  : cannotPostHint || t("chatCannotPostHint")
-                : undefined
-            }
-            className="vs-composer-send shrink-0 md:shrink-0"
-          >
-            {scheduledFor ? t("scheduleSendAction") : t("send")}
-          </button>
+              className="vs-composer-send shrink-0 md:shrink-0"
+            >
+              {scheduledFor ? t("scheduleSendAction") : t("send")}
+            </button>
           </div>
         </form>
         {mentionSuggestions.length ? (
@@ -589,7 +588,8 @@ export default function ConversationComposer(props) {
                   onClick={() => insertMention(member)}
                   className={cn(
                     "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left outline-none transition hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-inset",
-                    idx === mentionIndex && "bg-brand-50 vs-dark-brand-surface-soft",
+                    idx === mentionIndex &&
+                      "bg-brand-50 vs-dark-brand-surface-soft",
                   )}
                 >
                   <span className="min-w-0">
@@ -634,7 +634,9 @@ export default function ConversationComposer(props) {
         anchorRef={locationBtnRef}
         rtl={rtl}
       >
-        <div className="mb-2 text-sm font-semibold text-ink">{t("shareLocation")}</div>
+        <div className="mb-2 text-sm font-semibold text-ink">
+          {t("shareLocation")}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -660,7 +662,8 @@ export default function ConversationComposer(props) {
             }}
             className={cn(
               "vs-btn-outline-sm rounded-full",
-              liveLocationActive && "border-brand-300 bg-brand-50 text-brand-700",
+              liveLocationActive &&
+                "border-brand-300 bg-brand-50 text-brand-700",
             )}
           >
             <span className="inline-flex items-center gap-1.5">
@@ -681,7 +684,9 @@ export default function ConversationComposer(props) {
           </button>
         </div>
         <p className="mt-3 text-[11px] leading-relaxed text-muted">
-          {liveLocationActive ? t("liveLocationSharingHint") : t("locationAutoFallbackHint")}
+          {liveLocationActive
+            ? t("liveLocationSharingHint")
+            : t("locationAutoFallbackHint")}
         </p>
       </ComposerFloatingPanel>
 
@@ -700,8 +705,12 @@ export default function ConversationComposer(props) {
             <UserRound className="h-4 w-4" aria-hidden />
           </span>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-ink">{t("shareContact")}</div>
-            <div className="text-[11px] text-muted">{t("shareContactHint")}</div>
+            <div className="text-sm font-semibold text-ink">
+              {t("shareContact")}
+            </div>
+            <div className="text-[11px] text-muted">
+              {t("shareContactHint")}
+            </div>
           </div>
         </div>
         <input
@@ -716,7 +725,9 @@ export default function ConversationComposer(props) {
             .map((c) => c?.members?.[0])
             .filter(Boolean)
             .filter((m) => {
-              const q = String(shareContactQuery || "").trim().toLowerCase();
+              const q = String(shareContactQuery || "")
+                .trim()
+                .toLowerCase();
               if (!q) return true;
               const hay =
                 `${m?.name || ""} ${m?.username || ""} ${m?.email || ""}`.toLowerCase();
@@ -739,14 +750,23 @@ export default function ConversationComposer(props) {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    String(m?.name || m?.email || "?").trim().slice(0, 1).toUpperCase()
+                    String(m?.name || m?.email || "?")
+                      .trim()
+                      .slice(0, 1)
+                      .toUpperCase()
                   )}
                 </span>
                 <span className="min-w-0 flex-1 text-start">
-                  <span className="block truncate font-semibold text-ink" dir="auto">
+                  <span
+                    className="block truncate font-semibold text-ink"
+                    dir="auto"
+                  >
                     {m?.name || m?.username || m?.email || "User"}
                   </span>
-                  <span className="block truncate text-[11px] text-muted" dir="auto">
+                  <span
+                    className="block truncate text-[11px] text-muted"
+                    dir="auto"
+                  >
                     {m?.username ? `@${m.username}` : m?.email || ""}
                   </span>
                 </span>
@@ -763,8 +783,13 @@ export default function ConversationComposer(props) {
         align="end"
       >
         <div className="mb-2 flex items-center gap-2">
-          <Clock3 className="h-4 w-4 text-brand-600 vs-dark-brand-pin-icon" aria-hidden />
-          <div className="text-sm font-semibold text-ink">{t("scheduleMessage")}</div>
+          <Clock3
+            className="h-4 w-4 text-brand-600 vs-dark-brand-pin-icon"
+            aria-hidden
+          />
+          <div className="text-sm font-semibold text-ink">
+            {t("scheduleMessage")}
+          </div>
         </div>
         <input
           type="datetime-local"
@@ -816,11 +841,9 @@ export default function ConversationComposer(props) {
           const draft = {
             kind: "audio",
             uploadKind: "audio",
-            file: new File(
-              [voiceDraft.blob],
-              `voice-note.${ext}`,
-              { type: normalizeAudioMime(voiceDraft.mime) },
-            ),
+            file: new File([voiceDraft.blob], `voice-note.${ext}`, {
+              type: normalizeAudioMime(voiceDraft.mime),
+            }),
             name: t("voiceMessage"),
             fileName: `voice-note.${ext}`,
             audioDuration: voiceDraft.sec,

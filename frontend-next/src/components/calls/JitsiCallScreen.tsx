@@ -12,6 +12,7 @@ import {
   buildJitsiEmbedOptions,
   loadJitsiExternalApi,
   prefetchJitsiExternalApi,
+  wireJitsiCallApi,
 } from "@/lib/jitsiConfig";
 
 function formatCallDuration(totalSec) {
@@ -117,9 +118,20 @@ export default function JitsiCallScreen({
         );
 
         apiRef.current = api;
+        wireJitsiCallApi(api, {
+          displayName: userDisplayName,
+          audioOnly: !isVideoCall,
+        });
         api.addListener("readyToClose", notifyClose);
         api.addListener("videoConferenceLeft", notifyClose);
         api.addListener("videoConferenceJoined", () => {
+          wireJitsiCallApi(api, {
+            displayName: userDisplayName,
+            audioOnly: !isVideoCall,
+          });
+          if (!disposed) setJitsiLoading(false);
+        });
+        api.addListener("participantJoined", () => {
           if (!disposed) setJitsiLoading(false);
         });
         if (!disposed) setJitsiLoading(false);
@@ -174,6 +186,7 @@ export default function JitsiCallScreen({
             "fixed inset-0 z-[97] flex flex-col outline-none",
             "bg-[radial-gradient(circle_at_15%_0%,rgba(139,30,63,0.22),transparent_34%),linear-gradient(180deg,#09070a,#000)]",
             "text-white",
+            showJitsi && "bg-black",
           )}
         >
           <Dialog.Title className="sr-only">
@@ -183,10 +196,12 @@ export default function JitsiCallScreen({
           <div
             className={cn(
               "flex shrink-0 items-center justify-between gap-3 px-4 pt-4",
-              showJitsi ? "pb-2" : "flex-col text-center",
+              showJitsi ? "absolute inset-x-0 top-0 z-[3] bg-gradient-to-b from-black/80 to-transparent pb-8 pt-[max(0.75rem,env(safe-area-inset-top))]" : "flex-col text-center",
             )}
           >
-            <div className={cn("min-w-0", showJitsi ? "text-left" : "text-center")}>
+            <div
+              className={cn("min-w-0", showJitsi ? "text-left" : "text-center")}
+            >
               <h2 className="truncate text-lg font-semibold md:text-xl">
                 {peerDisplayName || t("someoneTypingAnonymous")}
               </h2>
@@ -218,13 +233,18 @@ export default function JitsiCallScreen({
             ) : null}
           </div>
 
-          <div className="relative mt-3 min-h-0 flex-1 px-2 pb-4 md:px-4">
+          <div className={cn("relative mt-0 min-h-0 flex-1", showJitsi ? "px-0 pb-0" : "mt-3 px-2 pb-4 md:px-4")}>
             {showJitsi ? (
               <div className="relative h-full w-full">
                 {jitsiLoading ? (
                   <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-3 rounded-2xl bg-black/50">
-                    <Loader2 className="h-8 w-8 animate-spin text-brand-200" aria-hidden />
-                    <p className="text-sm text-white/80">{t("callStatusActive")}…</p>
+                    <Loader2
+                      className="h-8 w-8 animate-spin text-brand-200"
+                      aria-hidden
+                    />
+                    <p className="text-sm text-white/80">
+                      {t("callStatusActive")}…
+                    </p>
                   </div>
                 ) : null}
                 {jitsiError ? (
@@ -241,7 +261,7 @@ export default function JitsiCallScreen({
                 ) : null}
                 <div
                   ref={containerRef}
-                  className="h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-2xl"
+                  className="h-full w-full overflow-hidden bg-black"
                 />
               </div>
             ) : null}

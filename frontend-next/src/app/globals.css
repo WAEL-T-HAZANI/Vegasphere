@@ -536,10 +536,11 @@ body {
     @apply pt-0.5;
   }
   .vs-smart-reply-bar-compact {
-    @apply mb-1 flex min-h-8 min-w-0 items-center;
+    @apply mb-2 flex min-h-8 min-w-0 items-center;
   }
   .vs-smart-reply-bar-compact .vs-horizontal-scroll-strip {
-    @apply min-h-8 items-center gap-1.5 rounded-xl border-0 bg-transparent px-0 py-0 ring-0 dark:bg-transparent;
+    @apply min-h-8 items-center gap-1.5 rounded-xl border border-brand-200/45 bg-brand-50/35 px-2 py-1 ring-1 ring-brand-700/[0.03];
+    @apply dark:border-brand-800/55 dark:bg-black/35 dark:ring-white/[0.04];
   }
   .vs-smart-reply-chip-sm {
     @apply inline-flex h-6 max-w-[11rem] shrink-0 items-center justify-center rounded-full bg-brand-600 px-2 text-[10px] font-semibold leading-none text-white shadow-sm outline-none transition;
@@ -572,7 +573,7 @@ body {
   }
   @media (max-width: 767px) {
     .vs-composer-tools-scroll {
-      @apply flex w-fit max-w-full min-w-0 items-center gap-1 overflow-x-auto overscroll-x-contain scroll-smooth snap-x snap-mandatory touch-pan-x;
+      @apply flex w-full max-w-full min-w-0 items-center gap-1 overflow-x-auto overscroll-x-contain scroll-smooth snap-x snap-mandatory touch-pan-x;
       @apply rounded-2xl border border-brand-200/45 bg-brand-50/35 px-1 py-1 ring-1 ring-brand-700/[0.03];
       @apply [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
       @apply dark:border-brand-800/55 dark:bg-black/35 dark:ring-white/[0.04];
