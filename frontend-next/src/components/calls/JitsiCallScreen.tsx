@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Loader2, PhoneOff } from "lucide-react";
-import { cn } from "@/lib/classNames";
+import { Loader2, Phone, PhoneOff, Video } from "lucide-react";
 import { kickCallRingtoneOnGesture } from "@/lib/callRingtone";
 import IncomingCallActions from "@/components/calls/IncomingCallActions";
 import {
@@ -39,6 +38,51 @@ function callNoticeMessage(notice, t) {
   }
 }
 
+function peerInitial(name) {
+  return String(name || "?")
+    .trim()
+    .slice(0, 1)
+    .toUpperCase();
+}
+
+function CallRingBackdrop({ peerDisplayName, statusLabel, isVideoCall, t }) {
+  return (
+    <div className="relative flex h-full w-full flex-col items-center justify-center px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(168,42,96,0.35),transparent_42%),linear-gradient(180deg,#1a0a12_0%,#09070a_55%,#050405_100%)]"
+        aria-hidden
+      />
+      <div className="relative flex flex-col items-center text-center">
+        <div className="relative mb-6 flex h-32 w-32 items-center justify-center">
+          <span
+            className="absolute inset-0 animate-ping rounded-full bg-brand-500/20"
+            aria-hidden
+          />
+          <span
+            className="absolute inset-2 animate-pulse rounded-full bg-brand-500/10"
+            aria-hidden
+          />
+          <span className="relative flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-brand-600 via-brand-700 to-red-900 text-4xl font-bold text-white shadow-2xl shadow-brand-900/40 ring-4 ring-white/10">
+            {peerInitial(peerDisplayName)}
+          </span>
+        </div>
+        <h2 className="max-w-[16rem] truncate text-2xl font-semibold text-white">
+          {peerDisplayName || t("someoneTypingAnonymous")}
+        </h2>
+        <p className="mt-2 text-sm text-white/70">{statusLabel}</p>
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-brand-100">
+          {isVideoCall ? (
+            <Video className="h-3.5 w-3.5" aria-hidden />
+          ) : (
+            <Phone className="h-3.5 w-3.5" aria-hidden />
+          )}
+          {isVideoCall ? t("callStartVideo") : t("callStartVoice")}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function JitsiCallScreen({
   open,
   callState,
@@ -61,13 +105,16 @@ export default function JitsiCallScreen({
   const containerRef = useRef(null);
   const apiRef = useRef(null);
   const closedRef = useRef(false);
+  const joinTimeoutRef = useRef(null);
+  const joinedRef = useRef(false);
   const [jitsiLoading, setJitsiLoading] = useState(false);
   const [jitsiError, setJitsiError] = useState("");
 
   const isIncoming = callState === "ringing_in";
   const isOutgoing = callState === "ringing_out";
   const isActive = callState === "active";
-  const showJitsi = jitsiActive && Boolean(roomName);
+  const showJitsi = jitsiActive && isActive && Boolean(roomName);
+  const showRingUi = isIncoming || isOutgoing;
 
   useEffect(() => {
     if (!open) return;
@@ -76,8 +123,9 @@ export default function JitsiCallScreen({
 
   useEffect(() => {
     closedRef.current = false;
+    joinedRef.current = false;
     setJitsiError("");
-  }, [roomName, jitsiActive]);
+  }, [roomName, jitsiActive, callState]);
 
   useEffect(() => {
     if (!showJitsi || !containerRef.current || !roomName) {
@@ -86,6 +134,8 @@ export default function JitsiCallScreen({
     }
 
     let disposed = false;
+    const container = containerRef.current;
+    joinedRef.current = false;
     setJitsiLoading(true);
     setJitsiError("");
 
@@ -94,6 +144,12 @@ export default function JitsiCallScreen({
       closedRef.current = true;
       onJitsiReadyToClose?.();
     };
+
+    joinTimeoutRef.current = setTimeout(() => {
+      if (disposed || joinedRef.current) return;
+      setJitsiLoading(false);
+      setJitsiError(t("callMediaFailed"));
+    }, 20000);
 
     void (async () => {
       try {
@@ -122,6 +178,18 @@ export default function JitsiCallScreen({
           displayName: userDisplayName,
           audioOnly: !isVideoCall,
         });
+
+        const markJoined = () => {
+          if (disposed) return;
+          joinedRef.current = true;
+          if (joinTimeoutRef.current) {
+            clearTimeout(joinTimeoutRef.current);
+            joinTimeoutRef.current = null;
+          }
+          setJitsiLoading(false);
+          setJitsiError("");
+        };
+
         api.addListener("readyToClose", notifyClose);
         api.addListener("videoConferenceLeft", notifyClose);
         api.addListener("videoConferenceJoined", () => {
@@ -129,12 +197,9 @@ export default function JitsiCallScreen({
             displayName: userDisplayName,
             audioOnly: !isVideoCall,
           });
-          if (!disposed) setJitsiLoading(false);
+          markJoined();
         });
-        api.addListener("participantJoined", () => {
-          if (!disposed) setJitsiLoading(false);
-        });
-        if (!disposed) setJitsiLoading(false);
+        api.addListener("participantJoined", markJoined);
       } catch (e) {
         console.warn("Jitsi embed failed:", e);
         if (!disposed) {
@@ -146,12 +211,15 @@ export default function JitsiCallScreen({
 
     return () => {
       disposed = true;
+      if (joinTimeoutRef.current) {
+        clearTimeout(joinTimeoutRef.current);
+        joinTimeoutRef.current = null;
+      }
       try {
         apiRef.current?.dispose?.();
       } catch {}
       apiRef.current = null;
-      const node = containerRef.current;
-      if (node) node.innerHTML = "";
+      if (container) container.innerHTML = "";
     };
   }, [
     showJitsi,
@@ -167,14 +235,14 @@ export default function JitsiCallScreen({
     ? t("callStatusRingingIn")
     : isOutgoing
       ? t("callStatusRingingOut")
-      : t("callStatusActive");
-
-  const showRingUi = (isIncoming || isOutgoing) && !showJitsi;
+      : isActive
+        ? formatCallDuration(callElapsedSec)
+        : t("callStatusActive");
 
   return (
     <Dialog.Root open={open}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[96] bg-black/88 backdrop-blur-md" />
+        <Dialog.Overlay className="fixed inset-0 z-[96] bg-black" />
         <Dialog.Content
           aria-describedby={undefined}
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -182,117 +250,87 @@ export default function JitsiCallScreen({
           onPointerDownCapture={() => {
             if (isIncoming) kickCallRingtoneOnGesture();
           }}
-          className={cn(
-            "fixed inset-0 z-[97] flex flex-col outline-none",
-            "bg-[radial-gradient(circle_at_15%_0%,rgba(139,30,63,0.22),transparent_34%),linear-gradient(180deg,#09070a,#000)]",
-            "text-white",
-            showJitsi && "bg-black",
-          )}
+          className="fixed inset-0 z-[97] flex flex-col overflow-hidden bg-black outline-none"
         >
           <Dialog.Title className="sr-only">
             {t("webrtcBeta")} — {peerDisplayName || t("someoneTypingAnonymous")}
           </Dialog.Title>
 
-          <div
-            className={cn(
-              "flex shrink-0 items-center justify-between gap-3 px-4 pt-4",
-              showJitsi ? "absolute inset-x-0 top-0 z-[3] bg-gradient-to-b from-black/80 to-transparent pb-8 pt-[max(0.75rem,env(safe-area-inset-top))]" : "flex-col text-center",
-            )}
-          >
-            <div
-              className={cn("min-w-0", showJitsi ? "text-left" : "text-center")}
-            >
-              <h2 className="truncate text-lg font-semibold md:text-xl">
-                {peerDisplayName || t("someoneTypingAnonymous")}
-              </h2>
-              <p className="text-sm text-white/70">{statusLabel}</p>
-              {isGroupCall ? (
-                <p className="text-xs text-brand-200/80">{t("navGroups")}</p>
+          {showJitsi ? (
+            <div className="relative min-h-0 flex-1">
+              {jitsiLoading ? (
+                <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-3 bg-[#12080c]">
+                  <Loader2
+                    className="h-9 w-9 animate-spin text-brand-300"
+                    aria-hidden
+                  />
+                  <p className="text-sm text-white/80">
+                    {t("callStatusActive")}…
+                  </p>
+                </div>
               ) : null}
-              {isActive ? (
-                <p className="text-xs font-medium text-brand-200/90">
-                  {formatCallDuration(callElapsedSec)}
+              {jitsiError ? (
+                <div className="absolute inset-0 z-[3] flex flex-col items-center justify-center gap-4 bg-[#12080c] px-6 text-center">
+                  <p className="text-sm text-red-100">{jitsiError}</p>
+                  <button
+                    type="button"
+                    onClick={onHangup}
+                    className="rounded-full bg-red-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg"
+                  >
+                    {t("callHangup")}
+                  </button>
+                </div>
+              ) : null}
+              <div
+                ref={containerRef}
+                className="vegasphere-jitsi-root h-full w-full min-h-[100dvh] bg-[#12080c]"
+              />
+            </div>
+          ) : null}
+
+          {showRingUi ? (
+            <div className="relative min-h-0 flex-1">
+              <CallRingBackdrop
+                peerDisplayName={peerDisplayName}
+                statusLabel={statusLabel}
+                isVideoCall={isVideoCall}
+                t={t}
+              />
+              {isGroupCall ? (
+                <p className="absolute inset-x-0 top-[max(1rem,env(safe-area-inset-top))] text-center text-xs text-brand-200/80">
+                  {t("navGroups")}
                 </p>
               ) : null}
-              {callNotice && !showJitsi ? (
-                <p className="mt-1 text-xs text-brand-200/90" role="status">
+              {callNotice ? (
+                <p
+                  className="absolute inset-x-0 bottom-36 text-center text-xs text-brand-200/90"
+                  role="status"
+                >
                   {callNoticeMessage(callNotice, t)}
                 </p>
               ) : null}
+              <div className="absolute inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] flex justify-center px-6">
+                {isIncoming ? (
+                  <IncomingCallActions
+                    hint={t("incomingCallHint")}
+                    isVideoCall={isVideoCall}
+                    onAccept={onAcceptIncoming}
+                    onReject={onRejectIncoming}
+                    acceptDisabled={acceptingIncoming}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onHangup}
+                    className="inline-flex items-center gap-2 rounded-full border border-red-500/40 bg-red-600 px-8 py-3 text-sm font-semibold text-white shadow-xl shadow-red-950/40 transition hover:bg-red-500"
+                  >
+                    <PhoneOff className="h-5 w-5" aria-hidden />
+                    {t("callHangup")}
+                  </button>
+                )}
+              </div>
             </div>
-
-            {showJitsi ? (
-              <button
-                type="button"
-                onClick={onHangup}
-                className="inline-flex shrink-0 items-center gap-2 rounded-full border border-red-500/40 bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-red-900/30 transition hover:bg-red-500"
-              >
-                <PhoneOff className="h-4 w-4" aria-hidden />
-                {t("callHangup")}
-              </button>
-            ) : null}
-          </div>
-
-          <div className={cn("relative mt-0 min-h-0 flex-1", showJitsi ? "px-0 pb-0" : "mt-3 px-2 pb-4 md:px-4")}>
-            {showJitsi ? (
-              <div className="relative h-full w-full">
-                {jitsiLoading ? (
-                  <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-3 rounded-2xl bg-black/50">
-                    <Loader2
-                      className="h-8 w-8 animate-spin text-brand-200"
-                      aria-hidden
-                    />
-                    <p className="text-sm text-white/80">
-                      {t("callStatusActive")}…
-                    </p>
-                  </div>
-                ) : null}
-                {jitsiError ? (
-                  <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-4 rounded-2xl border border-red-500/30 bg-black/70 px-6 text-center">
-                    <p className="text-sm text-red-100">{jitsiError}</p>
-                    <button
-                      type="button"
-                      onClick={onHangup}
-                      className="rounded-full bg-red-600 px-5 py-2 text-sm font-semibold text-white"
-                    >
-                      {t("callHangup")}
-                    </button>
-                  </div>
-                ) : null}
-                <div
-                  ref={containerRef}
-                  className="h-full w-full overflow-hidden bg-black"
-                />
-              </div>
-            ) : null}
-
-            {showRingUi && isIncoming ? (
-              <div className="flex h-full items-center justify-center">
-                <IncomingCallActions
-                  hint={t("incomingCallHint")}
-                  isVideoCall={isVideoCall}
-                  onAccept={onAcceptIncoming}
-                  onReject={onRejectIncoming}
-                  acceptDisabled={acceptingIncoming}
-                />
-              </div>
-            ) : null}
-
-            {showRingUi && isOutgoing ? (
-              <div className="flex h-full flex-col items-center justify-center gap-6">
-                <p className="max-w-sm text-center text-sm text-white/70">
-                  {isVideoCall ? t("callStartVideo") : t("callStartVoice")}…
-                </p>
-                <button
-                  type="button"
-                  onClick={onHangup}
-                  className="rounded-full border border-red-500/40 bg-red-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-900/30 transition hover:bg-red-500"
-                >
-                  {t("callHangup")}
-                </button>
-              </div>
-            ) : null}
-          </div>
+          ) : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

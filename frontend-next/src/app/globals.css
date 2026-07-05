@@ -2022,3 +2022,13 @@ html[data-reduce-motion] *::after {
     max-width: min(20rem, calc(100vw - 2rem));
   }
 }
+
+/* Full-screen Jitsi embed — iframe must fill the call overlay */
+.vegasphere-jitsi-root,
+.vegasphere-jitsi-root > div,
+.vegasphere-jitsi-root iframe {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100dvh;
+  border: 0;
+}

@@ -74,6 +74,9 @@ export function buildJitsiEmbedOptions({
       enableEmailInStats: false,
       disableRemoteMute: true,
       notifications: [],
+      disableTileView: true,
+      hideConferenceTimer: true,
+      disableLocalVideoFlip: true,
       customTheme: VEGASPHERE_THEME,
       toolbarConfig: {
         alwaysVisible: true,
@@ -108,6 +111,9 @@ export function buildJitsiEmbedOptions({
       DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
       DISABLE_FOCUS_INDICATOR: true,
       DISABLE_DOMINANT_SPEAKER_INDICATOR: true,
+      HIDE_CONFERENCE_SUBJECT: true,
+      DISPLAY_WELCOME_FOOTER: false,
+      VERTICAL_FILMSTRIP: false,
       VIDEO_LAYOUT_FIT: "height",
       TOOLBAR_ALWAYS_VISIBLE: true,
       ENFORCE_NOTIFICATION_AUTO_DISMISS_TIMEOUT: 5000,
@@ -135,9 +141,7 @@ export function wireJitsiCallApi(api, { displayName, audioOnly }) {
 
   if (audioOnly) {
     try {
-      api.isAudioMuted?.().then((muted) => {
-        if (!muted) api.executeCommand("toggleAudio");
-      });
+      api.executeCommand("toggleVideo", true);
     } catch {
       /* ignore */
     }

@@ -187,7 +187,6 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
       try {
         const resolvedRoom = await resolveRoom(conversationId, groupCall);
         setRoomName(resolvedRoom);
-        setJitsiActive(true);
         setCallState("ringing_out");
         setCallNotice("");
 
