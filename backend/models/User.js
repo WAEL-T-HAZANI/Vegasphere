@@ -7,7 +7,7 @@ const UserSchema = new mongoose.Schema(
       required: true,
       trim: true,
       minlength: 3,
-      maxlength: 50,
+      maxlength: 24,
     },
 
     about: {
@@ -79,6 +79,8 @@ const UserSchema = new mongoose.Schema(
       lowercase: true,
       unique: true,
       sparse: true,
+      minlength: 3,
+      maxlength: 20,
     },
 
     password: {

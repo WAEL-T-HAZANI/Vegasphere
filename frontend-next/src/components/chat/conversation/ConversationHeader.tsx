@@ -208,65 +208,47 @@ export default function ConversationHeader({
 
   return (
     <header className="sticky top-0 z-20 border-b border-brand-200/45 bg-surface/88 px-3 py-2.5 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-black/80 md:px-4 md:py-3">
-      <div className="flex min-w-0 items-center gap-1.5" dir="ltr">
-        <div
-          className={cn(
-            "flex min-w-0 flex-1 items-center overflow-hidden",
-            rtl ? "order-2 justify-end" : "order-1 justify-start",
-          )}
-        >
-          <div
-            className="inline-flex w-fit min-w-0 shrink-0 items-center gap-1"
-            dir="ltr"
-          >
-            {!rtl ? peerAvatar : null}
+      <div
+        className="flex min-w-0 items-center gap-1.5"
+        dir={rtl ? "rtl" : "ltr"}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+          {peerAvatar}
+          <div className="min-w-0 max-w-[min(100vw-10rem,14rem)] shrink leading-none sm:max-w-[min(100vw-11rem,18rem)]">
             <div
-              className={cn(
-                "min-w-0 max-w-[min(100vw-11rem,18rem)] shrink leading-tight",
-                rtl ? "w-fit text-end" : "w-fit text-start",
-              )}
+              className="truncate text-sm font-semibold leading-tight text-ink"
+              dir="auto"
             >
+              {peerProfileHref ? (
+                <Link
+                  href={peerProfileHref}
+                  className="truncate outline-none transition hover:text-brand-700 hover:underline focus-visible:underline dark:hover:text-[rgb(var(--vega-ink))]"
+                  title={t("viewProfile")}
+                >
+                  {headerTitle}
+                </Link>
+              ) : (
+                headerTitle
+              )}
+            </div>
+            {typingLine ? (
               <div
-                className="truncate text-sm font-semibold text-ink"
+                className="truncate text-[11px] leading-tight text-muted"
                 dir="auto"
               >
-                {peerProfileHref ? (
-                  <Link
-                    href={peerProfileHref}
-                    className="truncate outline-none transition hover:text-brand-700 hover:underline focus-visible:underline dark:hover:text-[rgb(var(--vega-ink))]"
-                    title={t("viewProfile")}
-                  >
-                    {headerTitle}
-                  </Link>
-                ) : (
-                  headerTitle
-                )}
+                {typingLine}
               </div>
-              {typingLine ? (
-                <div
-                  className="truncate text-[11px] text-muted"
-                  dir="auto"
-                >
-                  {typingLine}
-                </div>
-              ) : peerPresenceLine ? (
-                <div
-                  className="truncate text-[11px] text-muted"
-                  dir="auto"
-                >
-                  {peerPresenceLine}
-                </div>
-              ) : null}
-            </div>
-            {rtl ? peerAvatar : null}
+            ) : peerPresenceLine ? (
+              <div
+                className="truncate text-[11px] leading-tight text-muted"
+                dir="auto"
+              >
+                {peerPresenceLine}
+              </div>
+            ) : null}
           </div>
         </div>
-        <div
-          className={cn(
-            "flex shrink-0 items-center gap-1",
-            rtl ? "order-1 flex-row-reverse" : "order-2",
-          )}
-        >
+        <div className="flex shrink-0 items-center gap-1">
           <ConversationCallButtons
             conversationId={cid}
             peerUserId={peerUserId || ""}

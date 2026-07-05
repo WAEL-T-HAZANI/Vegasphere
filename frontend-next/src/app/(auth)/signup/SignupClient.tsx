@@ -19,6 +19,7 @@ import { validateEmailField } from "@/lib/authValidation";
 import { showAuthErrorToast, showAuthSuccessToast } from "@/lib/authToast";
 import { setToken } from "@/store/slices/authSlice";
 import AuthFormHeader from "@/components/marketing/AuthFormHeader";
+import { validateProfileName, PROFILE_NAME_MAX_LENGTH } from "@/lib/profileLimits";
 import AuthField from "@/components/ui/AuthField";
 
 type PostSignup = {
@@ -80,8 +81,11 @@ export default function SignupClient({ safeNext }) {
 
     if (trimmedName.length < 3) {
       nextErrors.name = t("nameMinLengthError");
-    } else if (/\d/.test(trimmedName)) {
-      nextErrors.name = t("nameNoDigitsError");
+    } else if (trimmedName.length > PROFILE_NAME_MAX_LENGTH) {
+      nextErrors.name = t("nameMaxLengthError");
+    } else {
+      const nameError = validateProfileName(trimmedName, t);
+      if (nameError) nextErrors.name = nameError;
     }
 
     if (!normalizedEmail) {
@@ -230,6 +234,7 @@ export default function SignupClient({ safeNext }) {
           }}
           placeholder={t("namePlaceholder")}
           error={errors.name}
+          maxLength={PROFILE_NAME_MAX_LENGTH}
         />
 
         <AuthField

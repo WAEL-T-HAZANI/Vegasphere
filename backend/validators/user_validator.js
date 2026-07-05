@@ -39,7 +39,7 @@ const patchChatInboxSchema = z.object({
 });
 
 const updateProfileSchema = z.object({
-  name: z.string().trim().min(3).max(50).optional(),
+  name: z.string().trim().min(3).max(24).optional(),
 
   username: z
     .string()

@@ -10,7 +10,7 @@ import "react-phone-number-input/style.css";
 import PhoneCountrySelect from "@/components/profile/PhoneCountrySelect";
 import ProfileShareSection from "@/components/profile/ProfileShareSection";
 import { getDefaultPhoneCountry } from "@/lib/defaultPhoneCountry";
-import { PROFILE_ABOUT_MAX_LENGTH } from "@/lib/profileLimits";
+import { PROFILE_ABOUT_MAX_LENGTH, PROFILE_NAME_MAX_LENGTH, PROFILE_USERNAME_MAX_LENGTH, normalizeProfileUsername, validateProfileName, validateProfileUsername } from "@/lib/profileLimits";
 
 import { authClient, userClient } from "@/lib/clients";
 import { formatApiError } from "@/lib/apiError";
@@ -203,8 +203,14 @@ export default function ProfilePage() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (/\d/.test(String(name).trim())) {
-      showAppToast({ id: "profile-name-digits", body: t("nameNoDigitsError") });
+    const nameError = validateProfileName(name, t);
+    if (nameError) {
+      showAppToast({ id: "profile-name-invalid", body: nameError });
+      return;
+    }
+    const usernameError = validateProfileUsername(username, t);
+    if (usernameError) {
+      showAppToast({ id: "profile-username-invalid", body: usernameError });
       return;
     }
     setSaving(true);
@@ -229,7 +235,7 @@ export default function ProfilePage() {
         about: about.trim(),
         phone: phone || "",
       };
-      const nextUsername = username.trim().toLowerCase().replace(/\s+/g, "_");
+      const nextUsername = normalizeProfileUsername(username);
       if (nextUsername) body.username = nextUsername;
 
       await userClient.updateProfile(body);
@@ -385,7 +391,11 @@ export default function ProfilePage() {
                     onChange={(e) => setName(e.target.value)}
                     required
                     minLength={3}
+                    maxLength={PROFILE_NAME_MAX_LENGTH}
                   />
+                  <div className="mt-1 flex justify-end text-[11px] font-semibold text-muted">
+                    {String(name || "").trim().length}/{PROFILE_NAME_MAX_LENGTH}
+                  </div>
                 </label>
                 <label className="block">
                   <span className="vs-label">{t("profileUsername")}</span>
@@ -393,17 +403,16 @@ export default function ProfilePage() {
                     className="vs-input mt-2"
                     value={username}
                     onChange={(e) =>
-                      setUsername(
-                        String(e.target.value || "")
-                          .trim()
-                          .toLowerCase()
-                          .replace(/\s+/g, "_"),
-                      )
+                      setUsername(normalizeProfileUsername(e.target.value))
                     }
                     placeholder="vegasphere"
                     autoCapitalize="none"
                     autoCorrect="off"
+                    maxLength={PROFILE_USERNAME_MAX_LENGTH}
                   />
+                  <div className="mt-1 flex justify-end text-[11px] font-semibold text-muted">
+                    {String(username || "").trim().length}/{PROFILE_USERNAME_MAX_LENGTH}
+                  </div>
                 </label>
               </div>
 
