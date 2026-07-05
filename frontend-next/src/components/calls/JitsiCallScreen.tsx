@@ -8,6 +8,7 @@ import { kickCallRingtoneOnGesture } from "@/lib/callRingtone";
 import IncomingCallActions from "@/components/calls/IncomingCallActions";
 import {
   JITSI_DOMAIN,
+  attachJitsiCallUiHandlers,
   buildJitsiEmbedOptions,
   loadJitsiExternalApi,
   prefetchJitsiExternalApi,
@@ -174,6 +175,7 @@ export default function JitsiCallScreen({
         );
 
         apiRef.current = api;
+        attachJitsiCallUiHandlers(api);
         wireJitsiCallApi(api, {
           displayName: userDisplayName,
           audioOnly: !isVideoCall,
