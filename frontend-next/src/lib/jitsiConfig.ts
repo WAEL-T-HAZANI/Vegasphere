@@ -51,6 +51,17 @@ const VEGASPHERE_HANGUP_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path fill="#ef4444" d="M12 9.5c-3.05 0-5.78 1.4-7.58 3.6-.24.29-.24.7 0 .99 1.8 2.2 4.53 3.6 7.58 3.6s5.78-1.4 7.58-3.6c.24-.29.24-.7 0-.99C17.78 10.9 15.05 9.5 12 9.5Zm0 6.2c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3Z"/><path fill="#ef4444" d="M3.5 4.6 4.9 3.2 20.8 19.1l-1.4 1.4L3.5 4.6Z"/></svg>',
   );
 
+/** Hide auth / wait-for-host UI when iframe CSS injection succeeds (same-origin only). */
+const JITSI_AUTH_UI_CSS = `
+  [class*="WaitForOwnerDialog"],
+  [class*="LoginDialog"],
+  [data-testid="dialog.login"],
+  button[aria-label="Log in"],
+  button[aria-label="Login"] {
+    display: none !important;
+  }
+`;
+
 const JITSI_MOBILE_UI_CSS = `
 @media (max-width: 900px) {
   #new-toolbox .hangup-menu-button,
@@ -108,6 +119,17 @@ export function buildJitsiEmbedOptions({
       disableModeratorIndicator: true,
       enableLobby: false,
       autoKnockLobby: true,
+      // Not whitelisted on all embed builds; harmless when ignored.
+      hideLoginButton: true,
+      lobby: {
+        autoKnock: true,
+        enableChat: false,
+        showHangUp: false,
+      },
+      securityUi: {
+        hideLobbyButton: true,
+        disableLobbyPassword: true,
+      },
       requireDisplayName: false,
       enableInsecureRoomNameWarning: false,
       disableProfile: true,
@@ -180,15 +202,15 @@ export function buildJitsiEmbedOptions({
   };
 }
 
-function tryInjectJitsiMobileStyles(api) {
+function tryInjectJitsiEmbedStyles(api) {
   try {
     const iframe = api?.getIFrame?.();
     const doc = iframe?.contentDocument || iframe?.contentWindow?.document;
-    if (!doc || doc.getElementById("vegasphere-jitsi-mobile-ui")) return;
+    if (!doc || doc.getElementById("vegasphere-jitsi-embed-ui")) return;
 
     const style = doc.createElement("style");
-    style.id = "vegasphere-jitsi-mobile-ui";
-    style.textContent = JITSI_MOBILE_UI_CSS;
+    style.id = "vegasphere-jitsi-embed-ui";
+    style.textContent = `${JITSI_AUTH_UI_CSS}\n${JITSI_MOBILE_UI_CSS}`;
     doc.head?.appendChild(style);
   } catch {
     /* cross-origin embeds cannot be styled from the parent page */
@@ -208,10 +230,10 @@ export function attachJitsiCallUiHandlers(api) {
   };
 
   api.addListener("videoConferenceJoined", () => {
-    tryInjectJitsiMobileStyles(api);
+    tryInjectJitsiEmbedStyles(api);
   });
   api.addListener("participantJoined", () => {
-    tryInjectJitsiMobileStyles(api);
+    tryInjectJitsiEmbedStyles(api);
   });
 
   api.addListener("toolbarButtonClicked", ({ key }) => {

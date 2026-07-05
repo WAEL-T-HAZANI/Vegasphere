@@ -50,6 +50,16 @@ const LAUNCHER_SIZE = 56;
 const LAUNCHER_MARGIN = 16;
 const LAUNCHER_POS_KEY = "vegasphere-floating-nav-launcher";
 const DRAG_CLICK_THRESHOLD = 6;
+/** Ignore launcher open briefly after backdrop dismiss (same pointer gesture). */
+let suppressLauncherOpenUntil = 0;
+
+function markSuppressLauncherOpen(ms = 400) {
+  suppressLauncherOpenUntil = Date.now() + ms;
+}
+
+function shouldSuppressLauncherOpen() {
+  return Date.now() < suppressLauncherOpenUntil;
+}
 
 type LauncherPosition = { x: number; y: number };
 
@@ -159,7 +169,7 @@ function SvgOrbitButton({
           whileHover="hover"
           whileTap={{ scale: 0.94 }}
           className={cn(
-            "group relative z-10 grid place-items-center overflow-visible rounded-2xl border shadow-lg backdrop-blur-md outline-none",
+            "group relative z-10 grid place-items-center overflow-visible rounded-2xl border shadow-lg outline-none",
             "focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2",
             active
               ? "border-brand-500/60 bg-brand-600 text-white shadow-[0_0_28px_rgb(var(--vega-brand)/0.38)] dark:border-brand-500/50 dark:bg-brand-700"
@@ -212,7 +222,7 @@ function SvgOrbitButton({
           <motion.span
             aria-hidden
             className={cn(
-              "pointer-events-none absolute left-1/2 top-full z-30 whitespace-nowrap rounded-md border px-2 py-0.5 text-[9px] font-bold tracking-wide shadow-md backdrop-blur-md sm:text-[10px]",
+              "pointer-events-none absolute left-1/2 top-full z-30 whitespace-nowrap rounded-md border px-2 py-0.5 text-[9px] font-bold tracking-wide shadow-md sm:text-[10px]",
               active
                 ? "border-brand-400/50 bg-brand-600/95 text-white"
                 : "border-brand-200/60 bg-surface/96 text-brand-800 dark:border-white/14 dark:bg-black/88 dark:text-brand-100",
@@ -520,7 +530,7 @@ function FloatingNavUtilities() {
   const reduceMotion = useReducedMotion();
 
   const btnClass =
-    "grid h-11 w-11 place-items-center rounded-xl border border-brand-200/55 bg-surface/92 text-muted shadow-sm backdrop-blur-md transition hover:scale-105 hover:border-brand-400/55 hover:text-brand-700 dark:border-white/12 dark:bg-black/75 dark:hover:text-brand-200";
+    "grid h-11 w-11 place-items-center rounded-xl border border-brand-200/55 bg-surface/95 text-muted shadow-sm transition hover:scale-105 hover:border-brand-400/55 hover:text-brand-700 dark:border-white/12 dark:bg-black/82 dark:hover:text-brand-200";
 
   return (
     <div
@@ -620,9 +630,6 @@ function FloatingNavOrbit({
     <div
       dir={rtl ? "rtl" : "ltr"}
       className="mx-auto flex w-full max-w-[min(92vw,26rem)] flex-col items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("floatingNavDialogLabel")}
     >
       <div className="relative mb-5 aspect-square w-full max-w-[min(92vw,22rem)] sm:mb-6 sm:max-w-[26rem]">
         <svg
@@ -819,7 +826,7 @@ export function FloatingNavLauncher() {
         }, 0);
       }}
       onClick={() => {
-        if (suppressClickRef.current) {
+        if (suppressClickRef.current || shouldSuppressLauncherOpen()) {
           suppressClickRef.current = false;
           return;
         }
@@ -859,42 +866,77 @@ export function FloatingNavLauncher() {
 export default function FloatingNavigation() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const { t } = useTranslation();
   const floatingNav = useAppSelector((s) => s.ui.floatingNav);
   const floatingNavOpen = useAppSelector((s) => s.ui.floatingNavOpen);
   const reduceMotion = useReducedMotion();
+
+  const closeNav = useCallback(() => {
+    markSuppressLauncherOpen();
+    dispatch(setFloatingNavOpen(false));
+  }, [dispatch]);
 
   useEffect(() => {
     if (!floatingNav || !floatingNavOpen) return;
     prefetchShellRoutes(router);
   }, [floatingNav, floatingNavOpen, router]);
 
+  useEffect(() => {
+    if (!floatingNavOpen) return undefined;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeNav();
+    };
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [closeNav, floatingNavOpen]);
+
   if (!floatingNav || !floatingNavOpen) return null;
 
   const onPickNav = (href: string) => {
+    markSuppressLauncherOpen();
     dispatch(setFloatingNavOpen(false));
     router.push(href);
   };
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6"
+      className="fixed inset-0 z-[60] isolate"
+      role="presentation"
       aria-hidden={false}
     >
-      <motion.div
-        className="absolute inset-0 bg-canvas/78 backdrop-blur-md dark:bg-black/72"
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.28 }}
+      <button
+        type="button"
+        aria-label={t("close")}
+        className="absolute inset-0 bg-canvas/80 dark:bg-black/75 supports-[backdrop-filter]:bg-canvas/72 supports-[backdrop-filter]:backdrop-blur-md dark:supports-[backdrop-filter]:bg-black/68"
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          closeNav();
+        }}
       />
 
-      <motion.div
-        className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center"
-        initial={reduceMotion ? false : { opacity: 0, scale: 0.94, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <FloatingNavOrbit onPickNav={onPickNav} />
-      </motion.div>
+      <div className="pointer-events-none fixed inset-0 flex items-center justify-center p-3 sm:p-6">
+        <motion.div
+          className="pointer-events-auto relative z-10 flex w-full max-w-xl flex-col items-center justify-center"
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.94, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+          onPointerDown={(event) => event.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("floatingNavDialogLabel")}
+        >
+          <FloatingNavOrbit onPickNav={onPickNav} />
+        </motion.div>
+      </div>
     </div>
   );
 }
