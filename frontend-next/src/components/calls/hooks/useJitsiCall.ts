@@ -187,8 +187,6 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
       try {
         const resolvedRoom = await resolveRoom(conversationId, groupCall);
         setRoomName(resolvedRoom);
-        // Caller joins the room while ringing so they become moderator before the callee.
-        setJitsiActive(true);
         setCallState("ringing_out");
         setCallNotice("");
 
@@ -247,13 +245,6 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
     if (!sent) {
       setAcceptingIncoming(false);
       finishCall("failed", { force: true });
-      return;
-    }
-
-    // Brief delay so the caller (already in the room) is moderator before we join.
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    if (!callSessionIdRef.current) {
-      setAcceptingIncoming(false);
       return;
     }
 
