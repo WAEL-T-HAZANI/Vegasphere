@@ -6,10 +6,17 @@ import { useAppDispatch } from "@/store/hooks";
 import { api } from "@/lib/api";
 import { formatApiError } from "@/lib/apiError";
 import { showAppToast } from "@/lib/appToast";
+import {
+  mergeSearchResults,
+  parseMessageSearchResponse,
+  searchLoadedMessages,
+} from "@/lib/searchQuery";
 import { setSearchQuery, setSearchResults } from "@/store/slices/chatSlice";
 
 export function useChatSearch({
   conversationId,
+  localMessages = [],
+  decryptedById = {},
   onResultSelect,
 }) {
   const { t } = useTranslation();
@@ -24,10 +31,23 @@ export function useChatSearch({
     if (!q || !conversationId) return;
     setSearchBusy(true);
     try {
-      const { data } = await api.get("/message/search", {
-        params: { q, conversationId },
-      });
-      const results = Array.isArray(data) ? data : [];
+      let apiResults = [];
+      try {
+        const { data } = await api.get("/message/search", {
+          params: { q, conversationId },
+        });
+        apiResults = parseMessageSearchResponse(data);
+      } catch {
+        apiResults = [];
+      }
+
+      const localResults = searchLoadedMessages(
+        localMessages,
+        q,
+        decryptedById,
+      );
+      const results = mergeSearchResults(apiResults, localResults);
+
       dispatch(setSearchQuery(q));
       dispatch(setSearchResults(results));
       setActiveSearchIndex(0);
@@ -44,7 +64,15 @@ export function useChatSearch({
     } finally {
       setSearchBusy(false);
     }
-  }, [search, conversationId, dispatch, onResultSelect, t]);
+  }, [
+    search,
+    conversationId,
+    localMessages,
+    decryptedById,
+    dispatch,
+    onResultSelect,
+    t,
+  ]);
 
   const resetSearch = useCallback(() => {
     setSearch("");

@@ -32,3 +32,64 @@ export function isSearchQueryTooShort(query: string): boolean {
   if (!trimmed) return false;
   return !isSearchQueryLongEnough(trimmed);
 }
+
+export function matchesSearchText(haystack: string, query: string): boolean {
+  const needle = normalizeSearchQuery(query).toLocaleLowerCase("en");
+  if (!isSearchQueryLongEnough(query) || !needle) return false;
+  const hay = normalizeSearchQuery(haystack).toLocaleLowerCase("en");
+  return hay.includes(needle);
+}
+
+function messageSearchHaystack(
+  message: { _id?: string; text?: string; fileName?: string; e2eVersion?: number },
+  decryptedById: Record<string, string> = {},
+) {
+  const parts: string[] = [];
+  if (Number(message?.e2eVersion) > 0) {
+    parts.push(String(decryptedById[String(message._id || "")] || ""));
+  } else {
+    parts.push(String(message?.text || ""));
+  }
+  parts.push(String(message?.fileName || ""));
+  return parts.filter(Boolean).join(" ");
+}
+
+export function searchLoadedMessages(
+  messages: Array<{ _id?: string; text?: string; fileName?: string; e2eVersion?: number; deletedForEveryone?: boolean; createdAt?: string }>,
+  query: string,
+  decryptedById: Record<string, string> = {},
+) {
+  const q = String(query || "").trim();
+  if (!q || !isSearchQueryLongEnough(q) || !Array.isArray(messages)) return [];
+  return messages.filter((message) => {
+    if (message?.deletedForEveryone) return false;
+    return matchesSearchText(messageSearchHaystack(message, decryptedById), q);
+  });
+}
+
+export function mergeSearchResults<T extends { _id?: string; createdAt?: string }>(
+  primary: T[],
+  secondary: T[],
+) {
+  const seen = new Set<string>();
+  const merged: T[] = [];
+  for (const item of [...primary, ...secondary]) {
+    const id = String(item?._id || "");
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    merged.push(item);
+  }
+  return merged.sort((a, b) => {
+    const aTime = new Date(a?.createdAt || 0).getTime();
+    const bTime = new Date(b?.createdAt || 0).getTime();
+    return bTime - aTime;
+  });
+}
+
+export function parseMessageSearchResponse(data: unknown) {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object" && Array.isArray((data as { messages?: unknown[] }).messages)) {
+    return (data as { messages: unknown[] }).messages;
+  }
+  return [];
+}

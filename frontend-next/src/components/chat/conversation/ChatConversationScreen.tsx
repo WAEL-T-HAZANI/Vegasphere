@@ -823,6 +823,8 @@ export default function ChatConversationScreen() {
     stepSearchResult,
   } = useChatSearch({
     conversationId,
+    localMessages: messages,
+    decryptedById,
     onResultSelect: jumpToSearchResult,
   });
   const activeSearchResult = searchResults[activeSearchIndex] || null;
