@@ -8,7 +8,6 @@ import { kickCallRingtoneOnGesture } from "@/lib/callRingtone";
 import IncomingCallActions from "@/components/calls/IncomingCallActions";
 import {
   JITSI_DOMAIN,
-  attachJitsiCallUiHandlers,
   buildJitsiEmbedOptions,
   loadJitsiExternalApi,
   prefetchJitsiExternalApi,
@@ -108,6 +107,8 @@ export default function JitsiCallScreen({
   const closedRef = useRef(false);
   const joinTimeoutRef = useRef(null);
   const joinedRef = useRef(false);
+  const embedKeyRef = useRef("");
+  const onReadyToCloseRef = useRef(onJitsiReadyToClose);
   const [jitsiLoading, setJitsiLoading] = useState(false);
   const [jitsiError, setJitsiError] = useState("");
 
@@ -116,6 +117,9 @@ export default function JitsiCallScreen({
   const isActive = callState === "active";
   const showJitsi = jitsiActive && isActive && Boolean(roomName);
   const showRingUi = isIncoming || isOutgoing;
+  const embedKey = showJitsi ? String(roomName) : "";
+
+  onReadyToCloseRef.current = onJitsiReadyToClose;
 
   useEffect(() => {
     if (!open) return;
@@ -123,10 +127,12 @@ export default function JitsiCallScreen({
   }, [open]);
 
   useEffect(() => {
+    if (!embedKey || embedKeyRef.current === embedKey) return;
+    embedKeyRef.current = embedKey;
     closedRef.current = false;
     joinedRef.current = false;
     setJitsiError("");
-  }, [roomName, jitsiActive, callState]);
+  }, [embedKey]);
 
   useEffect(() => {
     if (!showJitsi || !containerRef.current || !roomName) {
@@ -143,14 +149,14 @@ export default function JitsiCallScreen({
     const notifyClose = () => {
       if (closedRef.current) return;
       closedRef.current = true;
-      onJitsiReadyToClose?.();
+      onReadyToCloseRef.current?.();
     };
 
     joinTimeoutRef.current = setTimeout(() => {
       if (disposed || joinedRef.current) return;
       setJitsiLoading(false);
       setJitsiError(t("callMediaFailed"));
-    }, 20000);
+    }, 45000);
 
     void (async () => {
       try {
@@ -175,7 +181,6 @@ export default function JitsiCallScreen({
         );
 
         apiRef.current = api;
-        attachJitsiCallUiHandlers(api);
         wireJitsiCallApi(api, {
           displayName: userDisplayName,
           audioOnly: !isVideoCall,
@@ -201,7 +206,6 @@ export default function JitsiCallScreen({
           });
           markJoined();
         });
-        api.addListener("participantJoined", markJoined);
       } catch (e) {
         console.warn("Jitsi embed failed:", e);
         if (!disposed) {
@@ -223,15 +227,7 @@ export default function JitsiCallScreen({
       apiRef.current = null;
       if (container) container.innerHTML = "";
     };
-  }, [
-    showJitsi,
-    roomName,
-    isVideoCall,
-    userDisplayName,
-    userEmail,
-    onJitsiReadyToClose,
-    t,
-  ]);
+  }, [showJitsi, roomName, isVideoCall, userDisplayName, userEmail, t]);
 
   const statusLabel = isIncoming
     ? t("callStatusRingingIn")

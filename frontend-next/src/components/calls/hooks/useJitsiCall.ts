@@ -248,6 +248,13 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
       return;
     }
 
+    // Let the caller enter the room first (visible join) before we connect.
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    if (!callSessionIdRef.current || callStateRef.current === "idle") {
+      setAcceptingIncoming(false);
+      return;
+    }
+
     beginJitsi();
   }, [
     acceptingIncoming,
