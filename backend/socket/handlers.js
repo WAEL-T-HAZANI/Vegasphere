@@ -160,16 +160,25 @@ module.exports = (io, socket) => {
     if (typeof cb === "function") cb({ ok: true, read: out.read });
   });
 
-  // ---- WebRTC 1:1 signaling (relay only; media is peer-to-peer) ----------
+  // ---- Jitsi call signaling (relay only; media via meet.jit.si) -----------
 
   const relayToPeer = (event, payload) => {
     const to = String(payload?.to || "");
-    if (!to || !currentUserId) return;
+    if (!to || !currentUserId) return false;
     io.to(to).emit(event, { ...payload, from: currentUserId });
+    return true;
   };
 
-  socket.on("call:offer", async (payload) => {
-    const targetId = String(payload?.to || "");
+  const requireCallFields = (payload, fields = ["to"]) => {
+    if (!payload || typeof payload !== "object") return false;
+    return fields.every((key) => String(payload[key] || "").trim());
+  };
+
+  socket.on("call:user", async (payload) => {
+    if (!requireCallFields(payload, ["to", "callSessionId", "conversationId"])) {
+      return;
+    }
+    const targetId = String(payload.to || "");
     if (
       targetId &&
       currentUserId &&
@@ -185,48 +194,48 @@ module.exports = (io, socket) => {
       });
       return;
     }
-    relayToPeer("call:offer", payload);
+    relayToPeer("call:user", payload);
     noteCallSignal({
       ...payload,
       from: currentUserId,
-      type: "offer",
+      type: "call-user",
       callType: payload?.callType,
     }).catch(() => {});
   });
 
-  socket.on("call:answer", async (payload) => {
-    relayToPeer("call:answer", payload);
+  socket.on("call:accepted", async (payload) => {
+    if (!requireCallFields(payload, ["to", "callSessionId"])) return;
+    relayToPeer("call:accepted", payload);
     noteCallSignal({
       ...payload,
       from: currentUserId,
-      type: "answer",
+      type: "call-accepted",
       callType: payload?.callType,
     }).catch(() => {});
   });
 
-  socket.on("call:ice-candidate", (payload) => {
-    relayToPeer("call:ice-candidate", payload);
-  });
-
-  socket.on("call:decline", (payload) => {
-    relayToPeer("call:decline", payload);
+  socket.on("call:rejected", (payload) => {
+    if (!requireCallFields(payload, ["to", "callSessionId"])) return;
+    relayToPeer("call:rejected", payload);
     noteCallSignal({
       ...payload,
       from: currentUserId,
-      type: "call-decline",
+      type: "call-rejected",
     }).catch(() => {});
   });
 
-  socket.on("call:hangup", (payload) => {
-    relayToPeer("call:hangup", payload);
+  socket.on("call:ended", (payload) => {
+    if (!requireCallFields(payload, ["to", "callSessionId"])) return;
+    relayToPeer("call:ended", payload);
     noteCallSignal({
       ...payload,
       from: currentUserId,
-      type: "call-hangup",
+      type: "call-ended",
     }).catch(() => {});
   });
 
   socket.on("call:busy", (payload) => {
+    if (!requireCallFields(payload, ["to", "callSessionId"])) return;
     relayToPeer("call:busy", payload);
   });
 

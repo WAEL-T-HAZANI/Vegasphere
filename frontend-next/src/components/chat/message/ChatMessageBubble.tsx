@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/classNames";
 import {
   isVideoLike,
+  isImageLike,
   resolveAssetUrl,
   safeParseJson,
   normalizeReactionGroups,
@@ -69,6 +70,52 @@ function ChatMessageBubble({
   }, [m._id]);
 
   const disappearAfter = Number(m.disappearAfterSec) || 0;
+  const mediaUrl = resolveAssetUrl(m.imageUrl || "");
+  const fileUrl = resolveAssetUrl(m.fileData || "");
+  const fileType = String(m.fileType || "");
+  const combinedMediaUrl = mediaUrl || fileUrl;
+  const isImageFileMessage =
+    m.messageType === "file" &&
+    isImageLike({
+      url: combinedMediaUrl,
+      fileType,
+      fileName: m.fileName,
+    }) &&
+    Boolean(combinedMediaUrl);
+  const isVideoFileMessage =
+    m.messageType === "file" &&
+    Boolean(combinedMediaUrl) &&
+    isVideoLike({ url: combinedMediaUrl, fileType, fileName: m.fileName });
+  const isImageMessage =
+    m.messageType === "image" ||
+    isImageFileMessage ||
+    isImageLike({
+      url: combinedMediaUrl,
+      fileType,
+      fileName: m.fileName,
+      messageType: m.messageType,
+    });
+  const effectiveImageUrl = isImageMessage
+    ? String(combinedMediaUrl || "")
+    : String(mediaUrl || "");
+  const effectiveVideoUrl =
+    m.messageType === "video" || isVideoFileMessage
+      ? String(combinedMediaUrl || "")
+      : isVideoLike({ url: mediaUrl, fileType, fileName: m.fileName })
+        ? String(combinedMediaUrl || mediaUrl || "")
+        : "";
+  const showVideo =
+    Boolean(effectiveVideoUrl) &&
+    (m.messageType === "video" ||
+      isVideoFileMessage ||
+      isVideoLike({ url: effectiveVideoUrl, fileType, fileName: m.fileName }));
+  const showImage = Boolean(effectiveImageUrl) && !showVideo;
+  const showImageFallbackCard = false;
+  const showFile =
+    m.messageType === "file" &&
+    !isImageMessage &&
+    !isVideoFileMessage &&
+    (m.fileData || m.fileName || m.text);
   const computedExpiresAtMs = useMemo(() => {
     if (disappearAfter <= 0) return null;
     const exp = m.expiresAt ? new Date(m.expiresAt).getTime() : NaN;
@@ -103,41 +150,9 @@ function ChatMessageBubble({
     currentUserId &&
     m.mentionedUserIds.some((id) => String(id) === String(currentUserId));
 
-  const mediaUrl = resolveAssetUrl(m.imageUrl || "");
-  const fileUrl = resolveAssetUrl(m.fileData || "");
-  const fileType = String(m.fileType || "");
-  const isImageFileMessage =
-    m.messageType === "file" && fileType.startsWith("image/") && Boolean(fileUrl);
-  const isVideoFileMessage =
-    m.messageType === "file" &&
-    Boolean(fileUrl || mediaUrl) &&
-    isVideoLike({ url: fileUrl || mediaUrl, fileType, fileName: m.fileName });
-  const effectiveImageUrl =
-    m.messageType === "image" || isImageFileMessage
-      ? String(mediaUrl || fileUrl || "")
-      : String(mediaUrl || "");
-  const effectiveVideoUrl =
-    m.messageType === "video" || isVideoFileMessage
-      ? String(mediaUrl || fileUrl || "")
-      : isVideoLike({ url: mediaUrl, fileType, fileName: m.fileName })
-        ? String(mediaUrl || fileUrl || "")
-        : "";
-  const showVideo =
-    Boolean(effectiveVideoUrl) &&
-    (m.messageType === "video" ||
-      isVideoFileMessage ||
-      isVideoLike({ url: effectiveVideoUrl, fileType, fileName: m.fileName }));
-  const showImage = !mediaFailed && effectiveImageUrl && !showVideo;
-  const showImageFallbackCard =
-    mediaFailed && (m.messageType === "image" || isImageFileMessage) && Boolean(fileUrl || mediaUrl);
   const isStarred =
     Array.isArray(m.starredBy) &&
     m.starredBy.some((id) => String(id) === String(currentUserId));
-  const showFile =
-    m.messageType === "file" &&
-    !isImageFileMessage &&
-    !isVideoFileMessage &&
-    (m.fileData || m.fileName || m.text);
   const hasAudio = m.messageType === "audio";
   const audioUrl = resolveAssetUrl(m.audioData || "");
   const hasAudioData = Boolean(audioUrl);
@@ -146,7 +161,7 @@ function ChatMessageBubble({
   const hideAutoTextForMedia =
     (m.messageType === "image" ||
       m.messageType === "video" ||
-      isImageFileMessage ||
+      isImageMessage ||
       isVideoFileMessage) &&
     (!String(m.text || "").trim() ||
       String(m.text || "").trim() === String(m.fileName || "").trim() ||

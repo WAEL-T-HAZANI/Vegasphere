@@ -10,6 +10,7 @@ export default function IncomingCallActions({
   isVideoCall = false,
   onAccept,
   onReject,
+  acceptDisabled = false,
   className = "",
 }) {
   const { t } = useTranslation();
@@ -38,11 +39,16 @@ export default function IncomingCallActions({
         </button>
         <button
           type="button"
+          disabled={acceptDisabled}
           onClick={() => {
+            if (acceptDisabled) return;
             stopIncomingCallRingtone();
             onAccept?.();
           }}
-          className="group flex flex-col items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className={cn(
+            "group flex flex-col items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
+            acceptDisabled && "pointer-events-none opacity-60",
+          )}
           aria-label={t("acceptCall")}
         >
           <span className="flex h-16 w-16 items-center justify-center rounded-full border border-brand-500/40 bg-brand-600 text-white shadow-lg shadow-brand-900/40 transition hover:bg-brand-500 dark:border-brand-700/50 dark:bg-brand-700 dark:hover:bg-brand-600">

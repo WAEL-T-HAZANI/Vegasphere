@@ -148,6 +148,8 @@ const sendMessageHandler = async (data) => {
   let storedText = text;
   if (conversation.e2eEnabled && mt === "text" && ev > 0) {
     storedText = E2E_LIST_PREVIEW;
+  } else if (["image", "video", "audio"].includes(mt)) {
+    storedText = "";
   }
 
   const latestMessageText = getLatestMessageText({
@@ -215,6 +217,16 @@ const sendMessageHandler = async (data) => {
   const finalFileType = stagedUpload?.fileType || fileType;
   const finalFileSize = stagedUpload?.fileSize || fileSize;
 
+  if (stagedUpload) {
+    const committed = await stagedUpload.commit();
+    if (!committed) {
+      return sendFail(
+        "Could not store attachment. Ensure UPLOAD_DIR is mounted and writable.",
+        500,
+      );
+    }
+  }
+
   // Reserve a total-order seq now for live messages; scheduled drafts get one at publish.
   const seq = isScheduled ? 0 : await nextConversationSeq(conversationId);
 
@@ -253,9 +265,6 @@ const sendMessageHandler = async (data) => {
     scheduledStatus: isScheduled ? "pending" : "sent",
     publishedAt: isScheduled ? null : new Date(),
   });
-  if (stagedUpload) {
-    await stagedUpload.commit();
-  }
 
   if (threadRootId) {
     await Message.findByIdAndUpdate(threadRootId, {

@@ -23,5 +23,5 @@ export function buildAutocallHref(conversationId, mode, extra = {}) {
   Object.entries(extra).forEach(([key, value]) => {
     if (value != null && String(value).trim()) params.set(key, String(value));
   });
-  return `/chat/${conversationId}?${params.toString()}`;
+  return `/chats/${conversationId}?${params.toString()}`;
 }

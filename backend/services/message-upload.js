@@ -238,14 +238,12 @@ function prepareStagedUpload({ token, userId }) {
     async commit() {
       ensureUploadRoot();
       if (!fs.existsSync(meta.stagedPath)) return false;
-      const cloudUrl = await persistUploadedFile(
+      const stored = await persistUploadedFile(
         meta.stagedPath,
         relUrl,
         meta.fileType,
       );
-      if (cloudUrl) {
-        this.url = cloudUrl;
-      }
+      if (stored === false) return false;
       const metaPath = metaPathForToken(meta.token);
       if (metaPath && fs.existsSync(metaPath)) {
         fs.unlinkSync(metaPath);

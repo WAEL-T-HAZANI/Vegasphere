@@ -44,6 +44,18 @@ export function isVideoLike({ url, fileType, fileName }) {
   );
 }
 
+export function isImageLike({ url, fileType, fileName, messageType } = {}) {
+  if (messageType === "image") return true;
+  const ft = String(fileType || "");
+  const fn = String(fileName || "");
+  const u = String(url || "");
+  if (ft.startsWith("image/")) return true;
+  return (
+    /\.(jpe?g|png|gif|webp|avif|bmp)(\?|$)/i.test(fn) ||
+    /\.(jpe?g|png|gif|webp|avif|bmp)(\?|$)/i.test(u)
+  );
+}
+
 export function isPdfLike({ url, fileType, fileName }) {
   const u = String(url || "");
   const ft = String(fileType || "");

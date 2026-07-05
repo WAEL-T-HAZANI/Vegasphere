@@ -106,8 +106,15 @@ export const SHELL_TAB_WIRING: ShellTabWiring[] = [
     href: "/calls",
     backendMounts: ["/calls", "/conversation"],
     clientModules: ["callsClient", "conversationClient", "authClient"],
-    hubModules: ["callLaunch", "callHistory", "webrtcRtcConfig"],
-    socketEvents: SHELL_SOCKET_EVENTS.calls,
+    hubModules: ["callLaunch", "callHistory", "jitsiConfig"],
+    socketEvents: [
+      ...SHELL_SOCKET_EVENTS.calls,
+      "call:user",
+      "call:accepted",
+      "call:rejected",
+      "call:ended",
+      "call:busy",
+    ],
   },
   {
     nav: byHref("/ai-services"),

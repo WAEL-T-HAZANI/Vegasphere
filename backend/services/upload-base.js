@@ -18,6 +18,7 @@ function probeWritableDir(base) {
 function resolveWritableUploadBase() {
   const candidates = [
     process.env.UPLOAD_DIR && path.resolve(process.env.UPLOAD_DIR),
+    isProd ? path.resolve("/data/uploads") : null,
     path.resolve(__dirname, "..", "uploads"),
   ].filter(Boolean);
 
@@ -38,7 +39,7 @@ function resolveWritableUploadBase() {
   }
 
   throw new Error(
-    "No writable upload directory. Set UPLOAD_DIR to a persistent path or UPLOAD_STORAGE=gridfs on Belmo.",
+    "No writable upload directory. Set UPLOAD_DIR to a persistent path (e.g. /data/uploads on Belmo).",
   );
 }
 

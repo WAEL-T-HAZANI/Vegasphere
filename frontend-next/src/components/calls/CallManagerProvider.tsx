@@ -18,11 +18,9 @@ import {
 import { setSidebarOpen } from "@/store/slices/uiSlice";
 import { callsClient } from "@/lib/clients";
 import { getSocket } from "@/lib/socket";
-import { prefetchIceServers } from "@/lib/webrtcRtcConfig";
-import { useWebRtcCall } from "@/components/calls/hooks/useWebRtcCall";
-import { useWebRtcGroupMesh } from "@/components/calls/hooks/useWebRtcGroupMesh";
-import CallScreenOverlay from "@/components/calls/CallScreenOverlay";
-import GroupCallScreenOverlay from "@/components/calls/GroupCallScreenOverlay";
+import { prefetchJitsiExternalApi } from "@/lib/jitsiConfig";
+import { useJitsiCall } from "@/components/calls/hooks/useJitsiCall";
+import JitsiCallScreen from "@/components/calls/JitsiCallScreen";
 
 export default function CallManagerProvider() {
   const { t } = useTranslation();
@@ -54,13 +52,9 @@ export default function CallManagerProvider() {
     [activeConv, myUserId],
   );
 
-  const dmCall = useWebRtcCall(myUserId);
-  const groupCall = useWebRtcGroupMesh(myUserId, null);
-
-  const dmCallRef = useRef(dmCall);
-  const groupCallRef = useRef(groupCall);
-  dmCallRef.current = dmCall;
-  groupCallRef.current = groupCall;
+  const call = useJitsiCall(myUserId, user?.name || "", user?.email || "");
+  const callRef = useRef(call);
+  callRef.current = call;
 
   const mode = searchParams.get("autocall");
   const incomingCallParam = searchParams.get("incomingCall");
@@ -72,12 +66,8 @@ export default function CallManagerProvider() {
   }, [fromParam]);
 
   useEffect(() => {
-    const ringingIn =
-      dmCall.callState === "ringing_in" ||
-      groupCall.callState === "ringing_in";
-    const ringingOut =
-      dmCall.callState === "ringing_out" ||
-      groupCall.callState === "ringing_out";
+    const ringingIn = call.callState === "ringing_in";
+    const ringingOut = call.callState === "ringing_out";
     const allowSound =
       notificationPrefs?.callIncoming !== false &&
       !Boolean(notificationPrefs?.doNotDisturb || userDnd);
@@ -88,8 +78,7 @@ export default function CallManagerProvider() {
       stopIncomingCallRingtone();
     }
   }, [
-    dmCall.callState,
-    groupCall.callState,
+    call.callState,
     notificationPrefs?.callIncoming,
     notificationPrefs?.doNotDisturb,
     userDnd,
@@ -98,13 +87,16 @@ export default function CallManagerProvider() {
   useEffect(() => () => stopIncomingCallRingtone(), []);
 
   useEffect(() => {
-    const anyActive =
-      dmCall.callState !== "idle" || groupCall.callState !== "idle";
-    if (!anyActive) return;
+    if (!myUserId) return;
+    prefetchJitsiExternalApi();
+  }, [myUserId]);
+
+  useEffect(() => {
+    if (call.callState === "idle") return;
     if (typeof window === "undefined") return;
     if (!window.matchMedia("(max-width: 767px)").matches) return;
     dispatch(setSidebarOpen(false));
-  }, [dmCall.callState, groupCall.callState, dispatch]);
+  }, [call.callState, dispatch]);
 
   useEffect(() => {
     if (!wantsAutocall || !chatId) {
@@ -125,7 +117,6 @@ export default function CallManagerProvider() {
     };
     if (!socket.connected) socket.connect();
     socket.emit("setup");
-    prefetchIceServers().catch(() => {});
   }, [incomingCallParam, chatId]);
 
   useEffect(() => {
@@ -134,13 +125,11 @@ export default function CallManagerProvider() {
     if (!socketReady) return;
     const socket = getSocket();
     if (!socket?.connected) return;
-    if (dmCallRef.current.callState !== "idle") return;
-    if (groupCallRef.current.callState !== "idle") return;
+    if (callRef.current.callState !== "idle") return;
 
     const peerUserId = targets.peerUserId;
 
     void (async () => {
-      await prefetchIceServers().catch(() => {});
       if (peerUserId) {
         try {
           const { data } = await callsClient.canRingUser(peerUserId);
@@ -160,19 +149,38 @@ export default function CallManagerProvider() {
       const wantVideo = mode === "video";
 
       if (targets.isGroup && targets.groupPeerIds.length > 0) {
-        groupCallRef.current.startGroupCall(targets.groupPeerIds, wantVideo, chatId);
+        callRef.current.startOutgoing(
+          targets.groupPeerIds,
+          wantVideo,
+          chatId,
+          true,
+        );
         return;
       }
 
       if (targets.peerUserId) {
-        dmCallRef.current.startOutgoing(targets.peerUserId, wantVideo, chatId);
+        callRef.current.startOutgoing(
+          targets.peerUserId,
+          wantVideo,
+          chatId,
+          false,
+        );
       }
     })();
-  }, [myUserId, chatId, wantsAutocall, mode, targets, pathname, router, searchParams, socketReady]);
+  }, [
+    myUserId,
+    chatId,
+    wantsAutocall,
+    mode,
+    targets,
+    pathname,
+    router,
+    searchParams,
+    socketReady,
+  ]);
 
   useEffect(() => {
-    const anyActive =
-      dmCall.callState !== "idle" || groupCall.callState !== "idle";
+    const anyActive = call.callState !== "idle";
 
     if (
       prevCallActiveRef.current &&
@@ -192,133 +200,62 @@ export default function CallManagerProvider() {
     }
 
     prevCallActiveRef.current = anyActive;
-  }, [
-    dmCall.callState,
-    groupCall.callState,
-    pathname,
-    router,
-    searchParams,
-  ]);
+  }, [call.callState, pathname, router, searchParams]);
 
-  const dmPeerName = useMemo(() => {
-    if (dmCall.incomingMeta?.from) {
+  const peerDisplayName = useMemo(() => {
+    if (call.incomingMeta?.from) {
       return resolveMemberDisplayName(
-        dmCall.incomingMeta.from,
+        call.incomingMeta.from,
         conversations,
         t("someoneTypingAnonymous"),
       );
     }
-    return targets?.peerDisplayName || t("someoneTypingAnonymous");
-  }, [conversations, dmCall.incomingMeta, targets, t]);
-
-  const groupParticipantLabels = useMemo(() => {
-    const labels = { ...(targets?.participantLabels || {}) };
-    if (groupCall.incomingMeta?.from) {
-      const callerId = String(groupCall.incomingMeta.from);
-      if (!labels[callerId]) {
-        labels[callerId] = resolveMemberDisplayName(
-          callerId,
+    if (call.isGroupCall && activeConv) {
+      return activeConv.name || t("navGroups");
+    }
+    if (targets?.peerDisplayName) {
+      return targets.peerDisplayName;
+    }
+    if (activeConv && !activeConv.isGroup) {
+      return (
+        resolveMemberDisplayName(
+          targets?.peerUserId,
           conversations,
-          callerId,
-        );
-      }
+          activeConv.name || activeConv.chatName || t("someoneTypingAnonymous"),
+        ) || t("someoneTypingAnonymous")
+      );
     }
-    return labels;
-  }, [conversations, groupCall.incomingMeta, targets]);
-
-  const groupCallerName = useMemo(() => {
-    if (!groupCall.incomingMeta?.from) {
-      return t("someoneTypingAnonymous");
-    }
-    return resolveMemberDisplayName(
-      groupCall.incomingMeta.from,
-      conversations,
-      t("someoneTypingAnonymous"),
-    );
-  }, [conversations, groupCall.incomingMeta, t]);
+    return t("someoneTypingAnonymous");
+  }, [
+    activeConv,
+    call.incomingMeta,
+    call.isGroupCall,
+    conversations,
+    targets,
+    t,
+  ]);
 
   if (!myUserId) return null;
-
-  const showGroup = groupCall.callState !== "idle";
-  const showDm = !showGroup && dmCall.callState !== "idle";
+  if (call.callState === "idle") return null;
 
   return (
-    <>
-      {showDm ? (
-        <CallScreenOverlay
-          open
-          callState={dmCall.callState}
-          peerConnectionState={dmCall.peerConnectionState}
-          peerDisplayName={dmPeerName}
-          isVideoCall={dmCall.isVideoCall}
-          localStream={dmCall.localStream}
-          remoteStream={dmCall.remoteStream}
-          micMuted={dmCall.micMuted}
-          camOff={dmCall.camOff}
-          callElapsedSec={dmCall.callElapsedSec}
-          onToggleMic={dmCall.toggleMic}
-          onToggleCamera={dmCall.toggleCamera}
-          onHangup={dmCall.hangup}
-          onToggleScreenShare={dmCall.toggleScreenShare}
-          isScreenSharing={dmCall.isScreenSharing}
-          iceRestartPending={dmCall.iceRestartPending}
-          callNotice={dmCall.callNotice}
-          audioInputs={dmCall.audioInputs}
-          videoInputs={dmCall.videoInputs}
-          audioOutputs={dmCall.audioOutputs}
-          selectedAudioInputId={dmCall.selectedAudioInputId}
-          selectedVideoInputId={dmCall.selectedVideoInputId}
-          selectedAudioOutputId={dmCall.selectedAudioOutputId}
-          onChangeAudioInput={(audioInputId) =>
-            dmCall.switchInputDevice({ audioInputId })
-          }
-          onChangeVideoInput={(videoInputId) =>
-            dmCall.switchInputDevice({ videoInputId })
-          }
-          onChangeAudioOutput={(audioOutputId) =>
-            dmCall.setSelectedAudioOutputId(audioOutputId)
-          }
-          onAcceptIncoming={dmCall.acceptIncoming}
-          onRejectIncoming={dmCall.rejectIncoming}
-        />
-      ) : null}
-
-      {showGroup ? (
-        <GroupCallScreenOverlay
-          open
-          callState={groupCall.callState}
-          participantLabels={groupParticipantLabels}
-          callerDisplayName={groupCallerName}
-          isVideoCall={groupCall.isVideoCall}
-          localStream={groupCall.localStream}
-          remoteStreams={groupCall.remoteStreams}
-          micMuted={groupCall.micMuted}
-          camOff={groupCall.camOff}
-          callElapsedSec={groupCall.callElapsedSec}
-          onToggleMic={groupCall.toggleMic}
-          onToggleCamera={groupCall.toggleCamera}
-          onHangup={groupCall.hangup}
-          onToggleScreenShare={groupCall.toggleScreenShare}
-          isScreenSharing={groupCall.isScreenSharing}
-          audioInputs={groupCall.audioInputs}
-          videoInputs={groupCall.videoInputs}
-          audioOutputs={groupCall.audioOutputs}
-          selectedAudioInputId={groupCall.selectedAudioInputId}
-          selectedVideoInputId={groupCall.selectedVideoInputId}
-          selectedAudioOutputId={groupCall.selectedAudioOutputId}
-          onChangeAudioInput={(audioInputId) =>
-            groupCall.switchInputDevice({ audioInputId })
-          }
-          onChangeVideoInput={(videoInputId) =>
-            groupCall.switchInputDevice({ videoInputId })
-          }
-          onChangeAudioOutput={(audioOutputId) =>
-            groupCall.setSelectedAudioOutputId(audioOutputId)
-          }
-          onAcceptIncoming={groupCall.acceptIncoming}
-          onRejectIncoming={groupCall.rejectIncoming}
-        />
-      ) : null}
-    </>
+    <JitsiCallScreen
+      open
+      callState={call.callState}
+      peerDisplayName={peerDisplayName}
+      isVideoCall={call.isVideoCall}
+      isGroupCall={call.isGroupCall}
+      roomName={call.roomName}
+      callElapsedSec={call.callElapsedSec}
+      callNotice={call.callNotice}
+      jitsiActive={call.jitsiActive}
+      acceptingIncoming={call.acceptingIncoming}
+      userDisplayName={call.userDisplayName}
+      userEmail={call.userEmail}
+      onAcceptIncoming={call.acceptIncoming}
+      onRejectIncoming={call.rejectIncoming}
+      onHangup={call.hangup}
+      onJitsiReadyToClose={call.onJitsiReadyToClose}
+    />
   );
 }

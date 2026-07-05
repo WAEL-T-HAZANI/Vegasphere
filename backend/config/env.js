@@ -61,12 +61,12 @@ const PUBLIC_API_URL = String(process.env.PUBLIC_API_URL || "")
 
 if (isProd && UPLOAD_STORAGE === "local" && !String(process.env.UPLOAD_DIR || "").trim()) {
   console.warn(
-    "[config] UPLOAD_DIR is not set and UPLOAD_STORAGE=local; uploaded files may be lost when the container restarts. On Belmo set UPLOAD_STORAGE=gridfs (uses MongoDB) or mount a persistent UPLOAD_DIR volume.",
+    "[config] UPLOAD_DIR is not set and UPLOAD_STORAGE=local; mount a persistent volume at /data/uploads or set UPLOAD_DIR so uploads survive redeploys.",
   );
 }
 
-if (UPLOAD_STORAGE === "gridfs") {
-  console.info("[config] Upload storage: MongoDB GridFS (no S3/R2 required)");
+if (UPLOAD_STORAGE === "local") {
+  console.info("[config] Upload storage: local disk (set UPLOAD_DIR to a persistent path on Belmo)");
 }
 
 // ---- CORS ---------------------------------------------------------------

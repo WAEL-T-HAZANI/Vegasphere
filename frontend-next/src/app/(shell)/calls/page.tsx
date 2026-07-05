@@ -40,15 +40,6 @@ type CallHistoryItem = {
 
 type CallsSection = "start" | "history" | "links";
 
-type IceMeta = {
-  count?: number;
-  hasStun?: boolean;
-  hasTurn?: boolean;
-  hasSecureTurn?: boolean;
-  hasTurnCredentials?: boolean;
-  liveReady?: boolean;
-};
-
 export default function CallsPage() {
   const { t, i18n } = useTranslation();
   const searchParams = useSearchParams();
@@ -63,7 +54,6 @@ export default function CallsPage() {
   const [section, setSection] = useState<CallsSection>("start");
   const [selectedConversationId, setSelectedConversationId] = useState("");
   const [loadError, setLoadError] = useState("");
-  const [iceMeta, setIceMeta] = useState<IceMeta | null>(null);
 
   const meId = String(me?._id || authUser?._id || "");
 
@@ -81,7 +71,6 @@ export default function CallsPage() {
         callsClient.getCallHistory(),
         callsClient.getCallInvites(),
         conversationClient.listConversations(),
-        callsClient.getIceServers(),
       ];
       if (!authUser?._id) requests.push(authClient.getMe());
 
@@ -89,21 +78,18 @@ export default function CallsPage() {
       const history = results[0].data;
       const inviteData = results[1].data;
       const convData = results[2].data;
-      const iceData = results[3].data as { meta?: IceMeta };
       const meData = authUser?._id
         ? authUser
-        : (results[4]?.data as typeof authUser);
+        : (results[3]?.data as typeof authUser);
 
       setItems(Array.isArray(history) ? history : []);
       setInvites(Array.isArray(inviteData) ? inviteData : []);
       setMe(meData || null);
       setConversations(Array.isArray(convData) ? convData : []);
-      setIceMeta(iceData?.meta || null);
     } catch {
       setItems([]);
       setInvites([]);
       setConversations(Array.isArray(storeConversations) ? storeConversations : []);
-      setIceMeta(null);
       const message = t("callsLoadFailed");
       setLoadError(message);
       showAppErrorToast(message, "calls-load-failed");
@@ -216,13 +202,9 @@ export default function CallsPage() {
           <div className="mb-6 rounded-3xl border border-brand-200/60 bg-white/85 p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
             <div>
               <div className="text-sm font-semibold text-ink">
-                {iceMeta?.liveReady ? t("callsTurnReadyTitle") : t("callsTurnWarningTitle")}
+                {t("callsTurnReadyTitle")}
               </div>
-              <p className="mt-1 text-sm text-muted">
-                {iceMeta?.liveReady
-                  ? t("callsTurnReadyBody")
-                  : t("callsTurnWarningBody")}
-              </p>
+              <p className="mt-1 text-sm text-muted">{t("callsTurnReadyBody")}</p>
             </div>
           </div>
 

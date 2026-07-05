@@ -17,8 +17,10 @@ export function cancelCallInvite(inviteId: string) {
   return api.delete(`/calls/invite/${encodeURIComponent(inviteId)}`);
 }
 
-export function getIceServers<T = unknown>() {
-  return api.get<T>("/calls/ice-servers");
+export function getJitsiRoom(conversationId: string) {
+  return api.get<{ roomName?: string; domain?: string }>(
+    `/calls/room?conversationId=${encodeURIComponent(conversationId)}`,
+  );
 }
 
 export function canRingUser(userId: string) {

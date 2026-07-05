@@ -1119,6 +1119,7 @@
   "settingsReduceMotion": "Reduce motion",
   "settingsReduceMotionHint": "Minimize animations for comfort and battery.",
   "chatTapToLoadMedia": "Tap to load",
+  "chatImageUnavailable": "Photo unavailable",
   "settingsSaved": "Settings saved.",
   "settingsSessionsCurrent": "Current device",
   "settingsSessionsEmpty": "No active sessions found.",

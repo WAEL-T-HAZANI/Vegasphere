@@ -19,13 +19,13 @@ const {
   cancelCallInvite,
   previewCallInvite,
   resolveCallInvite,
-  getIceServersHandler,
+  getJitsiRoomHandler,
   canRingUser,
 } = require("../controllers/calls/index.js");
 
 router.get("/history", fetchUser, listCallHistory);
 
-router.get("/ice-servers", fetchUser, getIceServersHandler);
+router.get("/room", fetchUser, getJitsiRoomHandler);
 
 router.get("/can-ring/:id", fetchUser, canRingUser);
 

@@ -1132,6 +1132,7 @@
   "settingsReduceMotion": "تقليل الحركة",
   "settingsReduceMotionHint": "تقليل الرسوم المتحركة للراحة والبطارية.",
   "chatTapToLoadMedia": "اضغط للتحميل",
+  "chatImageUnavailable": "الصورة غير متاحة",
   "settingsSaved": "تم حفظ الإعدادات.",
   "settingsSessionsCurrent": "هذا الجهاز",
   "settingsSessionsEmpty": "لا توجد جلسات نشطة.",

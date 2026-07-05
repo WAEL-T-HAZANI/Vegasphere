@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 export function chatIdFromPathname(pathname) {
-  const match = String(pathname || "").match(/^\/chat\/([^/?#]+)/);
+  const match = String(pathname || "").match(/^\/(?:chat|chats)\/([^/?#]+)/);
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 

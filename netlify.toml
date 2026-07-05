@@ -11,7 +11,7 @@
 [build.environment]
   NODE_VERSION = "20"
   NEXT_PUBLIC_API_URL = "https://vegasphere-41e7.onbelmo.uk"
-  NEXT_PUBLIC_WEBRTC_ICE_CANDIDATE_POOL_SIZE = "10"
+  NEXT_PUBLIC_JITSI_DOMAIN = "meet.jit.si"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

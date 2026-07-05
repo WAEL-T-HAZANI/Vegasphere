@@ -90,7 +90,7 @@ async function notifyIncomingCallPush({
     category: "direct",
     data: {
       conversationId: cid,
-      url: cid ? `/chat/${cid}?incomingCall=1` : "/calls",
+      url: cid ? `/chats/${cid}?incomingCall=1` : "/calls",
     },
   }).catch(() => {});
 }
@@ -106,7 +106,7 @@ async function noteCallSignal(payload) {
 
   const signalType = String(payload.type || "");
 
-  if (signalType === "offer") {
+  if (signalType === "offer" || signalType === "call-user") {
     if (
       !(await canInitiateCallToUser(signalFrom, signalTo, {
         groupCall: Boolean(payload.groupCall),
@@ -137,7 +137,10 @@ async function noteCallSignal(payload) {
   const setOnInsert = {
     sessionId,
     conversationId,
-    initiatorId: signalType === "offer" ? signalFrom : undefined,
+    initiatorId:
+      signalType === "offer" || signalType === "call-user"
+        ? signalFrom
+        : undefined,
     participantIds,
     mode: payload.callType === "video" ? "video" : "audio",
     groupCall: Boolean(payload.groupCall),
@@ -146,7 +149,7 @@ async function noteCallSignal(payload) {
 
   let doc = await CallLog.findOne({ sessionId });
   if (!doc) {
-    if (signalType !== "offer") return;
+    if (signalType !== "offer" && signalType !== "call-user") return;
     try {
       doc = await CallLog.create({
         ...setOnInsert,
@@ -170,7 +173,7 @@ async function noteCallSignal(payload) {
     },
   };
 
-  if (payload.type === "answer") {
+  if (payload.type === "answer" || payload.type === "call-accepted") {
     update.$set.status = "active";
     update.$set.answeredAt = now;
     update.$addToSet = {
@@ -179,7 +182,7 @@ async function noteCallSignal(payload) {
     };
   }
 
-  if (payload.type === "call-decline") {
+  if (payload.type === "call-decline" || payload.type === "call-rejected") {
     update.$set.status = "declined";
     update.$set.endedAt = now;
     update.$set.endedById = signalFrom;
@@ -196,7 +199,7 @@ async function noteCallSignal(payload) {
 
   if (!doc) return;
 
-  if (payload.type === "call-hangup") {
+  if (payload.type === "call-hangup" || payload.type === "call-ended") {
     let nextStatus = computeStatusFromDoc(doc);
     if (!doc.answeredAt && String(doc.initiatorId) === String(signalFrom)) {
       nextStatus = "cancelled";
@@ -219,7 +222,7 @@ async function noteCallSignal(payload) {
     );
   }
 
-  if (payload.type === "offer") {
+  if (payload.type === "offer" || payload.type === "call-user") {
     await notifyIncomingCallPush({
       targetId: signalTo,
       conversationId,
@@ -593,13 +596,39 @@ const resolveCallInvite = async (req, res) => {
   return res.json(shapeCallInviteResponse(invite));
 };
 
-const { getIceServers, getIceServerMeta } = require("../../config/env.js");
+const { buildJitsiRoomName } = require("../../services/jitsi-room.js");
 
-const getIceServersHandler = (req, res) => {
-  const iceServers = getIceServers();
-  res.json({
-    iceServers,
-    meta: getIceServerMeta(iceServers),
+const JITSI_PUBLIC_DOMAIN =
+  String(process.env.JITSI_DOMAIN || "meet.jit.si").trim() || "meet.jit.si";
+
+const getJitsiRoomHandler = async (req, res) => {
+  const conversationId = String(req.query.conversationId || "").trim();
+  if (!conversationId) {
+    throw ApiError.badRequest("conversationId is required");
+  }
+
+  const conv = await Conversation.findById(conversationId)
+    .select("members isGroup")
+    .lean();
+  if (!conv) {
+    throw ApiError.notFound("Conversation not found");
+  }
+  if (
+    !(conv.members || []).some(
+      (memberId) => String(memberId) === String(req.user.id),
+    )
+  ) {
+    throw ApiError.forbidden();
+  }
+
+  const roomName = buildJitsiRoomName(conversationId, Boolean(conv.isGroup));
+  if (!roomName) {
+    throw ApiError.badRequest("Could not build call room");
+  }
+
+  return res.json({
+    roomName,
+    domain: JITSI_PUBLIC_DOMAIN,
   });
 };
 
@@ -625,7 +654,7 @@ module.exports = wrapHttpHandlers(
     resolveCallInvite,
     sendDueCallInviteReminders,
     expireStaleRingingCalls,
-    getIceServersHandler,
+    getJitsiRoomHandler,
     canRingUser,
   },
   ["noteCallSignal", "sendDueCallInviteReminders", "expireStaleRingingCalls"],

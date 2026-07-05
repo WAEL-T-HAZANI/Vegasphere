@@ -11,8 +11,8 @@ import {
   logout,
 } from "@/store/slices/authSlice";
 import { setConversations, setSocketReady } from "@/store/slices/chatSlice";
-import { prefetchIceServers } from "@/lib/webrtcRtcConfig";
 import { syncUserNotificationPrefs } from "@/lib/syncUserNotificationPrefs";
+import { prefetchJitsiExternalApi } from "@/lib/jitsiConfig";
 
 /** Loads token from storage, validates session, hydrates user + inbox. */
 export default function SessionBootstrap() {
@@ -52,7 +52,7 @@ export default function SessionBootstrap() {
         syncUserNotificationPrefs(data, dispatch);
         dispatch(setAuthStatus("authenticated"));
         dispatch(setConversations(convRes.data || []));
-        prefetchIceServers().catch(() => {});
+        prefetchJitsiExternalApi();
 
         const socket = getSocket();
         if (socket && data?._id) {
