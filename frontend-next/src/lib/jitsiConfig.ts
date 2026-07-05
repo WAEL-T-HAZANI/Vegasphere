@@ -64,8 +64,6 @@ export function buildJitsiEmbedOptions({
       disableDeepLinking: true,
       hideConferenceSubject: true,
       disableModeratorIndicator: true,
-      enableLobby: false,
-      autoKnockLobby: true,
       requireDisplayName: false,
       enableInsecureRoomNameWarning: false,
       disableProfile: true,
@@ -147,11 +145,6 @@ export function wireJitsiCallApi(api, { displayName, audioOnly }) {
     }
   }
 
-  try {
-    api.executeCommand("toggleLobby", false);
-  } catch {
-    /* ignore */
-  }
 }
 
 let loadPromise = null;

@@ -199,7 +199,6 @@ export default function JitsiCallScreen({
           });
           markJoined();
         });
-        api.addListener("participantJoined", markJoined);
       } catch (e) {
         console.warn("Jitsi embed failed:", e);
         if (!disposed) {
