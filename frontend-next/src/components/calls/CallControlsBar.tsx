@@ -38,7 +38,7 @@ function ControlButton({
         className={cn(
           "flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all",
           danger &&
-            "border-red-500/40 bg-red-600 text-white shadow-red-900/40 hover:bg-red-500",
+            "border-brand-500/35 bg-brand-900 text-white shadow-brand-900/45 hover:bg-brand-800",
           !danger &&
             active &&
             "border-brand-700/50 bg-brand-800 text-white shadow-brand-950/40 hover:bg-brand-700",
