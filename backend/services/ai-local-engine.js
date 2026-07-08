@@ -10,6 +10,11 @@ const dictStore = require("./dict-store");
 const { retrievePhraseReplies } = require("./phrase-retrieval.js");
 const { retrieveJsonPhraseReplies } = require("./json-reply-catalog.js");
 const { retrieveReplyPairs } = require("./reply-pairs.js");
+const { composeVegasphereReplies } = require("./ai-vegasphere-mind.js");
+const {
+  lookupChatPhrase,
+  lookupChatWord,
+} = require("./ai-vegasphere-lexicon.js");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 
@@ -101,6 +106,9 @@ const PT_HINT_RE =
 const TR_HINT_RE =
   /\b(ben|sen|o|biz|siz|onlar|ve|bir|bu|su|o|için|icin|ile|de|da|mi|mı|mu|mü|evet|hayır|hayir|merhaba|teşekkür|tesekkur|günaydın|gunaydın|iyi|kötü|kotu|çok|cok|nasıl|nasil|ne|nerede|nereye|neden|kim|var|yok|değil|degil|olmak|etmek|yapmak|gitmek|gelmek|görmek|goermek|bilmek|istemek|demek|almak|vermek|yemek|içmek|icmek|calismak|çalışmak|okumak|yazmak|buyuk|büyük|kucuk|küçük|yeni|eski|iyi|kötü|kotu)\b/i;
 
+const EN_HINT_RE =
+  /\b(the|a|an|i|i'm|im|you|we|they|he|she|it|is|are|was|were|be|been|have|has|had|do|does|did|can|could|will|would|should|please|help|need|want|free|fast|reliable|app|bug|error|issue|problem|deploy|build|call|chat|reply|translate|translation|working|broken|fix)\b/i;
+
 function memoryWordTranslation(src, tgt, token) {
   const key = normalizeKey(token);
   if (!key) return null;
@@ -157,6 +165,8 @@ function detectLatinLanguage(text) {
   ) {
     return "en";
   }
+
+  if (EN_HINT_RE.test(lower)) return "en";
 
   if (FR_HINT_RE.test(lower)) return "fr";
   if (DE_HINT_RE.test(lower)) return "de";
@@ -1057,6 +1067,19 @@ function generateSmartReplies({
     effectiveTone,
   );
 
+  const mind = composeVegasphereReplies({
+    messages,
+    language,
+    tone: effectiveTone,
+    subject,
+    conversationKind,
+    variationSeed,
+  });
+  const mindReplies =
+    mind?.confidence >= 0.8 && Array.isArray(mind.replies)
+      ? mind.replies
+      : [];
+
   const pairReplies = retrieveReplyPairs({
     messages,
     language: preferredLang,
@@ -1113,6 +1136,7 @@ function generateSmartReplies({
 
   const blendOrder = stats.ongoing
     ? [
+        mindReplies,
         pairReplies,
         continuity,
         contextual,
@@ -1121,14 +1145,15 @@ function generateSmartReplies({
         intentReplies.slice(0, 1),
       ]
     : isSubstantiveQuestion(lastText)
-      ? [contextual, pairReplies, intentReplies, jsonPhrases, dbPhrases]
-      : [pairReplies, intentReplies, jsonPhrases, dbPhrases, contextual];
+      ? [mindReplies, contextual, pairReplies, intentReplies, jsonPhrases, dbPhrases]
+      : [mindReplies, pairReplies, intentReplies, jsonPhrases, dbPhrases, contextual];
 
   const replies = blendUniqueReplies(blendOrder);
 
   if (replies.length >= 2) {
     let intentLabel = null;
-    if (pairReplies.length >= 2) intentLabel = "reply-pairs";
+    if (mindReplies.length >= 2) intentLabel = mind.intent || "vegasphere-mind";
+    else if (pairReplies.length >= 2) intentLabel = "reply-pairs";
     else if (continuity.length >= 2 && stats.ongoing) intentLabel = "thread-continuity";
     else if (contextual.length >= 2) intentLabel = "contextual";
     else if (dbPhrases.length >= 2) intentLabel = "phrase-retrieval";
@@ -1164,6 +1189,9 @@ function getWordMap(src, tgt) {
 }
 
 function lookupPhrase(text, src, tgt) {
+  const chatPhrase = lookupChatPhrase(src, tgt, text);
+  if (chatPhrase) return chatPhrase;
+
   if (dictStore.isAvailable()) {
     const premium = dictStore.lookupPhrase(src, tgt, text);
     if (premium) return premium;
@@ -1191,6 +1219,9 @@ function lookupPhrase(text, src, tgt) {
 function translateToken(token, src, tgt) {
   const key = normalizeKey(token);
   if (!key) return token;
+
+  const chatWord = lookupChatWord(src, tgt, token);
+  if (chatWord) return chatWord;
 
   const direct = getWordMap(src, tgt);
   if (direct?.has(key)) return direct.get(key);
@@ -1230,6 +1261,66 @@ function translateByWords(text, src, tgt) {
   return changed ? out.join("") : null;
 }
 
+function splitPhraseParts(text) {
+  return String(text || "")
+    .split(/(\s+|[.,!?؟،؛:;])/)
+    .filter((part) => part !== "");
+}
+
+function isTranslatablePart(part) {
+  return Boolean(normalizeKey(part)) && !/^\s+$/.test(part) && !/^[.,!?؟،؛:;]$/.test(part);
+}
+
+function translateByPhraseWindows(text, src, tgt) {
+  const parts = splitPhraseParts(text);
+  const wordIndexes = [];
+  for (let i = 0; i < parts.length; i += 1) {
+    if (isTranslatablePart(parts[i])) wordIndexes.push(i);
+  }
+  if (wordIndexes.length < 2 || wordIndexes.length > 40) return null;
+
+  let changed = false;
+  for (let start = 0; start < wordIndexes.length; start += 1) {
+    let replaced = false;
+    const maxWindow = Math.min(8, wordIndexes.length - start);
+    for (let size = maxWindow; size >= 2; size -= 1) {
+      const indexes = wordIndexes.slice(start, start + size);
+      const from = indexes[0];
+      const to = indexes[indexes.length - 1];
+      const phrase = parts.slice(from, to + 1).join("");
+      const hit = lookupPhrase(phrase, src, tgt);
+      if (!hit || normalizeKey(hit) === normalizeKey(phrase)) continue;
+
+      const hasMoreWords = start + size < wordIndexes.length;
+      const replacement = hasMoreWords
+        ? String(hit).replace(/[.!?؟،؛:;]+$/g, "")
+        : hit;
+      parts.splice(from, to - from + 1, replacement);
+      changed = true;
+      replaced = true;
+
+      const removedWords = size - 1;
+      wordIndexes.splice(start, size, from);
+      for (let j = start + 1; j < wordIndexes.length; j += 1) {
+        wordIndexes[j] -= to - from;
+      }
+      start += removedWords;
+      break;
+    }
+    if (replaced) continue;
+  }
+
+  let wordChanged = false;
+  const polished = parts.map((part) => {
+    if (!isTranslatablePart(part)) return part;
+    const translated = translateToken(part, src, tgt);
+    if (normalizeKey(translated) !== normalizeKey(part)) wordChanged = true;
+    return translated;
+  });
+
+  return changed || wordChanged ? polished.join("") : null;
+}
+
 /** Always emit a token-wise translation (unknown tokens kept only as last resort). */
 function translateByWordsForced(text, src, tgt) {
   const parts = String(text || "").split(/(\s+|[.,!?؟،؛:;])/);
@@ -1248,6 +1339,9 @@ function pivotTranslateCore(text, src, tgt) {
 
   const directPhrase = lookupPhrase(text, src, tgt);
   if (directPhrase) return { text: directPhrase, method: "phrase" };
+
+  const phraseWindows = translateByPhraseWindows(text, src, tgt);
+  if (phraseWindows) return { text: phraseWindows, method: "phrase-windows" };
 
   const directWords = translateByWords(text, src, tgt);
   if (directWords) return { text: directWords, method: "words" };
@@ -1295,6 +1389,35 @@ function pivotTranslate(text, src, tgt) {
   }
 
   return pivotTranslateCore(text, src, tgt);
+}
+
+function cleanTranslatedText(text, tgt) {
+  let out = normalizeText(text)
+    .replace(/\s+([.,!?؟،؛:;])/g, "$1")
+    .replace(/([.!?؟]){3,}/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (tgt === "ar") {
+    out = out
+      .replace(/\?/g, "؟")
+      .replace(/\bOK\b/gi, "تمام")
+      .replace(/\bokay\b/gi, "تمام")
+      .replace(/\bthanks\b/gi, "شكراً")
+      .replace(/\bplease\b/gi, "من فضلك")
+      .replace(/\s+([؟،؛])/g, "$1");
+  }
+
+  if (tgt === "en") {
+    out = out
+      .replace(/\b(?:okey|okay)\b/gi, "OK")
+      .replace(/\bi\b/g, "I")
+      .replace(/\bi'm\b/gi, "I'm")
+      .replace(/\bdont\b/gi, "don't")
+      .replace(/\bcant\b/gi, "can't");
+  }
+
+  return out;
 }
 
 function resolveDirection(source, target, text) {
@@ -1361,9 +1484,10 @@ function translateTextLocal(text, sourceLanguage, targetLanguage) {
   }
 
   const dataSource = getDataSource();
+  const translatedText = cleanTranslatedText(result.text, tgt);
 
   return {
-    translatedText: result.text,
+    translatedText,
     provider: dataSource === "sqlite" ? "premium-sqlite" : "legacy-json",
     dataSource,
     method: result.method,
