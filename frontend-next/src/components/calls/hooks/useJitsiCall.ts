@@ -26,6 +26,20 @@ function createCallSessionId(prefix = "jitsi") {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function createEphemeralJitsiRoomName(baseRoomName, callSessionId) {
+  const base = String(baseRoomName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  const suffix = String(callSessionId || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(-16);
+  return suffix ? `${base}-${suffix}` : base;
+}
+
 function callNoticeMessage(notice, t) {
   switch (notice) {
     case "busy":
@@ -185,7 +199,11 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
       remotePeerRef.current = groupCall ? null : peerIds[0];
 
       try {
-        const resolvedRoom = await resolveRoom(conversationId, groupCall);
+        const baseRoom = await resolveRoom(conversationId, groupCall);
+        const resolvedRoom = createEphemeralJitsiRoomName(
+          baseRoom,
+          callSessionIdRef.current,
+        );
         setRoomName(resolvedRoom);
         setCallState("ringing_out");
         setCallNotice("");
@@ -222,7 +240,11 @@ export function useJitsiCall(myUserId, userDisplayName = "", userEmail = "") {
     let resolvedRoom = incomingRoom || "";
     if (!resolvedRoom && convIdRef.current) {
       try {
-        resolvedRoom = await resolveRoom(convIdRef.current, isGroupCall);
+        const baseRoom = await resolveRoom(convIdRef.current, isGroupCall);
+        resolvedRoom = createEphemeralJitsiRoomName(
+          baseRoom,
+          callSessionIdRef.current,
+        );
       } catch (e) {
         console.warn("Jitsi resolve room on accept:", e);
         setAcceptingIncoming(false);

@@ -105,7 +105,6 @@ export default function JitsiCallScreen({
   const containerRef = useRef(null);
   const apiRef = useRef(null);
   const closedRef = useRef(false);
-  const joinTimeoutRef = useRef(null);
   const joinedRef = useRef(false);
   const [jitsiLoading, setJitsiLoading] = useState(false);
   const [jitsiError, setJitsiError] = useState("");
@@ -145,12 +144,6 @@ export default function JitsiCallScreen({
       onJitsiReadyToClose?.();
     };
 
-    joinTimeoutRef.current = setTimeout(() => {
-      if (disposed || joinedRef.current) return;
-      setJitsiLoading(false);
-      setJitsiError(t("callMediaFailed"));
-    }, 20000);
-
     void (async () => {
       try {
         const JitsiMeetExternalAPI = await loadJitsiExternalApi();
@@ -182,10 +175,6 @@ export default function JitsiCallScreen({
         const markJoined = () => {
           if (disposed) return;
           joinedRef.current = true;
-          if (joinTimeoutRef.current) {
-            clearTimeout(joinTimeoutRef.current);
-            joinTimeoutRef.current = null;
-          }
           setJitsiLoading(false);
           setJitsiError("");
         };
@@ -210,10 +199,6 @@ export default function JitsiCallScreen({
 
     return () => {
       disposed = true;
-      if (joinTimeoutRef.current) {
-        clearTimeout(joinTimeoutRef.current);
-        joinTimeoutRef.current = null;
-      }
       try {
         apiRef.current?.dispose?.();
       } catch {}
@@ -258,14 +243,14 @@ export default function JitsiCallScreen({
           {showJitsi ? (
             <div className="relative min-h-0 flex-1">
               {jitsiLoading ? (
-                <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-3 bg-[#12080c]">
-                  <Loader2
-                    className="h-9 w-9 animate-spin text-brand-300"
-                    aria-hidden
-                  />
-                  <p className="text-sm text-white/80">
-                    {t("callStatusActive")}…
-                  </p>
+                <div className="pointer-events-none absolute inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-[2] flex justify-center px-4">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/70 px-4 py-2 text-xs font-medium text-white/85 shadow-xl shadow-black/30 backdrop-blur-xl">
+                    <Loader2
+                      className="h-4 w-4 animate-spin text-brand-300"
+                      aria-hidden
+                    />
+                    <span>{t("callStatusActive")}…</span>
+                  </div>
                 </div>
               ) : null}
               {jitsiError ? (
