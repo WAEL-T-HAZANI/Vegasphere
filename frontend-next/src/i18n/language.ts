@@ -17,3 +17,12 @@ export function normalizeLangTag(raw) {
 
   return null;
 }
+
+/** Normalize any i18n/browser tag to the app’s supported UI language. */
+export function getAppLanguage(raw?: string | null): "ar" | "en" {
+  const code = String(raw || "en")
+    .trim()
+    .toLowerCase()
+    .split("-")[0];
+  return code.startsWith("ar") ? "ar" : "en";
+}

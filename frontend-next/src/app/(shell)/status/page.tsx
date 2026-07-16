@@ -10,6 +10,7 @@ import { useAppSelector } from "@/store/hooks";
 import DashboardPageLayout from "@/components/layout/DashboardPageLayout";
 import ProtectedPageGate from "@/components/layout/ProtectedPageGate";
 import ShellSegmentTabs from "@/components/layout/ShellSegmentTabs";
+import SwipeTabSurface from "@/components/layout/SwipeTabSurface";
 import StatusComposer from "@/components/status/StatusComposer";
 import StatusDeleteDialog from "@/components/status/StatusDeleteDialog";
 import StatusFeedCard from "@/components/status/StatusFeedCard";
@@ -179,7 +180,14 @@ export default function StatusPage() {
           </div>
         ) : null}
 
-        <div className="space-y-5 sm:space-y-6" dir={i18n.dir()}>
+        <SwipeTabSurface
+          tabIds={segmentTabs.map((tab) => tab.id)}
+          active={view}
+          onChange={(id) => setView(id as TabId)}
+          rtl={i18n.dir() === "rtl"}
+          className="space-y-5 sm:space-y-6"
+          dir={i18n.dir()}
+        >
           <StatusVisibilityBanner peerCount={audience.peerCount} />
 
           {view === "mine" ? (
@@ -228,7 +236,7 @@ export default function StatusPage() {
               ))}
             </ul>
           )}
-        </div>
+        </SwipeTabSurface>
       </DashboardPageLayout>
 
       <StatusDeleteDialog

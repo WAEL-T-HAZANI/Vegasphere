@@ -219,6 +219,11 @@ function detectLanguage(text) {
   const devN = countMatches(value, DEVANAGARI_RE);
   const cjkN = countMatches(value, CJK_RE);
 
+  if (arN >= 1 && latN === 0) return "ar";
+  if (latN >= 1 && arN === 0) {
+    return detectLatinLanguage(value);
+  }
+
   if (arN >= 2 && arN >= latN) return "ar";
   if (cyN >= 2 && cyN >= latN) return "ru";
   if (devN >= 2) return "hi";
@@ -1420,9 +1425,10 @@ function cleanTranslatedText(text, tgt) {
   return out;
 }
 
-function resolveDirection(source, target, text) {
+function resolveDirection(source, target, text, options = {}) {
   let src = String(source || "auto").toLowerCase();
   let tgt = langCode(target || "en");
+  const uiHint = options.uiLanguage ? langCode(options.uiLanguage) : null;
 
   if (src === "auto") {
     src = detectLanguage(text);
@@ -1434,6 +1440,19 @@ function resolveDirection(source, target, text) {
   if (!SUPPORTED_LANG_CODES.has(src)) src = detectLanguage(text);
 
   const autoSource = String(source || "auto").toLowerCase() === "auto";
+
+  if (autoSource && uiHint && (uiHint === "ar" || uiHint === "en")) {
+    tgt = uiHint;
+    if (detectScript(text) === "mixed") {
+      const value = normalizeText(text);
+      const arN = countMatches(value, ARABIC_RE);
+      const latN = countMatches(value, LATIN_RE);
+      if (latN > arN) src = "en";
+      else if (arN > latN) src = "ar";
+      else src = uiHint === "ar" ? "en" : "ar";
+    }
+  }
+
   if (autoSource && src === tgt) {
     tgt = src === "ar" ? "en" : "ar";
   }
@@ -1447,10 +1466,14 @@ function resolveDirection(source, target, text) {
     src = "en";
   }
 
+  if (autoSource && src === tgt) {
+    tgt = src === "ar" ? "en" : "ar";
+  }
+
   return { src, tgt };
 }
 
-function translateTextLocal(text, sourceLanguage, targetLanguage) {
+function translateTextLocal(text, sourceLanguage, targetLanguage, options = {}) {
   loadEngine();
 
   const trimmed = normalizeText(text);
@@ -1467,6 +1490,7 @@ function translateTextLocal(text, sourceLanguage, targetLanguage) {
     sourceLanguage,
     targetLanguage,
     trimmed,
+    options,
   );
   let result = pivotTranslate(trimmed, src, tgt);
   let detectedSource = src;

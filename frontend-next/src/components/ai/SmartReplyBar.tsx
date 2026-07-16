@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import { aiClient } from "@/lib/clients";
 import { useAiReplyTone } from "@/lib/aiReplyTone";
 import { cn } from "@/lib/classNames";
+import { getAppLanguage } from "@/i18n/language";
 
 const EMPTY_ARR: Array<{ sender?: string; text?: string }> = [];
 
@@ -32,6 +33,7 @@ export default function SmartReplyBar({
 }: SmartReplyBarProps) {
   const { t, i18n } = useTranslation();
   const rtl = i18n.dir() === "rtl";
+  const appLanguage = getAppLanguage(i18n.resolvedLanguage || i18n.language);
   const { tone } = useAiReplyTone();
   const [items, setItems] = useState<string[]>([]);
   const [contextPreview, setContextPreview] = useState("");
@@ -81,7 +83,7 @@ export default function SmartReplyBar({
   }, [normalized.messages, normalized.texts]);
 
   const fetchKey = useMemo(() => {
-    const lang = i18n.language || "en";
+    const lang = appLanguage;
     if (!autoGenerate) {
       if (manualRun <= 0) return "";
       const ctx =
@@ -99,7 +101,7 @@ export default function SmartReplyBar({
       return `auto::${tone}::${lang}::${normalized.subject}::${ctx}`;
     }
     return "";
-  }, [autoGenerate, manualRun, triggerKey, tone, i18n.language, normalized]);
+  }, [autoGenerate, manualRun, triggerKey, tone, appLanguage, normalized]);
 
   useEffect(() => {
     if (!fetchKey) {
@@ -139,7 +141,7 @@ export default function SmartReplyBar({
         const payload: Record<string, unknown> = {
           recentMessages: contextMessages,
           subject: subj,
-          language: i18n.language || "en",
+          language: appLanguage,
           tone,
           regenerate: manualRun > 1,
           variationSeed: manualRun,
@@ -160,7 +162,7 @@ export default function SmartReplyBar({
         setContextPreview(String(data?.contextPreview || localPreview || ""));
       } catch {
         if (cancelled || requestIdRef.current !== reqId) return;
-        const fb = i18n.language?.startsWith("ar")
+        const fb = appLanguage === "ar"
           ? ["👍", "تمام", "شكراً"]
           : ["👍", "OK", "Thanks!"];
         setItems(fb);
@@ -182,7 +184,7 @@ export default function SmartReplyBar({
     fetchKey,
     localPreview,
     tone,
-    i18n.language,
+    appLanguage,
     autoGenerate,
     conversationKind,
     manualRun,

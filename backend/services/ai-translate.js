@@ -35,7 +35,9 @@ async function translateText(req, res) {
     tgt = ui.startsWith("ar") ? "ar" : "en";
   }
 
-  const result = translateTextLocal(trimmedText, src, tgt);
+  const result = translateTextLocal(trimmedText, src, tgt, {
+    uiLanguage: context === "chat" ? tgt : undefined,
+  });
 
   return res.json({
     translatedText: result.translatedText,

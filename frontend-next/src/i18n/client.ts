@@ -23,7 +23,10 @@ const translationResources = {
 const i18n = i18next.createInstance();
 
 export function configureI18n(language) {
-  const resolvedLanguage = language === "ar" ? "ar" : "en";
+  const clientDetected =
+    typeof window !== "undefined" ? detectClientLanguage() : null;
+  const resolvedLanguage =
+    clientDetected || (language === "ar" ? "ar" : "en");
 
   if (!i18n.isInitialized) {
     i18n.use(initReactI18next).init({

@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { buildChatTranslatePayload } from "@/lib/chatTranslate";
 import { formatApiError } from "@/lib/apiError";
 import { cn } from "@/lib/classNames";
+import { getAppLanguage } from "@/i18n/language";
 
 type ComposerTranslateButtonProps = {
   text: string;
@@ -43,7 +44,10 @@ export default function ComposerTranslateButton({
     try {
       const { data } = await api.post(
         "/ai/translate",
-        buildChatTranslatePayload(input, i18n.language || "en"),
+        buildChatTranslatePayload(
+          input,
+          getAppLanguage(i18n.resolvedLanguage || i18n.language),
+        ),
       );
       const translated = String(data?.translatedText || "").trim();
       if (!translated) {
@@ -60,7 +64,7 @@ export default function ComposerTranslateButton({
     } finally {
       setBusy(false);
     }
-  }, [readDraft, busy, disabled, i18n.language, setText, textInputRef, t]);
+  }, [readDraft, busy, disabled, i18n.resolvedLanguage, i18n.language, setText, textInputRef, t]);
 
   const hasText = Boolean(readDraft());
   const isHeader = variant === "header";

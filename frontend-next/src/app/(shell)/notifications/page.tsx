@@ -22,6 +22,7 @@ import {
 import DashboardPageLayout from "@/components/layout/DashboardPageLayout";
 import ProtectedPageGate from "@/components/layout/ProtectedPageGate";
 import ShellSegmentTabs from "@/components/layout/ShellSegmentTabs";
+import SwipeTabSurface from "@/components/layout/SwipeTabSurface";
 import { formatApiError } from "@/lib/apiError";
 import { showAppToast } from "@/lib/appToast";
 import { cn } from "@/lib/classNames";
@@ -346,7 +347,14 @@ export default function NotificationsPage() {
           </div>
         ) : null}
 
-        <section className="space-y-3" aria-live="polite">
+        <SwipeTabSurface
+          tabIds={tabs.map((tab) => tab.id)}
+          active={filter}
+          onChange={(value) => setFilter(value as NotificationsFilter)}
+          rtl={i18n.dir() === "rtl"}
+          className="space-y-3"
+          aria-live="polite"
+        >
           {loading ? (
             <div className="space-y-3">
               {[0, 1, 2].map((row) => (
@@ -546,7 +554,7 @@ export default function NotificationsPage() {
                 );
               })
             : null}
-        </section>
+        </SwipeTabSurface>
       </DashboardPageLayout>
     </ProtectedPageGate>
   );

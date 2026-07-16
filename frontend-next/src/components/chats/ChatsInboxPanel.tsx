@@ -26,6 +26,7 @@ import {
   conversationLatestPreview,
   formatConversationPreview,
 } from "@/lib/chatList";
+import { useSwipeCycleTabs } from "@/lib/useSwipeCycleTabs";
 import ChatListVirtualSection from "@/components/chats/ChatListVirtualSection";
 import ChatListRow from "@/components/chats/ChatListRow";
 import ChatsInboxToolbar, { CHAT_LIST_FILTERS } from "@/components/chats/ChatsInboxToolbar";
@@ -70,11 +71,14 @@ function InboxChatList({
   t,
   restoreHidden,
   rtl = false,
+  onSwipeFilter,
 }) {
   return (
     <ScrollArea.Root className="min-h-0 flex-1">
       <ScrollArea.Viewport
         ref={chatListScrollRef}
+        onTouchStart={onSwipeFilter?.onTouchStart}
+        onTouchEnd={onSwipeFilter?.onTouchEnd}
         className={cn(
           "h-full w-full",
           compact
@@ -458,6 +462,13 @@ export default function ChatsInboxPanel({ compact = false } = {}) {
   }, [list]);
 
   const searchActive = isSearchQueryLongEnough(q);
+  const filterSwipeHandlers = useSwipeCycleTabs({
+    items: CHAT_LIST_FILTERS.map((item) => item.id),
+    active: activeListFilter,
+    onChange: handleListFilterChange,
+    rtl,
+    enabled: !searchActive,
+  });
   const inlineQuery = searchActive ? "" : q;
 
   const inboxFilterArgs = useMemo(
@@ -695,6 +706,7 @@ export default function ChatsInboxPanel({ compact = false } = {}) {
       t={t}
       restoreHidden={restoreHidden}
       rtl={rtl}
+      onSwipeFilter={searchActive ? undefined : filterSwipeHandlers}
     />
   );
 

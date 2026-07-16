@@ -10,6 +10,7 @@ import {
 } from "@/lib/messageFormat";
 import { buildChatTranslatePayload } from "@/lib/chatTranslate";
 import { formatApiError } from "@/lib/apiError";
+import { getAppLanguage } from "@/i18n/language";
 import {
   DropdownPortal,
   DropdownRoot,
@@ -180,7 +181,10 @@ export default function MessageBubbleActionsMenu({
                     try {
                       const { data } = await api.post(
                         "/ai/translate",
-                        buildChatTranslatePayload(text, i18n.language || "en"),
+                        buildChatTranslatePayload(
+                          text,
+                          getAppLanguage(i18n.resolvedLanguage || i18n.language),
+                        ),
                       );
                       setTranslation(String(data?.translatedText || ""));
                     } catch (err) {

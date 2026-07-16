@@ -9,6 +9,7 @@ import AiTonePicker from "@/components/ai/AiTonePicker";
 import DashboardPageLayout from "@/components/layout/DashboardPageLayout";
 import PrivacySelectField from "@/components/privacy/PrivacySelectField";
 import ShellSegmentTabs from "@/components/layout/ShellSegmentTabs";
+import SwipeTabSurface from "@/components/layout/SwipeTabSurface";
 import { cn } from "@/lib/classNames";
 import {
   AI_PREVIEW_SAMPLES,
@@ -99,7 +100,13 @@ export default function AiServicesPage() {
           </div>
         }
       >
-        <div className="grid gap-4 sm:gap-5">
+        <SwipeTabSurface
+          tabIds={segmentTabs.map((tab) => tab.id)}
+          active={tab}
+          onChange={(id) => setTab(id as TabId)}
+          rtl={rtl}
+          className="grid gap-4 sm:gap-5"
+        >
           <div className={cn(tab !== "replies" && "hidden")} aria-hidden={tab !== "replies"}>
             <section
               data-tour="ai-replies-panel"
@@ -195,7 +202,7 @@ export default function AiServicesPage() {
               </button>
             </section>
           </div>
-        </div>
+        </SwipeTabSurface>
       </DashboardPageLayout>
     </>
   );

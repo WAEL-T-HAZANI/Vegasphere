@@ -31,6 +31,18 @@ function translateCase(text, targetLanguage, expected) {
   return result;
 }
 
+function translateChatCase(text, uiLanguage, expected) {
+  const result = translateTextLocal(text, "auto", uiLanguage, {
+    uiLanguage,
+  });
+  assert.equal(
+    result.translatedText,
+    expected,
+    `chat translate ${JSON.stringify(text)} ui=${uiLanguage}`,
+  );
+  return result;
+}
+
 const smartResults = [
   smartCase(
     "stress",
@@ -142,6 +154,10 @@ const translationResults = [
   translateCase("الاشعار ما وصل", "en", "the notification did not arrive"),
   translateCase("camera is not working", "ar", "الكاميرا ما تشتغل"),
   translateCase("الميكروفون ما يشتغل", "en", "the microphone does not work"),
+  translateChatCase("the app has a bug", "ar", "التطبيق فيه مشكلة"),
+  translateChatCase("التطبيق فيه مشكلة", "ar", "the app has an issue"),
+  translateChatCase("what do you mean", "ar", "شو قصدك؟"),
+  translateChatCase("ما بعرف شو صار", "en", "I don't know what happened"),
 ];
 
 console.log(

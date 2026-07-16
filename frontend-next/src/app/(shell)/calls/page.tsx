@@ -19,6 +19,7 @@ import { getSocket } from "@/lib/socket";
 import DashboardPageLayout from "@/components/layout/DashboardPageLayout";
 import ProtectedPageGate from "@/components/layout/ProtectedPageGate";
 import ShellSegmentTabs from "@/components/layout/ShellSegmentTabs";
+import SwipeTabSurface from "@/components/layout/SwipeTabSurface";
 import CallHistoryRow from "@/components/calls/CallHistoryRow";
 import CallsHelpSection from "@/components/calls/CallsHelpSection";
 import CallsLinksPanel, { type CallInviteItem } from "@/components/calls/CallsLinksPanel";
@@ -208,7 +209,13 @@ export default function CallsPage() {
             </div>
           </div>
 
-          <section className="mx-auto w-full max-w-4xl space-y-4">
+          <SwipeTabSurface
+            tabIds={sectionTabs.map((tab) => tab.id)}
+            active={section}
+            onChange={(value) => setSection(value as CallsSection)}
+            rtl={i18n.dir() === "rtl"}
+            className="mx-auto w-full max-w-4xl space-y-4"
+          >
             {section === "start" ? (
               <CallsStartPanel
                 conversations={conversations}
@@ -277,7 +284,7 @@ export default function CallsPage() {
             ) : null}
 
             <CallsHelpSection />
-          </section>
+          </SwipeTabSurface>
         </DashboardPageLayout>
       </div>
     </ProtectedPageGate>

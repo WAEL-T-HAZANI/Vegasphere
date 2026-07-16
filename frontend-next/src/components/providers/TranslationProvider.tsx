@@ -19,6 +19,7 @@ export default function TranslationProvider({ children, initialI18nLng = "en" })
   useEffect(() => {
     const next = detectClientLanguage();
     if (next && i18n.language !== next) {
+      persistI18nCookie(next);
       void i18n.changeLanguage(next).then(() => router.refresh());
     }
   }, [router]);
