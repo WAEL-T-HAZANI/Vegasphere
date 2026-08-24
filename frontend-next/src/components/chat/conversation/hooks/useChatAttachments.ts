@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/constants";
 import { showAppToast } from "@/lib/appToast";
 import { formatApiError } from "@/lib/apiError";
+import { createClientTempId } from "@/lib/chatConversation";
 
 const ALLOWED_MIME_PREFIXES = ["image/", "video/", "audio/"];
 const ALLOWED_MIME_TYPES = new Set([
@@ -123,6 +124,8 @@ export function useChatAttachments({
   viewOnceNext,
   setViewOnceNext,
   deliverOutgoing,
+  stageOptimisticMedia,
+  failOptimisticMedia,
   setUploading,
   setFailedUpload,
   setVoiceMsg,
@@ -154,6 +157,32 @@ export function useChatAttachments({
       setVoiceMsg("");
       let uploadToken = String(draft.uploadToken || "").trim();
       let uploadedUrl = String(draft.uploadedUrl || "").trim();
+      const isVisualUpload =
+        draft.uploadKind === "image" || draft.uploadKind === "video";
+      let clientTempId = String(draft.clientTempId || "").trim();
+      if (
+        isVisualUpload &&
+        draft.previewUrl &&
+        !clientTempId &&
+        stageOptimisticMedia
+      ) {
+        clientTempId = createClientTempId();
+        stageOptimisticMedia(
+          {
+            conversationId: draft.conversationId || conversationId,
+            senderId: user._id,
+            topicId: draft.topicId || "general",
+            messageType: draft.uploadKind,
+            imageUrl: draft.previewUrl,
+            fileName: draft.fileName || draft.name || "",
+            fileType: draft.fileType || "application/octet-stream",
+            fileSize: draft.fileSize || 0,
+            viewOnce: Boolean(draft.viewOnce),
+            disappearAfterSec: draft.disappearAfterSec || 0,
+          },
+          clientTempId,
+        );
+      }
       try {
         let data = null;
         if (!uploadToken) {
@@ -238,6 +267,9 @@ export function useChatAttachments({
           fileData: isVisualMedia ? "" : uploadedUrl,
           disappearAfterSec: draft.disappearAfterSec || 0,
           viewOnce: Boolean(draft.viewOnce),
+        }, {
+          clientTempId: clientTempId || undefined,
+          isRetry: Boolean(clientTempId),
         });
         if (!sendResult?.ok) {
           throw sendResult?.error || new Error(t("messageSendFailed"));
@@ -251,10 +283,12 @@ export function useChatAttachments({
           t("messageUploadFailed");
         setFailedUpload({
           ...draft,
+          clientTempId,
           uploadToken: draft.uploadToken || uploadToken || "",
           uploadedUrl: draft.uploadedUrl || uploadedUrl || "",
           error: message,
         });
+        failOptimisticMedia?.(clientTempId, message);
         showAppToast({
           id: `upload-${Date.now()}`,
           conversationId: cid,
@@ -269,6 +303,8 @@ export function useChatAttachments({
       cid,
       conversationId,
       deliverOutgoing,
+      stageOptimisticMedia,
+      failOptimisticMedia,
       revokeUploadPreview,
       t,
       user?._id,

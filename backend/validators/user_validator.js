@@ -99,7 +99,27 @@ const updateProfileSchema = z.object({
     })
     .partial()
     .optional(),
-});
+})
+  .superRefine((data, ctx) => {
+    if (!data.newpassword) return;
+
+    if (!data.oldpassword || !String(data.oldpassword).trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Current password required",
+        path: ["oldpassword"],
+      });
+      return;
+    }
+
+    if (data.newpassword === data.oldpassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "New password must be different from current password",
+        path: ["newpassword"],
+      });
+    }
+  });
 
 const sendInviteSchema = z.object({});
 

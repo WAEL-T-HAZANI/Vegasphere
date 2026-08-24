@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/classNames";
 import {
-  brandDefaultAvatarUrl,
+  isCustomAvatar,
   resolveAvatarUrl,
   shouldUseLocalAvatarFallback,
 } from "@/lib/avatarUrl";
@@ -14,6 +14,18 @@ const SIZE_CLASS = {
   md: "h-12 w-12 text-sm",
   lg: "h-16 w-16 text-base",
 };
+
+function avatarInitials(name: string) {
+  return (
+    String(name || "V")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "V"
+  );
+}
 
 type UserAvatarProps = {
   name?: string;
@@ -36,20 +48,35 @@ export default function UserAvatar({
   const showPhoto =
     Boolean(resolved) &&
     !failed &&
+    isCustomAvatar(profilePic) &&
     !shouldUseLocalAvatarFallback(profilePic);
-  const src = showPhoto ? resolved : brandDefaultAvatarUrl(label);
+
+  if (!showPhoto) {
+    return (
+      <div
+        className={cn(
+          "flex shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-100 font-extrabold text-brand-700 ring-1 ring-brand-200/60 dark:bg-brand-900/30 dark:text-brand-200 dark:ring-brand-800/50",
+          SIZE_CLASS[size],
+          className,
+        )}
+        aria-hidden
+      >
+        {avatarInitials(label)}
+      </div>
+    );
+  }
 
   return (
     <div
       className={cn(
-        "grid shrink-0 place-items-center overflow-hidden rounded-2xl vs-icon-tile font-extrabold",
+        "grid shrink-0 place-items-center overflow-hidden rounded-2xl ring-1 ring-brand-200/60 dark:ring-brand-800/50",
         SIZE_CLASS[size],
         className,
       )}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={resolved}
         alt=""
         className={cn("h-full w-full object-cover", imgClassName)}
         onError={() => setFailed(true)}

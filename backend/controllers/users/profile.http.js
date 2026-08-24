@@ -3,7 +3,7 @@ const User = require("../../models/User.js");
 const {
   avatarUploadPrefix,
   buildAbsoluteAssetUrl,
-  defaultAvatarUrl,
+  normalizeProfilePic,
   removeStoredAvatarFile,
 } = require("../../services/avatar-utils.js");
 const { persistUploadedFile } = require("../../services/media-storage.js");
@@ -58,8 +58,8 @@ const getPublicProfile = async (req, res) => {
       username: target.username || "",
       about: aboutAllowed ? target.about || "" : "",
       profilePic: photoAllowed
-        ? target.profilePic || ""
-        : defaultAvatarUrl(target.name),
+        ? normalizeProfilePic(target.profilePic)
+        : "",
       presence: {
         online: presence.isOnline,
         lastSeen: presence.lastSeen,
@@ -128,17 +128,16 @@ const removeAvatar = async (req, res) => {
       throw ApiError.notFound("User not found");
     }
     const previous = user.profilePic || "";
-    const fallback = defaultAvatarUrl(user.name);
-    user.profilePic = fallback;
+    user.profilePic = "";
     await user.save();
-    if (previous && previous !== fallback) {
+    if (previous && normalizeProfilePic(previous)) {
       await removeStoredAvatarFile(previous);
     }
     emitProfileUpdated(req.user.id, {
-      profilePic: fallback,
+      profilePic: "",
       name: user.name,
     });
-    return res.json({ ok: true, url: fallback });
+    return res.json({ ok: true, url: "" });
   
 };
 

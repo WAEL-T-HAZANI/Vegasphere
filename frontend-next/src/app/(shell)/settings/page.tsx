@@ -14,7 +14,6 @@ import { setNotificationPrefs } from "@/store/slices/uiSlice";
 import SettingsAppearanceSection from "@/components/settings/SettingsAppearanceSection";
 import SettingsNavigationSection from "@/components/settings/SettingsNavigationSection";
 import SettingsNotificationsSection from "@/components/settings/SettingsNotificationsSection";
-import SettingsMaintenanceSection from "@/components/settings/SettingsMaintenanceSection";
 import { readLocalPref } from "@/lib/localPrefs";
 import { syncUserNotificationPrefs } from "@/lib/syncUserNotificationPrefs";
 
@@ -165,7 +164,6 @@ export default function SettingsPage() {
           saveNotificationRules={saveNotificationRules}
           saveDoNotDisturb={saveDoNotDisturb}
         />
-        <SettingsMaintenanceSection />
       </AccountPageShell>
     </ProtectedPageGate>
   );

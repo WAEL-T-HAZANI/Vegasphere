@@ -8,7 +8,6 @@ const {
   listHiddenConversations,
   enableDmE2e,
   disableDmE2e,
-  purgeAiChatbotConversations,
 } = require("./direct.http.js");
 const {
   createGroup,
@@ -69,7 +68,6 @@ module.exports = wrapHttpHandlers(
     listHiddenConversations,
     enableDmE2e,
     disableDmE2e,
-    purgeAiChatbotConversations,
     getJoinPreview,
     joinWithInviteToken,
     createInviteLink,

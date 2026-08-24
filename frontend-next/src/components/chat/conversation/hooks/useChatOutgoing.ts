@@ -368,11 +368,41 @@ export function useChatOutgoing({  conversationId,
     resetPollComposer,
   ]);
 
+  const stageOptimisticMedia = useCallback(
+    (payload, clientTempId) => {
+      const threadId = String(payload.conversationId || conversationId);
+      dispatch(
+        addOptimisticMessage({
+          conversationId: threadId,
+          message: buildOptimisticMessage(payload, clientTempId),
+        }),
+      );
+    },
+    [buildOptimisticMessage, conversationId, dispatch],
+  );
+
+  const failOptimisticMedia = useCallback(
+    (clientTempId, error) => {
+      if (!clientTempId) return;
+      dispatch(
+        markOptimisticMessageStatus({
+          conversationId: String(conversationId),
+          clientTempId,
+          status: "failed",
+          error: String(error || t("messageSendFailed")),
+        }),
+      );
+    },
+    [conversationId, dispatch, t],
+  );
+
   return {
     deliverOutgoing,
     retryMessage,
     send,
     sendPoll,
     resetPollComposer,
+    stageOptimisticMedia,
+    failOptimisticMedia,
   };
 }

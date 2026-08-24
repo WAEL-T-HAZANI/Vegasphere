@@ -18,8 +18,10 @@ import {
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 
 import { authClient, userClient } from "@/lib/clients";
-import { formatApiError } from "@/lib/apiError";
+import { formatApiError, mapPasswordChangeApiError } from "@/lib/apiError";
 import { showAuthErrorToast, showAuthSuccessToast } from "@/lib/authToast";
+import { validatePasswordChange } from "@/lib/authValidation";
+import AuthField from "@/components/ui/AuthField";
 import AccountPageShell from "@/components/account/AccountPageShell";
 import ProtectedPageGate from "@/components/layout/ProtectedPageGate";
 import SettingsSectionHeading from "@/components/settings/SettingsSectionHeading";
@@ -63,6 +65,10 @@ export default function PrivacyPage() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passBusy, setPassBusy] = useState(false);
+  const [passErrors, setPassErrors] = useState<{
+    oldPassword?: string;
+    newPassword?: string;
+  }>({});
 
   const [sessions, setSessions] = useState([]);
   const [sessionsBusy, setSessionsBusy] = useState(false);
@@ -211,14 +217,13 @@ export default function PrivacyPage() {
 
   const savePassword = async (e) => {
     e.preventDefault();
-    if (!oldPassword.trim() || !newPassword.trim()) {
-      showAuthErrorToast(t("settingsPasswordFillBoth"), "auth-error");
+    const nextErrors = validatePasswordChange(oldPassword, newPassword, t);
+    if (Object.keys(nextErrors).length > 0) {
+      setPassErrors(nextErrors);
       return;
     }
-    if (newPassword.trim().length < 8) {
-      showAuthErrorToast(t("passwordMinLengthError"), "auth-error");
-      return;
-    }
+
+    setPassErrors({});
     setPassBusy(true);
     try {
       await userClient.updateProfile({
@@ -230,13 +235,15 @@ export default function PrivacyPage() {
       await refreshUser();
       showAuthSuccessToast(t("settingsPasswordUpdated"), "auth-success");
     } catch (err) {
-      const er = formatApiError(err, t);
-      showAuthErrorToast(
-        String(er).toLowerCase().includes("credential")
-          ? t("settingsPasswordWrong")
-          : er,
-        "auth-error",
-      );
+      const mapped = mapPasswordChangeApiError(err, t);
+      if (mapped.oldPassword || mapped.newPassword) {
+        setPassErrors({
+          ...(mapped.oldPassword ? { oldPassword: mapped.oldPassword } : {}),
+          ...(mapped.newPassword ? { newPassword: mapped.newPassword } : {}),
+        });
+        return;
+      }
+      showAuthErrorToast(mapped.toast || formatApiError(err, t), "auth-error");
     } finally {
       setPassBusy(false);
     }
@@ -323,28 +330,45 @@ export default function PrivacyPage() {
                 title={t("settingsPasswordTitle")}
                 hint={t("settingsPasswordHint")}
               />
-              <form onSubmit={savePassword} className="grid gap-3 sm:grid-cols-2">
-                <label className="grid gap-1.5 text-xs font-semibold text-muted">
-                  {t("settingsCurrentPassword")}
-                  <input
-                    type="password"
-                    autoComplete="current-password"
-                    className="vs-input"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                  />
-                </label>
-                <label className="grid gap-1.5 text-xs font-semibold text-muted">
-                  {t("settingsNewPassword")}
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={8}
-                    className="vs-input"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                </label>
+              <form onSubmit={savePassword} noValidate className="grid gap-3 sm:grid-cols-2">
+                <AuthField
+                  id="settings-current-password"
+                  label={t("settingsCurrentPassword")}
+                  type="password"
+                  autoComplete="current-password"
+                  value={oldPassword}
+                  onChange={(value) => {
+                    setOldPassword(value);
+                    if (passErrors.oldPassword) {
+                      setPassErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.oldPassword;
+                        return next;
+                      });
+                    }
+                  }}
+                  error={passErrors.oldPassword}
+                  compact
+                />
+                <AuthField
+                  id="settings-new-password"
+                  label={t("settingsNewPassword")}
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(value) => {
+                    setNewPassword(value);
+                    if (passErrors.newPassword) {
+                      setPassErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.newPassword;
+                        return next;
+                      });
+                    }
+                  }}
+                  error={passErrors.newPassword}
+                  compact
+                />
                 <button
                   type="submit"
                   disabled={passBusy}

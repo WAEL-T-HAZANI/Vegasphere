@@ -226,7 +226,6 @@ Generate VAPID keys (if needed): `npx web-push generate-vapid-keys`
 | `TRUST_PROXY` | `1` in production |
 | `ICE_SERVERS` | Google STUN default; JSON or comma-separated TURN/STUN URLs |
 | `SESSION_TOUCH_THROTTLE_MS` | `60000` |
-| `ALLOW_DESTRUCTIVE_MAINTENANCE` | `1` or admin role for destructive ops |
 
 ### Database & server
 

@@ -245,7 +245,7 @@ npm run dev
 
 **Test account** (if MongoDB was seeded):
 
-- `cursor.test@example.com` / `TestPass123`
+- `device-a@example.com` / `TestPass123`
 
 ---
 

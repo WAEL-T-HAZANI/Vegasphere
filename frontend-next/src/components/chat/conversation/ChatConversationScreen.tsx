@@ -736,6 +736,8 @@ export default function ChatConversationScreen() {
     send,
     sendPoll,
     resetPollComposer,
+    stageOptimisticMedia,
+    failOptimisticMedia,
   } = useChatOutgoing({
     conversationId,
     cid,
@@ -793,6 +795,8 @@ export default function ChatConversationScreen() {
     viewOnceNext,
     setViewOnceNext,
     deliverOutgoing,
+    stageOptimisticMedia,
+    failOptimisticMedia,
     setUploading,
     setFailedUpload,
     setVoiceMsg,
@@ -828,6 +832,17 @@ export default function ChatConversationScreen() {
     onResultSelect: jumpToSearchResult,
   });
   const activeSearchResult = searchResults[activeSearchIndex] || null;
+
+  const handleResetSearch = useCallback(() => {
+    resetSearch();
+    setFocusedMessageId("");
+  }, [resetSearch]);
+
+  useEffect(() => {
+    if (!String(search || "").trim()) {
+      setFocusedMessageId("");
+    }
+  }, [search]);
 
   const jumpToMessage = useCallback((messageId) => {
     const id = String(messageId || "");
@@ -1054,7 +1069,7 @@ export default function ChatConversationScreen() {
             void runSearch(search);
           }
           if (e.key === "Escape") {
-            resetSearch();
+            handleResetSearch();
           }
         }}
         searchInputRef={searchInputRef}
@@ -1062,7 +1077,7 @@ export default function ChatConversationScreen() {
         searchResults={searchResults}
         activeSearchIndex={activeSearchIndex}
         stepSearchResult={stepSearchResult}
-        resetSearch={resetSearch}
+        resetSearch={handleResetSearch}
       />
 
       {assetsOpen ? (

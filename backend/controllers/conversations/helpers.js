@@ -25,7 +25,6 @@ async function resolveSelectableMemberIds(rawIds, requesterId) {
 
   for (const user of users) {
     const uid = String(user._id);
-    if (/bot$/i.test(String(user.email || ""))) continue;
     if (myBlocked.has(uid)) continue;
     if (
       (user.blockedUsers || []).some(

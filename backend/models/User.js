@@ -108,8 +108,8 @@ const UserSchema = new mongoose.Schema(
 
     profilePic: {
       type: String,
-      default:
-        "https://ui-avatars.com/api/?name=Vegasphere&background=8B1E3F&color=ffffff&bold=true",
+      default: "",
+      trim: true,
     },
 
     isOnline: {

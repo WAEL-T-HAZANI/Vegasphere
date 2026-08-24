@@ -19,7 +19,11 @@ import {
   VegaDropdownItem,
 } from "@/components/ui/VegaDropdownMenu";
 import { cn } from "@/lib/classNames";
-import { resolveAvatarUrl, shouldUseLocalAvatarFallback, conversationAvatarUrl } from "@/lib/avatarUrl";
+import {
+  resolveAvatarUrl,
+  shouldUseLocalAvatarFallback,
+  conversationAvatarUrl,
+} from "@/lib/avatarUrl";
 import PresenceDot from "@/components/presence/PresenceDot";
 import { presenceStateForUser } from "@/hooks/usePresenceBatch";
 import {
@@ -52,7 +56,9 @@ function ChatListRow({
 }) {
   const id = c._id;
   const peer = dmPeerMember(c, user?._id) || c.members?.[0];
-  const title = c.isSelfChat ? t("navSaved") : c.name || peer?.name || peer?.email || "Chat";
+  const title = c.isSelfChat
+    ? t("navSaved")
+    : c.name || peer?.name || peer?.email || "Chat";
   const preview = conversationLatestPreview(c);
   const draftMeta = draftsByConversation[String(id)] || null;
   const draft = draftMeta?.text || "";
@@ -134,7 +140,9 @@ function ChatListRow({
             )}
             {!c.isGroup && !c.isChannel && !c.isSelfChat ? (
               <span className="pointer-events-none absolute bottom-0 end-0 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-surface ring-1 ring-brand-200/60 dark:bg-black dark:ring-white/10">
-                <PresenceDot state={presenceStateForUser(presenceById, peerId)} />
+                <PresenceDot
+                  state={presenceStateForUser(presenceById, peerId)}
+                />
               </span>
             ) : null}
           </Link>
@@ -276,7 +284,9 @@ function ChatListRow({
                     title={t("chatDraftBadge")}
                   >
                     <PencilLine className="h-3 w-3" />
-                    <span className="hidden sm:inline">{t("chatDraftBadge")}</span>
+                    <span className="hidden sm:inline">
+                      {t("chatDraftBadge")}
+                    </span>
                   </span>
                 ) : null}
                 {c.isMutedForMe ? (
@@ -285,7 +295,9 @@ function ChatListRow({
                     title={t("chatMutedBadge")}
                   >
                     <BellOff className="h-3 w-3" />
-                    <span className="hidden sm:inline">{t("chatMutedBadge")}</span>
+                    <span className="hidden sm:inline">
+                      {t("chatMutedBadge")}
+                    </span>
                   </span>
                 ) : null}
               </div>
@@ -321,7 +333,9 @@ function ChatListRow({
                     }}
                   >
                     <BellOff aria-hidden />
-                    <span>{c.isMutedForMe ? t("chatUnmute") : t("chatMute")}</span>
+                    <span>
+                      {c.isMutedForMe ? t("chatUnmute") : t("chatMute")}
+                    </span>
                   </VegaDropdownItem>
                   <VegaDropdownItem
                     onSelect={() => {
@@ -330,7 +344,9 @@ function ChatListRow({
                   >
                     <Archive aria-hidden />
                     <span>
-                      {c.isArchivedForMe ? t("chatUnarchive") : t("chatArchive")}
+                      {c.isArchivedForMe
+                        ? t("chatUnarchive")
+                        : t("chatArchive")}
                     </span>
                   </VegaDropdownItem>
                   <VegaDropdownItem

@@ -5,14 +5,12 @@ const crypto = require("crypto");
 const User = require("../../models/User.js");
 const { validateDisplayName } = require("../../services/display-name-policy.js");
 const { validateUsername } = require("../../services/username-policy.js");
-const { defaultAvatarUrl } = require("../../services/avatar-utils.js");
 const {
   createUserSession,
   makeSessionToken,
   buildSessionLabel,
   getRequestIp,
 } = require("../../services/session-auth.js");
-const { isDestructiveMaintenanceAllowed } = require("../../config/env.js");
 const { isMailConfigured } = require("../../services/mailer.js");
 const {
   issueVerificationToken,
@@ -46,10 +44,6 @@ const register = async (req, res) => {
       throw ApiError.badRequest(usernameCheck.error);
     }
 
-    if (email.endsWith("bot")) {
-      throw ApiError.badRequest("Invalid email");
-    }
-
     const user = await User.findOne({
       email,
     });
@@ -74,7 +68,6 @@ const register = async (req, res) => {
       name: String(name).trim(),
       email,
       password: secPass,
-      profilePic: defaultAvatarUrl(name),
       about: "Hello World!!",
       sessions: [
         {
@@ -183,11 +176,6 @@ const login = async (req, res) => {
       typingIndicatorsEnabled: user.typingIndicatorsEnabled,
       twoStepEnabled: user.twoStepEnabled,
       emailVerified: Boolean(user.emailVerified),
-      destructiveMaintenanceAllowed: isDestructiveMaintenanceAllowed({
-        id: user.id,
-        role: user.role,
-        isAdmin: user.isAdmin,
-      }),
     },
   });
 };

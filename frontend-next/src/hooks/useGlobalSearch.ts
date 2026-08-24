@@ -9,7 +9,6 @@ import {
   isSearchQueryTooShort,
 } from "@/lib/searchQuery";
 import {
-  stripBotUsers,
   type GlobalSearchResult,
   type SearchConversationHit,
   type SearchMessageHit,
@@ -100,7 +99,7 @@ export function useGlobalSearch({ t, debounceMs = 280 }: UseGlobalSearchOptions)
       setError("");
       try {
         const { data } = await searchClient.globalSearch(s);
-        setUsers(stripBotUsers(data?.users));
+        setUsers(Array.isArray(data?.users) ? data.users : []);
         setConversations(Array.isArray(data?.conversations) ? data.conversations : []);
         setMessages(Array.isArray(data?.messages) ? data.messages : []);
       } catch (e) {

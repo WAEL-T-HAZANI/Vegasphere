@@ -262,15 +262,6 @@ function isEnvTruthy(raw) {
   return v === "1" || v.toLowerCase() === "true";
 }
 
-/** Destructive maintenance (e.g. purge AI bot chats) — exposed to clients via /auth/me. */
-function isDestructiveMaintenanceAllowed(jwtUser = {}) {
-  return (
-    process.env.ALLOW_DESTRUCTIVE_MAINTENANCE === "1" ||
-    jwtUser?.role === "admin" ||
-    jwtUser?.isAdmin === true
-  );
-}
-
 module.exports = {
   NODE_ENV,
   isProd,
@@ -300,6 +291,5 @@ module.exports = {
   RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX,
   TRUST_PROXY,
-  isDestructiveMaintenanceAllowed,
   isEnvTruthy,
 };

@@ -27,12 +27,6 @@ export type GlobalSearchResult = {
   messages: SearchMessageHit[];
 };
 
-export function stripBotUsers(list: User[] | null | undefined): User[] {
-  return (Array.isArray(list) ? list : []).filter(
-    (user) => !/bot$/i.test(String(user?.email || "")),
-  );
-}
-
 export function displayUserPrimaryLabel(u: Partial<User> | null | undefined): string {
   const candidates = [u?.name, u?.username, u?.email]
     .map((x) => (x == null ? "" : String(x).trim()))

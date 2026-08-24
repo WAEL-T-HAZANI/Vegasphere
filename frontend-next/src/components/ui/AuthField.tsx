@@ -27,7 +27,6 @@ export type AuthFieldProps = {
   /** Block copy/cut/context menu on the input (locked secrets). */
   copyProtected?: boolean;
   compact?: boolean;
-  minLength?: number;
   maxLength?: number;
 };
 
@@ -48,7 +47,6 @@ export default function AuthField({
   disabled = false,
   copyProtected = false,
   compact = false,
-  minLength,
   maxLength,
 }: AuthFieldProps) {
   const { t, i18n } = useTranslation();
@@ -85,7 +83,6 @@ export default function AuthField({
         placeholder={placeholder}
         readOnly={readOnly}
         disabled={disabled}
-        minLength={minLength}
         maxLength={maxLength}
         onCopy={copyProtected ? (e) => e.preventDefault() : undefined}
         onCut={copyProtected ? (e) => e.preventDefault() : undefined}

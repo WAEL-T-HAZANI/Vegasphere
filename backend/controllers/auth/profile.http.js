@@ -35,7 +35,6 @@ const getNonFriendsList = async (req, res) => {
 
     const users = await User.find({
       _id: { $nin: [...excludeIds] },
-      email: { $not: /bot$/i },
     })
       .select("name username email profilePic")
       .sort({ name: 1, username: 1 })
@@ -78,9 +77,6 @@ const updateProfile = async (req, res) => {
       if (!email) {
         throw ApiError.badRequest("Email is required");
       }
-      if (email.endsWith("bot")) {
-        throw ApiError.badRequest("Invalid email");
-      }
       const existing = await User.findOne({
         email,
         _id: { $ne: req.user.id },
@@ -114,18 +110,25 @@ const updateProfile = async (req, res) => {
     }
 
     if (req.body.newpassword) {
-      if (String(req.body.newpassword).length < 8) {
+      const oldPwd = String(req.body.oldpassword || "");
+      const newPwd = String(req.body.newpassword || "");
+      if (!oldPwd) {
+        throw ApiError.badRequest("Current password required");
+      }
+      if (newPwd.length < 8) {
         throw ApiError.badRequest("Password must be at least 8 characters");
       }
-      const passwordCompare = await compareSecret(
-        req.body.oldpassword,
-        dbuser.password,
-      );
+      if (oldPwd === newPwd) {
+        throw ApiError.badRequest(
+          "New password must be different from current password",
+        );
+      }
+      const passwordCompare = await compareSecret(oldPwd, dbuser.password);
       if (!passwordCompare) {
         throw ApiError.badRequest("Invalid Credentials");
       }
 
-      req.body.password = await hashSecret(req.body.newpassword);
+      req.body.password = await hashSecret(newPwd);
 
       delete req.body.oldpassword;
       delete req.body.newpassword;

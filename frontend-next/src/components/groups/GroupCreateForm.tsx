@@ -45,7 +45,7 @@ export default function GroupCreateForm({
         <p className="mt-1 text-sm text-muted">{t("groupsCreateIntro")}</p>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} noValidate className="space-y-4">
         <input
           id="group-name"
           className="vs-input w-full"
@@ -54,7 +54,6 @@ export default function GroupCreateForm({
           placeholder={t("nameLabel")}
           aria-label={t("nameLabel")}
           dir="auto"
-          required
           maxLength={80}
         />
         <div className="text-start">

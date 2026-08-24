@@ -26,7 +26,7 @@ export function formatTextWithAtHighlights(text, isMine) {
   );
 }
 
-export function renderHighlightedText(content, query) {
+export function renderHighlightedText(content, query, isMine = false) {
   const source = String(content || "");
   const q = String(query || "").trim();
   if (!source || !q || !isSearchQueryLongEnough(q)) return source;
@@ -56,7 +56,10 @@ export function renderHighlightedText(content, query) {
         part.match ? (
           <mark
             key={`m-${idx}`}
-            className="rounded bg-brand-200/90 px-0.5 text-brand-950 dark:bg-brand-800/70 dark:text-[rgb(var(--vega-ink))]"
+            className={cn(
+              "vs-msg-search-mark",
+              isMine && "vs-msg-search-mark--mine",
+            )}
           >
             {part.text}
           </mark>

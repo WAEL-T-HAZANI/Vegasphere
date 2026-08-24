@@ -28,6 +28,7 @@ import { showAppToast } from "@/lib/appToast";
 import { cn } from "@/lib/classNames";
 import { notificationsClient, userClient } from "@/lib/clients";
 import { displayUserPrimaryLabel } from "@/lib/searchHub";
+import UserAvatar from "@/components/user/UserAvatar";
 import { getSocket } from "@/lib/socket";
 import { syncConversations } from "@/lib/syncConversations";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -403,20 +404,12 @@ export default function NotificationsPage() {
                     )}
                   >
                     <div className="relative h-12 w-12 shrink-0 overflow-visible">
-                      <div className="h-full w-full overflow-hidden rounded-2xl bg-brand-100 ring-1 ring-brand-200/60 dark:bg-brand-900/40 dark:ring-brand-800/50">
-                        {actor?.profilePic ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={actor.profilePic}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-brand-700 dark:text-brand-200">
-                            <RowIcon className="h-5 w-5" aria-hidden />
-                          </div>
-                        )}
-                      </div>
+                      <UserAvatar
+                        name={displayUserPrimaryLabel(actor, t)}
+                        profilePic={actor?.profilePic}
+                        size="sm"
+                        className="h-12 w-12 rounded-2xl"
+                      />
                       {isUnread ? (
                         <span className="absolute -end-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-surface bg-brand-600 shadow-sm shadow-brand-600/25 dark:border-gray-950" />
                       ) : null}

@@ -11,7 +11,6 @@ export interface User {
   e2ePublicKey?: string;
   emailVerified?: boolean;
   twoStepEnabled?: boolean;
-  destructiveMaintenanceAllowed?: boolean;
   doNotDisturb?: boolean;
   pushNotificationsEnabled?: boolean;
   notificationRules?: {

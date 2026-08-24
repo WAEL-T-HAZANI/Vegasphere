@@ -224,8 +224,9 @@ const ConversationMessageList = forwardRef(function ConversationMessageList(
           onRetry={retryMessage}
           searchQuery={globalSearchQuery}
           isSearchFocused={
-            String(focusedMessageId || activeSearchResult?._id || "") ===
-            String(m._id)
+            String(focusedMessageId || "") === String(m._id) ||
+            (Boolean(globalSearchQuery) &&
+              String(activeSearchResult?._id || "") === String(m._id))
           }
           groupPosition={row.groupPosition}
           senderLabel={senderLabel}

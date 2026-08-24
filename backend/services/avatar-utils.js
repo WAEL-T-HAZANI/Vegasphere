@@ -25,6 +25,18 @@ function defaultAvatarUrl(name) {
   return `https://ui-avatars.com/api/?name=${safeName}&background=8B1E3F&color=ffffff&bold=true`;
 }
 
+/** Legacy generated avatars — treat as unset (use initials in UI). */
+function isGeneratedAvatarUrl(raw) {
+  const value = String(raw || "").trim().toLowerCase();
+  return Boolean(value) && value.includes("ui-avatars.com");
+}
+
+function normalizeProfilePic(raw) {
+  const value = String(raw || "").trim();
+  if (!value || isGeneratedAvatarUrl(value)) return "";
+  return value;
+}
+
 function buildAbsoluteAssetUrl(req, rawPath) {
   const value = String(rawPath || "").trim();
   if (!value) return "";
@@ -137,6 +149,8 @@ module.exports = {
   },
   buildAbsoluteAssetUrl,
   defaultAvatarUrl,
+  isGeneratedAvatarUrl,
+  normalizeProfilePic,
   removeLocalAvatarFile,
   removeLocalConversationAvatarFile,
   removeStoredAvatarFile,

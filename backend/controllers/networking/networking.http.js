@@ -3,7 +3,7 @@ const Conversation = require("../../models/Conversation.js");
 const NetworkingPost = require("../../models/NetworkingPost.js");
 const { ApiError } = require("../../services/http-error.js");
 const { wrapHttpHandlers } = require("../../services/async-handler.js");
-const { defaultAvatarUrl } = require("../../services/avatar-utils.js");
+const { normalizeProfilePic } = require("../../services/avatar-utils.js");
 const { publishNetworkingUpdated } = require("../../services/networking-notify.js");
 const {
   applyPresencePrivacy,
@@ -58,9 +58,7 @@ async function sanitizeNetworkingPeer(viewerId, user, { isSelf = false } = {}) {
     _id: user._id,
     name: displayName(user),
     username: user.username || "",
-    profilePic: photoAllowed
-      ? user.profilePic || ""
-      : defaultAvatarUrl(user.name || user.username),
+    profilePic: photoAllowed ? normalizeProfilePic(user.profilePic) : "",
     isOnline: presence.isOnline,
     lastSeen: presence.lastSeen,
     networkingHeadline: user.networkingHeadline || "",
@@ -144,7 +142,6 @@ async function listNetworking(req, res) {
 
   const candidateFilter = {
     _id: { $ne: userId },
-    email: { $not: /bot$/i },
   };
 
   if (tag) {

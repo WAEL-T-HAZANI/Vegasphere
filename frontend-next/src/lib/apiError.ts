@@ -18,6 +18,10 @@ const API_MESSAGE_KEYS: Record<string, string> = {
   "email already in use": "apiEmailAlreadyInUse",
   "email is required": "emailRequired",
   "current password required to change email": "changeEmailPasswordRequired",
+  "current password required": "settingsCurrentPasswordRequired",
+  "new password must be different from current password":
+    "settingsPasswordSameAsOld",
+  "password must be at least 8 characters": "passwordMinLengthError",
   "please authenticate using a valid token": "apiUnauthorized",
   unauthorized: "apiUnauthorized",
   "user not found": "apiUserNotFound",
@@ -124,7 +128,11 @@ function translateFuzzyApiMessage(message: string, t: TFunction): string | null 
   }
   if (
     (m.includes("too small") || m.includes("at least")) &&
-    (m.includes("password") || m.includes(">=6") || m.includes("6 character"))
+    (m.includes("password") ||
+      m.includes("oldpassword") ||
+      m.includes("newpassword") ||
+      m.includes(">=8") ||
+      m.includes("8 character"))
   ) {
     return t("passwordMinLengthError");
   }
@@ -136,6 +144,12 @@ function translateFuzzyApiMessage(message: string, t: TFunction): string | null 
     return t("settingsSessionsUseSignOut");
   }
   if (m.includes("invalid credentials")) return t("apiInvalidCredentials");
+  if (m.includes("current password required")) {
+    return t("settingsCurrentPasswordRequired");
+  }
+  if (m.includes("new password must be different")) {
+    return t("settingsPasswordSameAsOld");
+  }
   if (
     m.includes("push service not available") ||
     m.includes("registration failed - push service not available")
@@ -237,6 +251,73 @@ export type AuthFieldErrorMap = {
   toast?: string;
 };
 
+function getApiFieldErrors(
+  err: ApiErrorLike | null | undefined,
+): Record<string, string[]> {
+  const details = (
+    err?.response?.data as { details?: { fieldErrors?: Record<string, string[]> } }
+  )?.details;
+  return details?.fieldErrors || {};
+}
+
+function translateApiFieldMessage(message: string, t: TFunction): string {
+  const trimmed = String(message || "").trim();
+  if (!trimmed) return "";
+  return translateKnownApiMessage(trimmed, t) || trimmed;
+}
+
+export type PasswordChangeFieldErrorMap = {
+  oldPassword?: string;
+  newPassword?: string;
+  toast?: string;
+};
+
+/** Map password-change API errors to inline fields where possible. */
+export function mapPasswordChangeApiError(
+  err: ApiErrorLike | null | undefined,
+  t: TFunction,
+): PasswordChangeFieldErrorMap {
+  const fieldErrors = getApiFieldErrors(err);
+
+  if (fieldErrors.oldpassword?.[0]) {
+    return {
+      oldPassword: translateApiFieldMessage(fieldErrors.oldpassword[0], t),
+    };
+  }
+
+  if (fieldErrors.newpassword?.[0]) {
+    return {
+      newPassword: translateApiFieldMessage(fieldErrors.newpassword[0], t),
+    };
+  }
+
+  const raw = normalizeApiMessage(getApiMessageRaw(err));
+
+  if (raw.includes("invalid credentials")) {
+    return { oldPassword: t("settingsPasswordWrong") };
+  }
+
+  if (raw.includes("new password must be different")) {
+    return { newPassword: t("settingsPasswordSameAsOld") };
+  }
+
+  if (raw.includes("current password required")) {
+    return { oldPassword: t("settingsCurrentPasswordRequired") };
+  }
+
+  if (
+    raw.includes("password") &&
+    (raw.includes("8") || raw.includes("too small") || raw.includes("at least"))
+  ) {
+    if (raw.includes("old")) {
+      return { oldPassword: t("passwordMinLengthError") };
+    }
+    return { newPassword: t("passwordMinLengthError") };
+  }
+
+  return { toast: formatApiError(err, t) };
+}
+
 /** Map login API errors to inline fields where possible. */
 export function mapLoginApiError(
   err: ApiErrorLike | null | undefined,
@@ -310,7 +391,9 @@ export function mapSignupApiError(
 
   if (
     (raw.includes("too small") || raw.includes("at least")) &&
-    (raw.includes("password") || raw.includes(">=6") || raw.includes("6 character"))
+    (raw.includes("password") ||
+      raw.includes(">=8") ||
+      raw.includes("8 character"))
   ) {
     return { password: t("passwordMinLengthError") };
   }
@@ -335,7 +418,9 @@ export function mapResetApiError(
 
   if (
     (raw.includes("too small") || raw.includes("at least")) &&
-    (raw.includes("password") || raw.includes(">=6") || raw.includes("6 character"))
+    (raw.includes("password") ||
+      raw.includes(">=8") ||
+      raw.includes("8 character"))
   ) {
     return { password: t("passwordMinLengthError") };
   }

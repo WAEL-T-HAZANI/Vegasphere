@@ -24,7 +24,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import PresenceDot from "@/components/presence/PresenceDot";
 import { presenceStateForUser } from "@/hooks/usePresenceBatch";
 import { API_ORIGIN } from "@/lib/constants";
-import { resolveAvatarUrl } from "@/lib/avatarUrl";
+import { resolveAvatarUrl, shouldUseLocalAvatarFallback } from "@/lib/avatarUrl";
 import ConversationCallButtons from "@/components/calls/ConversationCallButtons";
 import ConversationAvatarTile from "@/components/conversation/ConversationAvatarTile";
 import {
@@ -86,7 +86,9 @@ export default function ConversationHeader({
     if (fromParam) rememberChatBackFrom(fromParam);
   }, [fromParam]);
 
-  const avatarSrc = resolveAvatarUrl(peerMember?.profilePic);
+  const avatarSrc = shouldUseLocalAvatarFallback(peerMember?.profilePic)
+    ? ""
+    : resolveAvatarUrl(peerMember?.profilePic);
   const useNextImage = isOptimizableAvatarUrl(avatarSrc);
   const groupChannelName = groupChannelDisplayName(activeConv);
   const headerTitle = groupChannelName || peerDisplayName || t("navChats");
@@ -287,7 +289,9 @@ export default function ConversationHeader({
               <DropdownPortal>
                 <VegaDropdownContent align="start" className="min-w-[11.5rem]">
                   {peerProfileHref ? (
-                    <VegaDropdownItem onSelect={() => router.push(peerProfileHref)}>
+                    <VegaDropdownItem
+                      onSelect={() => router.push(peerProfileHref)}
+                    >
                       <User className="h-4 w-4" aria-hidden />
                       {t("viewProfile")}
                     </VegaDropdownItem>
@@ -326,7 +330,8 @@ export default function ConversationHeader({
                           <DropdownPortal>
                             <VegaDropdownSubContent className="min-w-[9.5rem]">
                               {disappearOptions.map((opt) => {
-                                const selected = opt.value === disappearAfterSec;
+                                const selected =
+                                  opt.value === disappearAfterSec;
                                 return (
                                   <VegaDropdownItem
                                     key={opt.value}
@@ -369,7 +374,9 @@ export default function ConversationHeader({
                         onSelect={() => void leaveGroupChannel()}
                       >
                         <LogOut className="h-4 w-4" aria-hidden />
-                        {activeConv?.isChannel ? t("channelLeave") : t("groupLeave")}
+                        {activeConv?.isChannel
+                          ? t("channelLeave")
+                          : t("groupLeave")}
                       </VegaDropdownItem>
                     </>
                   ) : null}

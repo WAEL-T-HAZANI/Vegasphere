@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
-import { cn } from "@/lib/classNames";
 import { isSearchQueryLongEnough } from "@/lib/searchQuery";
 
 export default function ChatInChatSearchBar({
@@ -21,6 +20,8 @@ export default function ChatInChatSearchBar({
   const hasQuery = Boolean(typed) && isSearchQueryLongEnough(typed);
   const total = searchResults.length;
   const showNav = hasQuery || searchBusy;
+  const searchNavBtn =
+    "inline-flex h-6 w-6 items-center justify-center rounded-lg text-brand-700 outline-none transition focus-visible:ring-2 focus-visible:ring-brand-400 disabled:pointer-events-none disabled:opacity-35 hover:bg-brand-50/90 hover:text-brand-800 dark:text-brand-200 dark:hover:bg-brand-900/45 dark:hover:text-white";
   const PrevIcon = rtl ? ChevronRight : ChevronLeft;
   const NextIcon = rtl ? ChevronLeft : ChevronRight;
 
@@ -59,9 +60,7 @@ export default function ChatInChatSearchBar({
               type="button"
               disabled={!total || searchBusy}
               onClick={() => stepSearchResult?.(-1, searchResults)}
-              className={cn(
-                "inline-flex h-6 w-6 items-center justify-center rounded-lg text-brand-700 outline-none transition hover:bg-brand-50 focus-visible:ring-2 focus-visible:ring-brand-400 disabled:pointer-events-none disabled:opacity-35 vs-dark-brand-text-muted dark:hover:bg-gradient-to-br dark:hover:from-brand-900/30 dark:hover:to-red-950/20",
-              )}
+              className={searchNavBtn}
               title={t("searchPrev")}
               aria-label={t("searchPrev")}
             >
@@ -71,9 +70,7 @@ export default function ChatInChatSearchBar({
               type="button"
               disabled={!total || searchBusy}
               onClick={() => stepSearchResult?.(1, searchResults)}
-              className={cn(
-                "inline-flex h-6 w-6 items-center justify-center rounded-lg text-brand-700 outline-none transition hover:bg-brand-50 focus-visible:ring-2 focus-visible:ring-brand-400 disabled:pointer-events-none disabled:opacity-35 vs-dark-brand-text-muted dark:hover:bg-gradient-to-br dark:hover:from-brand-900/30 dark:hover:to-red-950/20",
-              )}
+              className={searchNavBtn}
               title={t("searchNext")}
               aria-label={t("searchNext")}
             >
@@ -82,7 +79,7 @@ export default function ChatInChatSearchBar({
             <button
               type="button"
               onClick={resetSearch}
-              className="inline-flex h-6 w-6 items-center justify-center rounded-lg text-muted outline-none transition hover:bg-subtle focus-visible:ring-2 focus-visible:ring-brand-400"
+              className={searchNavBtn}
               title={t("cancel")}
               aria-label={t("cancel")}
             >

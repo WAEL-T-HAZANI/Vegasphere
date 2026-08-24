@@ -52,7 +52,6 @@ const {
   listHiddenConversations,
   enableDmE2e,
   disableDmE2e,
-  purgeAiChatbotConversations,
   createInviteLink,
   listInviteLinks,
   updateInviteLink,
@@ -176,8 +175,6 @@ router.post(
   validate(idParamSchema, "params"),
   disableDmE2e,
 );
-
-router.delete("/purge/ai-chatbot", fetchuser, purgeAiChatbotConversations);
 
 router.post(
   "/:id/invites",

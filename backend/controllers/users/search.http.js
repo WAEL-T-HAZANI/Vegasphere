@@ -14,7 +14,6 @@ const searchUsers = async (req, res) => {
 
     const users = await User.find({
       _id: { $ne: req.user.id },
-      email: { $not: /bot$/i },
       $or: [{ name: rx }, { username: rx }, { email: rx }],
     })
       .select("-password -phoneHash")

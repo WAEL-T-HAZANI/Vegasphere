@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
-import { formatApiError } from "@/lib/apiError";
+import { formatApiError, mapPasswordChangeApiError } from "@/lib/apiError";
+import { validateEmailField } from "@/lib/authValidation";
 import { showAuthErrorToast, showAuthSuccessToast } from "@/lib/authToast";
+import AuthField from "@/components/ui/AuthField";
 import type { User } from "@/types";
 
 type EmailChangeSectionProps = {
@@ -20,22 +22,32 @@ export default function EmailChangeSection({
   const [newEmail, setNewEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  const save = async (e) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    const email = newEmail.trim().toLowerCase();
-    if (!email) {
-      showAuthErrorToast(t("emailRequired"), "auth-error");
+    const normalizedEmail = newEmail.trim().toLowerCase();
+    const nextErrors: { email?: string; password?: string } = {};
+
+    const emailError = validateEmailField(normalizedEmail, t);
+    if (emailError) nextErrors.email = emailError;
+
+    if (!password.trim()) {
+      nextErrors.password = t("changeEmailPasswordRequired");
+    } else if (password.length < 8) {
+      nextErrors.password = t("passwordMinLengthError");
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
-    if (!password) {
-      showAuthErrorToast(t("changeEmailPasswordRequired"), "auth-error");
-      return;
-    }
+
+    setErrors({});
     setBusy(true);
     try {
       const { data } = await api.put("/user/update", {
-        email,
+        email: normalizedEmail,
         oldpassword: password,
       });
       setNewEmail("");
@@ -52,39 +64,68 @@ export default function EmailChangeSection({
         "auth-success",
       );
     } catch (err) {
-      showAuthErrorToast(formatApiError(err, t), "auth-error");
+      const mapped = mapPasswordChangeApiError(err, t);
+      if (mapped.oldPassword) {
+        setErrors({ password: mapped.oldPassword });
+        return;
+      }
+      const message = formatApiError(err, t);
+      const lower = message.toLowerCase();
+      if (lower.includes("email")) {
+        setErrors({ email: message });
+        return;
+      }
+      showAuthErrorToast(mapped.toast || message, "auth-error");
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <form onSubmit={save} className="grid gap-3">
+    <form onSubmit={save} noValidate className="grid gap-3">
       <p className="text-xs text-muted">
         {t("changeEmailCurrent", { email: user?.email || "—" })}
       </p>
-      <label className="grid gap-1.5 text-xs font-semibold text-muted">
-        {t("changeEmailNewLabel")}
-        <input
-          type="email"
-          autoComplete="email"
-          className="vs-input"
-          value={newEmail}
-          onChange={(e) => setNewEmail(e.target.value)}
-          placeholder={t("changeEmailNewPlaceholder")}
-        />
-      </label>
-      <label className="grid gap-1.5 text-xs font-semibold text-muted">
-        {t("changeEmailPasswordLabel")}
-        <input
-          type="password"
-          autoComplete="current-password"
-          className="vs-input"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={t("settingsCurrentPassword")}
-        />
-      </label>
+      <AuthField
+        id="change-email-new"
+        label={t("changeEmailNewLabel")}
+        type="email"
+        autoComplete="email"
+        value={newEmail}
+        onChange={(value) => {
+          setNewEmail(value);
+          if (errors.email) {
+            setErrors((prev) => {
+              const next = { ...prev };
+              delete next.email;
+              return next;
+            });
+          }
+        }}
+        placeholder={t("changeEmailNewPlaceholder")}
+        error={errors.email}
+        compact
+      />
+      <AuthField
+        id="change-email-password"
+        label={t("changeEmailPasswordLabel")}
+        type="password"
+        autoComplete="current-password"
+        value={password}
+        onChange={(value) => {
+          setPassword(value);
+          if (errors.password) {
+            setErrors((prev) => {
+              const next = { ...prev };
+              delete next.password;
+              return next;
+            });
+          }
+        }}
+        placeholder={t("settingsCurrentPassword")}
+        error={errors.password}
+        compact
+      />
       <button type="submit" disabled={busy} className="vs-btn-primary">
         {busy ? "…" : t("changeEmailSave")}
       </button>

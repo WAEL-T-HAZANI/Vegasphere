@@ -1,7 +1,6 @@
 const { ApiError } = require("../../services/http-error.js");
 const Conversation = require("../../models/Conversation.js");
 const User = require("../../models/User.js");
-const Message = require("../../models/Message.js");
 const {
   mergeUnreadMirrorIntoConversations,
 } = require("../../services/redis-unread-mirror.js");
@@ -37,63 +36,6 @@ function emitConversationE2eSync(conv) {
     /* non-fatal */
   }
 }
-
-const { isDestructiveMaintenanceAllowed } = require("../../config/env.js");
-
-function isMaintenanceAllowed(req) {
-  return isDestructiveMaintenanceAllowed(req.user);
-}
-
-/**
- * Permanent purge of the built-in AI chatbot 1:1 conversations (global).
- * Deletes the conversations and all messages inside them.
- *
- * NOTE: This affects all users because those conversations are shared with the bot user.
- */
-const purgeAiChatbotConversations = async (req, res) => {
-    if (!isMaintenanceAllowed(req)) {
-      throw ApiError.forbidden("Maintenance endpoint disabled");
-    }
-
-    // Identify the bot user (created during register()).
-    const bot =
-      (await User.findOne({ email: /bot$/i }).select("_id email name")) ||
-      (await User.findOne({ name: /ai chatbot/i }).select("_id email name"));
-
-    if (!bot?._id) {
-      return res.json({
-        ok: true,
-        removedConversations: 0,
-        removedMessages: 0,
-      });
-    }
-
-    // Only delete direct-message conversations (not groups/channels) containing the bot.
-    const convIds = await Conversation.find({
-      isGroup: { $ne: true },
-      isChannel: { $ne: true },
-      members: bot._id,
-    }).distinct("_id");
-
-    if (!convIds.length) {
-      return res.json({
-        ok: true,
-        removedConversations: 0,
-        removedMessages: 0,
-      });
-    }
-
-    const msgDel = await Message.deleteMany({
-      conversationId: { $in: convIds },
-    });
-    const convDel = await Conversation.deleteMany({ _id: { $in: convIds } });
-
-    res.json({
-      ok: true,
-      removedConversations: convDel.deletedCount || 0,
-      removedMessages: msgDel.deletedCount || 0,
-    });
-};
 
 const createConversation = async (req, res) => {
     const { members: requestedMemberIds } = req.body;
@@ -207,10 +149,6 @@ const getConversation = async (req, res) => {
       const otherMember = conversation.members.find(
         (member) => member.id !== req.user.id,
       );
-      // Hide built-in AI chatbot DMs (they can break some client assumptions and are deprecated).
-      if (otherMember?.email && /bot$/i.test(String(otherMember.email))) {
-        throw ApiError.notFound("No conversation found");
-      }
       if (
         otherMember &&
         blockedUsers.some(
@@ -285,7 +223,7 @@ const getConversationList = async (req, res) => {
       throw ApiError.notFound("No conversation found");
     }
 
-    // remove user from members and also other chatbots
+    // Remove the viewer from each conversation's member list to expose the other party.
     for (let i = 0; i < conversationList.length; i++) {
       if (conversationList[i].isSelfChat) continue;
       conversationList[i].members = conversationList[i].members.filter(
@@ -298,10 +236,6 @@ const getConversationList = async (req, res) => {
       if (conv.isGroup || conv.isChannel) return true;
       const otherMember = conv.members[0];
       if (!otherMember) return false;
-      // Drop the built-in AI chatbot conversation from lists.
-      if (otherMember?.email && /bot$/i.test(String(otherMember.email))) {
-        return false;
-      }
       return !blockedUsers.some(
         (blockedId) => blockedId.toString() === otherMember.id.toString(),
       );
@@ -502,5 +436,4 @@ module.exports = {
   listHiddenConversations,
   enableDmE2e,
   disableDmE2e,
-  purgeAiChatbotConversations,
 };

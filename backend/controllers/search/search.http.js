@@ -79,7 +79,6 @@ const globalSearch = async (req, res) => {
 
     const users = await User.find({
       _id: { $ne: userId },
-      email: { $not: /bot$/i },
       $or: [{ name: rx }, { username: rx }, { email: rx }],
     })
       .select("name username email profilePic searchDiscoverable")

@@ -29,7 +29,9 @@ export default function MessageSelectionBar({
           onClick={onCancel}
           className={cn(
             actionBtn,
-            "shrink-0 text-muted hover:bg-brand-50/80 dark:hover:bg-gradient-to-br dark:hover:from-brand-900/30 dark:hover:to-red-950/20",
+            "shrink-0 border border-brand-200/50 bg-surface/85 text-brand-700 shadow-sm vs-dark-brand-text-muted",
+            "hover:border-brand-400/60 hover:bg-brand-50/90 hover:text-brand-800 hover:shadow-brand-600/10",
+            "dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-brand-700/50 dark:hover:bg-gradient-to-br dark:hover:from-brand-900/30 dark:hover:to-red-950/20 dark:hover:text-brand-200",
           )}
           aria-label={t("chatCancelSelection")}
         >

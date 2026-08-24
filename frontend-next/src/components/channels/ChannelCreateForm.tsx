@@ -56,7 +56,7 @@ export default function ChannelCreateForm({
         <p className="mt-1 text-sm text-muted">{t("channelsCreateIntro")}</p>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} noValidate className="space-y-4">
         <fieldset className="min-w-0 text-start">
           <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
             {t("channelsVisibilityLabel")}
@@ -96,7 +96,6 @@ export default function ChannelCreateForm({
           placeholder={t("channelName")}
           aria-label={t("channelName")}
           dir="auto"
-          required
           maxLength={80}
         />
 

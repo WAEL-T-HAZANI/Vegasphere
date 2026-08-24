@@ -16,7 +16,7 @@ export function resolveAvatarUrl(raw: string | undefined | null) {
 /** True when the user uploaded a file stored on this API (not ui-avatars default). */
 export function isCustomAvatar(raw: string | undefined | null) {
   const value = String(raw || "").trim();
-  if (!value) return false;
+  if (!value || isGeneratedUiAvatar(value)) return false;
   if (value.includes("/uploads/avatars/")) return true;
   try {
     return new URL(value).pathname.includes("/uploads/avatars/");

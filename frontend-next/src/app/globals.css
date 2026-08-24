@@ -381,6 +381,36 @@ body {
     @apply text-white/75;
   }
 
+  .vs-msg-jump-highlight {
+    @apply relative z-[1] ring-[3px] ring-cyan-500 ring-offset-2 ring-offset-canvas;
+    box-shadow:
+      0 0 0 1px rgba(6, 182, 212, 0.45),
+      0 0 22px rgba(6, 182, 212, 0.38);
+  }
+  :is(.dark) .vs-msg-jump-highlight {
+    @apply ring-white ring-offset-gray-950;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.8),
+      0 0 22px rgba(255, 255, 255, 0.35);
+  }
+  .vs-msg-search-mark {
+    @apply rounded px-0.5 font-semibold bg-amber-200 text-brand-900;
+    box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.2);
+  }
+  .vs-msg-search-mark--mine {
+    @apply bg-white text-brand-900;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.55),
+      0 0 0 1px rgba(103, 232, 249, 0.35);
+  }
+  :is(.dark) .vs-msg-search-mark,
+  :is(.dark) .vs-msg-search-mark--mine {
+    @apply bg-white/90 text-brand-900;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.65),
+      0 0 0 1px rgba(255, 255, 255, 0.45);
+  }
+
   /* Chat bubble — badges + rich payloads (voice, contact, schedule, etc.) */
   .vs-msg-badge {
     @apply inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] leading-none shadow-sm;

@@ -1,7 +1,6 @@
 const User = require("../../models/User.js");
 const { publicSessionShape } = require("../../services/session-auth.js");
 const { verifyAccessToken } = require("../../services/jwt-utils.js");
-const { isDestructiveMaintenanceAllowed } = require("../../config/env.js");
 const { ApiError } = require("../../services/http-error.js");
 
 const authUser = async (req, res) => {
@@ -23,9 +22,7 @@ const authUser = async (req, res) => {
 
   const user = await User.findById(data.user.id).select("-password -phoneHash");
   if (!user) throw ApiError.notFound("User not found");
-  const doc = user.toObject ? user.toObject() : user;
-  doc.destructiveMaintenanceAllowed = isDestructiveMaintenanceAllowed(data.user);
-  return res.json(doc);
+  return res.json(user.toObject ? user.toObject() : user);
 };
 
 const SESSION_PRUNE_MS = 90 * 24 * 60 * 60 * 1000;

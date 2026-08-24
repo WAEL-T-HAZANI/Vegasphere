@@ -35,7 +35,7 @@ Self-hosted real-time chat: DMs, groups, channels, receipts, media, voice messag
 
 Use two browsers/devices with different test accounts:
 
-- Device A: `cursor.test@example.com` / `TestPass123`
+- Device A: `device-a@example.com` / `TestPass123`
 - Device B: `liam4@seed.vegasphere.test` / `TestPass123`
 
 Smoke-test these before a demo:
@@ -139,7 +139,7 @@ Minimum `frontend-next/.env.local`:
 
 **Test login** (if MongoDB was seeded):
 
-- `cursor.test@example.com` / `TestPass123`
+- `device-a@example.com` / `TestPass123`
 
 ### 4. Frontend cache fix (dev only)
 

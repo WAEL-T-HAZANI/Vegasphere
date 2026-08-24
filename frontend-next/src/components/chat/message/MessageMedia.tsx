@@ -41,7 +41,9 @@ export default function MessageMedia({
   const [manualMediaLoad, setManualMediaLoad] = useState(false);
   const [imageRetry, setImageRetry] = useState(0);
   const [videoPosterReady, setVideoPosterReady] = useState(false);
-  const loadInlineMedia = autoLoadMedia || manualMediaLoad;
+  const imageUrl = String(effectiveImageUrl || "").trim();
+  const isLocalPreview = /^blob:/i.test(imageUrl) || /^data:/i.test(imageUrl);
+  const loadInlineMedia = autoLoadMedia || manualMediaLoad || isMine || isLocalPreview;
 
   const imageSrc = useMemo(() => {
     const base = String(effectiveImageUrl || "").trim();
@@ -167,7 +169,7 @@ export default function MessageMedia({
           <span
             className={cn(
               "relative block w-full max-w-full overflow-hidden rounded-lg",
-              isGroupChat ? "min-h-[12rem] max-h-80" : "h-40 min-w-[12rem]",
+              isGroupChat ? "min-h-[12rem] max-h-80" : "min-h-[10rem] max-h-80",
               isMine ? "bg-white/10" : "bg-black/5 dark:bg-white/10",
             )}
           >
@@ -230,8 +232,7 @@ export default function MessageMedia({
                   loading="eager"
                   decoding="async"
                   className={cn(
-                    "h-full w-full transition-opacity duration-200",
-                    isGroupChat ? "max-h-80 object-contain" : "object-cover",
+                    "h-full w-full max-h-80 object-contain transition-opacity duration-200",
                     mediaLoading ? "opacity-0" : "opacity-100",
                   )}
                   onLoad={onMediaLoad}

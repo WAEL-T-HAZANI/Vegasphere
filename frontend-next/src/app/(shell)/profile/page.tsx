@@ -271,7 +271,7 @@ export default function ProfilePage() {
         }
         mainClassName="pb-safe"
       >
-          <form id="vs-profile-form" onSubmit={save} className="space-y-4">
+          <form id="vs-profile-form" onSubmit={save} noValidate className="space-y-4">
             <section className="vs-settings-card space-y-4 !p-5 md:!p-6">
               <SettingsSectionHeading
                 icon={UserRound}
@@ -389,8 +389,6 @@ export default function ProfilePage() {
                     className="vs-input mt-2"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    required
-                    minLength={3}
                     maxLength={PROFILE_NAME_MAX_LENGTH}
                   />
                   <div className="mt-1 flex justify-end text-[11px] font-semibold text-muted">

@@ -201,9 +201,9 @@ function ChatMessageBubble({
   const highlightedText = useMemo(
     () =>
       searchQuery && hasText
-        ? renderHighlightedText(rawText, searchQuery)
+        ? renderHighlightedText(rawText, searchQuery, isMine)
         : null,
-    [searchQuery, hasText, rawText]
+    [searchQuery, hasText, rawText, isMine]
   );
   const reactionGroups = useMemo(() => normalizeReactionGroups(m), [m]);
   const totalPollVotes = useMemo(() => countPollVotes(m.poll), [m.poll]);
@@ -294,8 +294,7 @@ function ChatMessageBubble({
           selected && "ring-2 ring-brand-500",
           m.isPinned && "ring-1 ring-brand-400/80",
           mentionedMe && "ring-2 ring-brand-500/80",
-          isSearchFocused &&
-            "ring-2 ring-brand-500 shadow-brand-500/20 vs-dark-brand-ring",
+          isSearchFocused && "vs-msg-jump-highlight",
           !isMediaOnly &&
             (isMine
               ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-600/25 dark:from-brand-700 dark:via-brand-800 dark:to-red-900/95 dark:shadow-red-950/30"
