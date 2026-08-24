@@ -405,7 +405,7 @@ export default function NotificationsPage() {
                   >
                     <div className="relative h-12 w-12 shrink-0 overflow-visible">
                       <UserAvatar
-                        name={displayUserPrimaryLabel(actor, t)}
+                        name={displayUserPrimaryLabel(actor)}
                         profilePic={actor?.profilePic}
                         size="sm"
                         className="h-12 w-12 rounded-2xl"
