@@ -71,17 +71,26 @@ router.get("/ready", async (req, res) => {
     },
   };
   try {
-    const dictStore = require("../services/dict-store.js");
-    const health = dictStore.getHealthCheck?.() || {};
-    data.checks.vegaDict = health.sqlite ? "sqlite" : "json-fallback";
-    if (health.dbPath) data.checks.vegaDictPath = health.dbPath;
-    if (health.fileBytes) {
-      data.checks.vegaDictMb = Number((health.fileBytes / 1024 / 1024).toFixed(1));
-    }
+    const { getAiHealthCheck } = require("../services/ai/index-loader.js");
+    const aiHealth = getAiHealthCheck();
+    data.checks.aiIndex = aiHealth.ready ? "ready" : "empty";
+    data.checks.aiSmartReplyKeys = aiHealth.smartReplyKeys;
+    data.checks.aiTranslatePhrases = aiHealth.translatePhrases;
+    data.checks.aiTranslateWords = aiHealth.translateWords;
   } catch (error) {
-    data.checks.vegaDict = "unknown";
-    data.checks.vegaDictError = error?.message || String(error);
-    console.warn("vegaDict ready probe failed:", error?.message || error);
+    data.checks.aiIndex = "unknown";
+    data.checks.aiIndexError = error?.message || String(error);
+  }
+  try {
+    const { getNeuralStatus } = require("../services/ai/neural-translate.js");
+    const neural = getNeuralStatus();
+    data.checks.aiNeural = neural.enabled
+      ? neural.ready
+        ? "ready"
+        : "loading"
+      : "disabled";
+  } catch (error) {
+    data.checks.aiNeural = "unknown";
   }
   if (!ready) {
     return res.status(503).json({

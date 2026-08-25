@@ -249,7 +249,13 @@ Generate VAPID keys (if needed): `npx web-push generate-vapid-keys`
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push notifications |
 | `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Object storage (S3 / R2) |
 | `S3_ENDPOINT`, `S3_PUBLIC_BASE_URL` | Custom endpoint + public CDN URL |
-| `AI_SMART_REPLY_CACHE_MS` | Smart reply cache TTL (default `30000`) |
+| `AI_SMART_REPLY_CACHE_MS` | Smart reply cache TTL (default `12000`) |
+| `GROQ_API_KEY` | Free Groq API key — enables Llama for smart replies + translate ([console.groq.com](https://console.groq.com)) |
+| `GROQ_MODEL` | Groq chat model (default `openai/gpt-oss-20b`) |
+| `AI_LLM_SMART_REPLIES` | `fallback` (default) = Llama when lookup misses; `always` = always Llama; `off` = lookup only |
+| `AI_LLM_TRANSLATE` | `fallback` (default) = Llama when lookup weak; `always` = always Llama; `off` = local only |
+| `AI_LLM_TIMEOUT_MS` | Groq request timeout ms (default `15000`) |
+| `AI_NEURAL_TRANSLATE` | `1` (default) = local OPUS-MT if Groq misses; `0` = translate lookup only |
 
 ### WebRTC calls on live networks
 

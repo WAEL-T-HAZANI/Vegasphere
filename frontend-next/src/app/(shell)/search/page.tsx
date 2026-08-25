@@ -165,6 +165,7 @@ function SearchHubInner() {
             error={error}
             result={result}
             focusUserId={focusUserId}
+            currentUserId={me?._id ? String(me._id) : ""}
             actionBusy={actionBusy}
             presenceById={presenceById}
             onStartChat={startChat}

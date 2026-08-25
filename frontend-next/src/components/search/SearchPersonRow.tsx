@@ -23,6 +23,7 @@ import type { User } from "@/types/api";
 
 type SearchPersonRowProps = {
   user: User;
+  currentUserId?: string;
   focused?: boolean;
   actionBusy?: boolean;
   presenceById?: Record<string, { online?: boolean; lastSeen?: string }>;
@@ -34,6 +35,7 @@ type SearchPersonRowProps = {
 
 export default function SearchPersonRow({
   user,
+  currentUserId = "",
   focused = false,
   actionBusy = false,
   presenceById,
@@ -45,6 +47,7 @@ export default function SearchPersonRow({
   const { t, i18n } = useTranslation();
   const rtl = i18n.dir() === "rtl";
   const userId = String(user._id || "");
+  const isSelf = Boolean(currentUserId) && userId === currentUserId;
   const label = displayUserPrimaryLabel(user);
   const handle = userHandleLine(user);
   const avatarUrl = String(user.profilePic || "").trim();
@@ -66,7 +69,14 @@ export default function SearchPersonRow({
             </span>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-base font-semibold leading-snug text-ink">{label}</div>
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="truncate text-base font-semibold leading-snug text-ink">{label}</div>
+              {isSelf ? (
+                <span className="inline-flex shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-800 dark:bg-brand-900/50 dark:text-brand-100">
+                  {t("savedSelfBadge")}
+                </span>
+              ) : null}
+            </div>
             {handle ? (
               <div className="mt-0.5 truncate text-xs leading-snug text-muted">{handle}</div>
             ) : null}
@@ -74,14 +84,16 @@ export default function SearchPersonRow({
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-          <button
-            type="button"
-            onClick={() => onStartChat(userId)}
-            disabled={actionBusy}
-            className="vs-btn-primary-pill min-h-10 w-full px-4 py-2 sm:w-auto"
-          >
-            {t("startChat")}
-          </button>
+          {!isSelf ? (
+            <button
+              type="button"
+              onClick={() => onStartChat(userId)}
+              disabled={actionBusy}
+              className="vs-btn-primary-pill min-h-10 w-full px-4 py-2 sm:w-auto"
+            >
+              {t("startChat")}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onViewProfile(userId)}
@@ -92,7 +104,8 @@ export default function SearchPersonRow({
             {t("viewProfile")}
           </button>
 
-          <div className="flex w-full flex-col gap-2 md:hidden">
+          {!isSelf ? (
+            <div className="flex w-full flex-col gap-2 md:hidden">
             <button
               type="button"
               onClick={() => onIgnore(userId)}
@@ -110,7 +123,9 @@ export default function SearchPersonRow({
               {t("blockUser")}
             </button>
           </div>
+          ) : null}
 
+          {!isSelf ? (
           <DropdownRoot dir={rtl ? "rtl" : "ltr"}>
             <DropdownTrigger asChild>
               <VegaDropdownIconTrigger
@@ -132,6 +147,7 @@ export default function SearchPersonRow({
               </VegaDropdownContent>
             </DropdownPortal>
           </DropdownRoot>
+          ) : null}
         </div>
       </div>
     </li>

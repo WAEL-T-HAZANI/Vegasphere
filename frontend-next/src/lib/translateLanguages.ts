@@ -41,7 +41,8 @@ export async function getTranslateLanguages() {
           code: String(l?.code || "").trim(),
           name: String(l?.name || "").trim(),
         }))
-        .filter((l) => l.code && l.name);
+        .filter((l) => l.code && l.name)
+        .filter((l) => l.code === "auto" || l.code === "en" || l.code === "ar");
 
       cachedValue = normalized.length ? normalized : FALLBACK_LANGS;
       cachedAt = Date.now();

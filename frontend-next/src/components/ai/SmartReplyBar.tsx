@@ -10,6 +10,24 @@ import { getAppLanguage } from "@/i18n/language";
 
 const EMPTY_ARR: Array<{ sender?: string; text?: string }> = [];
 
+function normalizeReplyChip(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "object" && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    return normalizeReplyChip(
+      obj.text ?? obj.reply ?? obj.content ?? obj.message ?? obj.suggestion ?? "",
+    );
+  }
+  const text = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text || text === "[object Object]") return "";
+  if (text.startsWith("{") || text.startsWith("[") || text.includes('"replies"')) {
+    return "";
+  }
+  return text.slice(0, 80);
+}
+
 export type SmartReplyBarProps = {
   recentTexts?: string[];
   recentMessages?: Array<{ sender?: string; text?: string }>;
@@ -150,13 +168,13 @@ export default function SmartReplyBar({
           payload.conversationKind = conversationKind;
         }
         const { data } = await aiClient.getSmartReplies(payload, {
-          timeout: 6000,
+          timeout: 18000,
         });
         if (cancelled || requestIdRef.current !== reqId) return;
         const next = data?.suggestions || data?.replies || [];
         setItems(
           Array.isArray(next)
-            ? next.map((s) => String(s || "").trim()).filter(Boolean)
+            ? next.map(normalizeReplyChip).filter(Boolean)
             : [],
         );
         setContextPreview(String(data?.contextPreview || localPreview || ""));
@@ -267,8 +285,11 @@ export default function SmartReplyBar({
               <button
                 key={s}
                 type="button"
+                title={s}
                 onClick={() => onPick?.(s)}
-                className={cn("vs-btn-primary-sm", "rounded-full !shadow-md")}
+                className={cn(
+                  "vs-btn-primary-sm max-w-full truncate rounded-full !shadow-md",
+                )}
               >
                 {s}
               </button>
@@ -300,10 +321,11 @@ export default function SmartReplyBar({
           <button
             key={`${idx}-${s}`}
             type="button"
+            title={s}
             onClick={() => onPick?.(s)}
             className={cn("vs-smart-reply-chip-sm", loading && "opacity-70")}
           >
-            {s}
+            <span className="block truncate">{s}</span>
           </button>
         ))}
       </div>

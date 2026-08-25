@@ -1,13 +1,18 @@
 const { ApiError } = require("./http-error.js");
+const { loadAiIndexes } = require("./ai/index-loader.js");
+const { translateHybrid } = require("./ai/translate-hybrid.js");
 const {
-  translateTextLocal,
   getSupportedLanguages,
   getEngineStats,
-} = require("./ai-local-engine.js");
+} = require("./ai/lookup.js");
+const { getNeuralStatus } = require("./ai/neural-translate.js");
+const { getGroqStatus } = require("./ai/groq-llm.js");
 
 const MAX_TRANSLATE_TEXT_CHARS = 5000;
 
-async function translateText(req, res) {
+async function translateTextHandler(req, res) {
+  loadAiIndexes();
+
   const { text, targetLanguage, sourceLanguage, context, uiLanguage } =
     req.body || {};
 
@@ -26,7 +31,6 @@ async function translateText(req, res) {
   let src = sourceLanguage || "auto";
   let tgt = targetLanguage || "en";
 
-  // Chat: always auto-detect message language → user's UI reading language.
   if (context === "chat") {
     src = "auto";
     const ui = String(uiLanguage || targetLanguage || "en")
@@ -35,8 +39,11 @@ async function translateText(req, res) {
     tgt = ui.startsWith("ar") ? "ar" : "en";
   }
 
-  const result = translateTextLocal(trimmedText, src, tgt, {
-    uiLanguage: context === "chat" ? tgt : undefined,
+  const result = await translateHybrid({
+    text: trimmedText,
+    sourceLanguage: src,
+    targetLanguage: tgt,
+    uiLanguage: context === "chat" ? tgt : uiLanguage,
   });
 
   return res.json({
@@ -47,20 +54,32 @@ async function translateText(req, res) {
     detectedSource: result.detectedSource || null,
     targetLanguage: result.targetLanguage || tgt,
     context: context === "chat" ? "chat" : "service",
+    llm: getGroqStatus(),
   });
 }
 
 async function listTranslateLanguages(_req, res) {
+  loadAiIndexes();
   const stats = getEngineStats();
+  const neural = getNeuralStatus();
+  const groq = getGroqStatus();
   return res.json({
     languages: getSupportedLanguages(),
-    provider: stats?.provider || "local",
-    dataSource: stats?.provider === "premium-sqlite" ? "sqlite" : "json",
-    stats,
+    provider: groq.configured
+      ? "groq+local-hybrid"
+      : neural.ready
+        ? "local-hybrid"
+        : stats?.provider || "local-index",
+    dataSource: groq.configured
+      ? `${groq.model}+translate.json+opus-mt`
+      : neural.ready
+        ? "translate.json+opus-mt"
+        : "translate.json",
+    stats: { ...stats, neural, groq },
   });
 }
 
 module.exports = {
-  translateText,
+  translateText: translateTextHandler,
   listTranslateLanguages,
 };

@@ -3,6 +3,7 @@
 import { useTranslation } from "react-i18next";
 import { Search as SearchIcon, X } from "lucide-react";
 import { cn } from "@/lib/classNames";
+import { isPhoneLikeQuery, normalizePhoneInput } from "@/lib/phoneHash";
 
 type SearchQueryBarProps = {
   value: string;
@@ -24,6 +25,12 @@ export default function SearchQueryBar({
   const { t, i18n } = useTranslation();
   const rtl = i18n.dir() === "rtl";
   const hasValue = value.trim().length > 0;
+  const phoneLike = isPhoneLikeQuery(value);
+  const inputDir = phoneLike ? "ltr" : rtl ? "rtl" : "ltr";
+
+  const handleChange = (next: string) => {
+    onChange(phoneLike || isPhoneLikeQuery(next) ? normalizePhoneInput(next) : next);
+  };
 
   return (
     <div className={cn("space-y-2", className)} dir={rtl ? "rtl" : "ltr"}>
@@ -34,14 +41,19 @@ export default function SearchQueryBar({
         />
         <input
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
           name="q"
           autoComplete="off"
           enterKeyHint="search"
-          dir={rtl ? "rtl" : "ltr"}
+          dir={inputDir}
+          inputMode={phoneLike ? "tel" : "search"}
           placeholder={t("globalSearchPlaceholder")}
           aria-label={t("globalSearchPlaceholder")}
-          className={cn("vs-input w-full py-3 ps-11 text-start", hasValue ? "pe-11" : "pe-4")}
+          className={cn(
+            "vs-input w-full py-3 ps-11 text-start",
+            phoneLike && "tabular-nums",
+            hasValue ? "pe-11" : "pe-4",
+          )}
           autoFocus={autoFocus}
         />
         {hasValue ? (

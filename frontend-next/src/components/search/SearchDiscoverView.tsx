@@ -3,7 +3,6 @@
 import { useTranslation } from "react-i18next";
 import { Compass, Hash, MessageCircle, Users } from "lucide-react";
 import IncomingInvitesPanel from "@/components/search/IncomingInvitesPanel";
-import ContactMatchSection from "@/components/search/ContactMatchSection";
 import NonFriendsSection from "@/components/search/NonFriendsSection";
 
 export default function SearchDiscoverView() {
@@ -58,10 +57,7 @@ export default function SearchDiscoverView() {
 
       <IncomingInvitesPanel />
 
-      <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
-        <ContactMatchSection />
-        <NonFriendsSection />
-      </div>
+      <NonFriendsSection />
     </div>
   );
 }

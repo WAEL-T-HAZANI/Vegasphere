@@ -74,7 +74,11 @@ export default function AiServicesPage() {
     }
   }, [aiTab]);
 
-  const langOptions = useMemo(() => (Array.isArray(langs) && langs.length ? langs : []), [langs]);
+  const langOptions = useMemo(() => {
+    const allowed = new Set(["auto", "en", "ar"]);
+    const list = Array.isArray(langs) && langs.length ? langs : [];
+    return list.filter((l) => allowed.has(l.code));
+  }, [langs]);
 
   const segmentTabs = [
     { id: "replies", label: t("aiTabSmartReplies"), icon: Sparkles },

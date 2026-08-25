@@ -573,7 +573,7 @@ body {
     @apply dark:bg-transparent dark:ring-0;
   }
   .vs-smart-reply-chip-sm {
-    @apply inline-flex h-6 max-w-[11rem] shrink-0 items-center justify-center rounded-full bg-brand-600 px-2 text-[10px] font-semibold leading-none text-white shadow-sm outline-none transition;
+    @apply inline-flex h-auto min-h-6 max-w-[min(100%,13rem)] shrink-0 items-center justify-center truncate rounded-full bg-brand-600 px-2.5 py-1 text-[10px] font-semibold leading-snug text-white shadow-sm outline-none transition;
     @apply hover:bg-brand-700 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-1 focus-visible:ring-offset-canvas;
     @apply dark:bg-gradient-to-br dark:from-brand-700 dark:via-brand-800 dark:to-red-900 dark:hover:from-brand-600 dark:hover:via-brand-700 dark:hover:to-red-800 dark:focus-visible:ring-offset-gray-950;
   }

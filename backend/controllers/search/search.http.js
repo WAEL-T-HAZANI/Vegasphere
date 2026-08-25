@@ -6,6 +6,10 @@ const {
   makeSearchRegex,
   matchesSearchText,
 } = require("../../services/search-normalize.js");
+const {
+  isPhoneLikeQuery,
+  phoneHashCandidatesFromQuery,
+} = require("../../services/phone-hash.js");
 const { filterDiscoverableUsers } = require("../users/helpers.js");
 
 function resolveConversationName(conversation, userId) {
@@ -85,8 +89,26 @@ const globalSearch = async (req, res) => {
       .limit(30)
       .lean();
 
+    let phoneUsers = [];
+    if (isPhoneLikeQuery(q)) {
+      const hashes = phoneHashCandidatesFromQuery(q);
+      if (hashes.length) {
+        phoneUsers = await User.find({
+          phoneDiscoverable: true,
+          phoneHash: { $in: hashes },
+        })
+          .select("name username email profilePic searchDiscoverable")
+          .limit(15)
+          .lean();
+      }
+    }
+
+    const mergedById = new Map();
+    for (const u of users) mergedById.set(String(u._id), u);
+    for (const u of phoneUsers) mergedById.set(String(u._id), u);
+
     const filteredUsers = (
-      await filterDiscoverableUsers(userId, users)
+      await filterDiscoverableUsers(userId, [...mergedById.values()])
     ).filter((u) => !blocked.has(String(u._id))).slice(0, 15);
 
     const conversations = [];

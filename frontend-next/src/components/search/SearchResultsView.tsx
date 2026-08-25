@@ -22,6 +22,7 @@ type SearchResultsViewProps = {
   error: string;
   result: GlobalSearchResult;
   focusUserId: string;
+  currentUserId?: string;
   actionBusy: boolean;
   presenceById?: Record<string, { online?: boolean; lastSeen?: string }>;
   onStartChat: (_userId: string) => void;
@@ -64,6 +65,7 @@ export default function SearchResultsView({
   error,
   result,
   focusUserId,
+  currentUserId = "",
   actionBusy,
   presenceById,
   onStartChat,
@@ -118,6 +120,7 @@ export default function SearchResultsView({
               <SearchPersonRow
                 key={String(u._id)}
                 user={u}
+                currentUserId={currentUserId}
                 focused={Boolean(focusUserId) && String(u._id) === focusUserId}
                 actionBusy={actionBusy}
                 presenceById={presenceById}

@@ -46,6 +46,26 @@ import ShellNavBadge, { formatShellBadgeCount } from "@/components/layout/ShellN
 /** Symmetric padding so icon center stays on (x, y); labels overflow outside. */
 const LABEL_OVERFLOW = 24;
 const HUB_LABEL_SPACE = 24;
+const NODE_LABEL_W = 96;
+const NODE_LABEL_H = 20;
+const NODE_LABEL_GAP = 9;
+
+function orbitNodeLabelXY(
+  x: number,
+  y: number,
+  cx: number,
+  cy: number,
+  nodeHalf: number,
+) {
+  const vx = x - cx;
+  const vy = y - cy;
+  const len = Math.hypot(vx, vy) || 1;
+  const offset = nodeHalf + NODE_LABEL_GAP + NODE_LABEL_H / 2;
+  return {
+    x: x + (vx / len) * offset,
+    y: y + (vy / len) * offset,
+  };
+}
 const LAUNCHER_SIZE = 56;
 const LAUNCHER_MARGIN = 16;
 const LAUNCHER_POS_KEY = "vegasphere-floating-nav-launcher";
@@ -142,107 +162,126 @@ function SvgOrbitButton({
   const half = size / 2;
   const foSize = size + LABEL_OVERFLOW * 2;
   const badgeLabel = formatShellBadgeCount(badgeCount);
+  const { x: labelX, y: labelY } = orbitNodeLabelXY(
+    x,
+    y,
+    ORBIT_CX,
+    ORBIT_CY,
+    half,
+  );
 
   return (
-    <foreignObject
-      x={x - half - LABEL_OVERFLOW}
-      y={y - half - LABEL_OVERFLOW}
-      width={foSize}
-      height={foSize}
-      className="overflow-visible"
-    >
-      <motion.div
-        className="relative grid h-full w-full place-items-center overflow-visible"
-        initial={reduceMotion ? false : { opacity: 0, scale: 0.72 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{
-          delay: enterDelay,
-          duration: 0.42,
-          ease: [0.22, 1, 0.36, 1],
-        }}
+    <>
+      <foreignObject
+        x={x - half - LABEL_OVERFLOW}
+        y={y - half - LABEL_OVERFLOW}
+        width={foSize}
+        height={foSize}
+        className="overflow-visible"
       >
-        <motion.button
-          type="button"
-          aria-label={badgeLabel ? `${label} (${badgeLabel})` : label}
-          onClick={onClick}
-          initial="rest"
-          whileHover="hover"
-          whileTap={{ scale: 0.94 }}
-          className={cn(
-            "group relative z-10 grid place-items-center overflow-visible rounded-2xl border shadow-lg outline-none",
-            "focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2",
-            active
-              ? "border-brand-500/60 bg-brand-600 text-white shadow-[0_0_28px_rgb(var(--vega-brand)/0.38)] dark:border-brand-500/50 dark:bg-brand-700"
-              : ghost
-                ? "border-dashed border-brand-300/50 bg-brand-50/30 dark:border-brand-700/45 dark:bg-brand-900/15"
-                : "border-brand-200/55 bg-surface/94 text-muted dark:border-white/12 dark:bg-black/78",
-          )}
-          style={{ width: size, height: size }}
-          variants={{
-            rest: { scale: 1 },
-            hover: {
-              scale: 1.1,
-              transition: { type: "spring", stiffness: 460, damping: 20 },
-            },
+        <motion.div
+          className="relative grid h-full w-full place-items-center overflow-visible"
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.72 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{
+            delay: enterDelay,
+            duration: 0.42,
+            ease: [0.22, 1, 0.36, 1],
           }}
         >
-          <motion.span
-            className="grid place-items-center"
+          <motion.button
+            type="button"
+            aria-label={badgeLabel ? `${label} (${badgeLabel})` : label}
+            onClick={onClick}
+            initial="rest"
+            whileHover="hover"
+            whileTap={{ scale: 0.94 }}
+            className={cn(
+              "group relative z-10 grid place-items-center overflow-visible rounded-2xl border shadow-lg outline-none",
+              "focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2",
+              active
+                ? "border-brand-500/60 bg-brand-600 text-white shadow-[0_0_28px_rgb(var(--vega-brand)/0.38)] dark:border-brand-500/50 dark:bg-brand-700"
+                : ghost
+                  ? "border-dashed border-brand-300/50 bg-brand-50/30 dark:border-brand-700/45 dark:bg-brand-900/15"
+                  : "border-brand-200/55 bg-surface/94 text-muted dark:border-white/12 dark:bg-black/78",
+            )}
+            style={{ width: size, height: size }}
             variants={{
-              rest: { scale: 1, rotate: 0 },
+              rest: { scale: 1 },
               hover: {
-                scale: 1.08,
-                rotate: ghost ? 0 : [0, -6, 6, 0],
-                transition: { duration: 0.38 },
+                scale: 1.1,
+                transition: { type: "spring", stiffness: 460, damping: 20 },
               },
             }}
           >
-            {children}
-          </motion.span>
-          <ShellNavBadge
-            count={badgeCount}
-            compact
-            className="absolute -end-1.5 -top-1.5 z-20"
-          />
-
-          {!ghost ? (
             <motion.span
-              aria-hidden
-              className="pointer-events-none absolute inset-0 rounded-2xl bg-brand-400/0"
+              className="grid place-items-center"
               variants={{
-                rest: { opacity: 0 },
-                hover: { opacity: 1 },
+                rest: { scale: 1, rotate: 0 },
+                hover: {
+                  scale: 1.08,
+                  rotate: ghost ? 0 : [0, -6, 6, 0],
+                  transition: { duration: 0.38 },
+                },
               }}
-              style={{
-                boxShadow: "0 0 22px rgb(var(--vega-brand) / 0.35)",
-              }}
+            >
+              {children}
+            </motion.span>
+            <ShellNavBadge
+              count={badgeCount}
+              compact
+              className="absolute -end-1.5 -top-1.5 z-20"
             />
-          ) : null}
 
-          <motion.span
-            aria-hidden
+            {!ghost ? (
+              <motion.span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-2xl bg-brand-400/0"
+                variants={{
+                  rest: { opacity: 0 },
+                  hover: { opacity: 1 },
+                }}
+                style={{
+                  boxShadow: "0 0 22px rgb(var(--vega-brand) / 0.35)",
+                }}
+              />
+            ) : null}
+          </motion.button>
+        </motion.div>
+      </foreignObject>
+
+      <foreignObject
+        x={labelX - NODE_LABEL_W / 2}
+        y={labelY - NODE_LABEL_H / 2}
+        width={NODE_LABEL_W}
+        height={NODE_LABEL_H}
+        className="overflow-visible"
+      >
+        <motion.div
+          className="flex h-full w-full items-center justify-center px-0.5"
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.88 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{
+            delay: enterDelay + 0.06,
+            duration: 0.32,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+        >
+          <span
             className={cn(
-              "pointer-events-none absolute left-1/2 top-full z-30 whitespace-nowrap rounded-md border px-2 py-0.5 text-[9px] font-bold tracking-wide shadow-md sm:text-[10px]",
-              active
-                ? "border-brand-400/50 bg-brand-600/95 text-white"
-                : "border-brand-200/60 bg-surface/96 text-brand-800 dark:border-white/14 dark:bg-black/88 dark:text-brand-100",
+              "max-w-full truncate text-center text-[9px] font-bold leading-tight tracking-wide sm:text-[10px]",
+              ghost
+                ? "text-brand-500/70 dark:text-brand-300/65"
+                : active
+                  ? "text-brand-700 dark:text-brand-200"
+                  : "text-brand-800 dark:text-brand-100",
             )}
-            style={{ x: "-50%", transformOrigin: "50% 0%" }}
-            variants={{
-              rest: { opacity: 0, scale: 0.45, y: -10 },
-              hover: {
-                opacity: 1,
-                scale: 1,
-                y: 2,
-                transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] },
-              },
-            }}
           >
             {label}
-          </motion.span>
-        </motion.button>
-      </motion.div>
-    </foreignObject>
+          </span>
+        </motion.div>
+      </foreignObject>
+    </>
   );
 }
 

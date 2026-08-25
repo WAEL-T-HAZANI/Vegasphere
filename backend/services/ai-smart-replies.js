@@ -1,7 +1,14 @@
+const { loadAiIndexes } = require("./ai/index-loader.js");
 const {
-  generateSmartReplies,
-  getDataSource,
-} = require("./ai-local-engine.js");
+  lookupSmartReplies,
+  getEngineStats,
+} = require("./ai/lookup.js");
+const {
+  generateSmartRepliesLlm,
+  shouldUseGroqSmartReplies,
+  getGroqStatus,
+  normalizeReplyList,
+} = require("./ai/groq-llm.js");
 
 const AI_SMART_REPLY_CACHE_MS = Math.max(
   0,
@@ -47,11 +54,19 @@ function mapMessageEntry(item) {
   };
 }
 
+function rotateReplies(replies, seed) {
+  const list = normalizeReplyList(replies);
+  if (list.length <= 1) return list.slice(0, 3);
+  const offset = Number(seed) % list.length;
+  return [...list.slice(offset), ...list.slice(0, offset)].slice(0, 3);
+}
+
 async function smartReplies(req, res) {
+  loadAiIndexes();
+
   const body = req.body || {};
   const { language = "en" } = body;
 
-  const subject = sanitizeLine(body.subject || "");
   const toneRaw = String(body.tone || "")
     .trim()
     .toLowerCase();
@@ -66,9 +81,6 @@ async function smartReplies(req, res) {
     0,
     Math.min(9999, Number(body.variationSeed) || 0),
   );
-  const conversationKind = String(body.conversationKind || "")
-    .trim()
-    .toLowerCase();
 
   let trimmedMessages = [];
 
@@ -83,14 +95,12 @@ async function smartReplies(req, res) {
   }
 
   if (!trimmedMessages.length) {
-    const fallback = language.startsWith("ar")
-      ? ["👍", "تمام", "شكراً"]
-      : ["👍", "Sounds good", "Thanks!"];
     return res.json({
-      replies: fallback,
-      suggestions: fallback,
-      provider: "local",
-      dataSource: getDataSource(),
+      replies: [],
+      suggestions: [],
+      provider: "local-index",
+      dataSource: "smart-replies.json",
+      contextPreview: "",
     });
   }
 
@@ -99,24 +109,17 @@ async function smartReplies(req, res) {
     .map((item) => `${item.sender}: ${item.text}`)
     .join("\n");
 
-  const cacheKey = [
-    language,
-    tone,
-    subject,
-    conversationKind,
-    conversation,
-    variationSeed,
-  ].join("::");
+  const cacheKey = [language, tone, conversation, variationSeed].join("::");
 
   if (!regenerate) {
     const cached = cacheGet(cacheKey);
     if (cached) {
       return res.json({
-        replies: cached.replies,
-        suggestions: cached.replies,
+        replies: normalizeReplyList(cached.replies),
+        suggestions: normalizeReplyList(cached.replies),
         intent: cached.intent,
-        provider: cached.provider || "local",
-        dataSource: cached.dataSource || getDataSource(),
+        provider: cached.provider || "local-index",
+        dataSource: cached.dataSource || "smart-replies.json",
         contextPreview: cached.contextPreview || "",
         cached: true,
       });
@@ -124,37 +127,50 @@ async function smartReplies(req, res) {
   }
 
   try {
-    const result = generateSmartReplies({
+    const lookupResult = lookupSmartReplies({
       messages: trimmedMessages,
       language,
       tone,
-      subject,
-      conversationKind,
-      variationSeed,
     });
 
-    delete result.weak;
+    let result = lookupResult;
 
-    cacheSet(cacheKey, result);
+    if (shouldUseGroqSmartReplies({ lookupHit: lookupResult.replies.length > 0 })) {
+      const llmResult = await generateSmartRepliesLlm({
+        messages: trimmedMessages,
+        language,
+        tone,
+      });
+      if (llmResult?.replies?.length) {
+        result = {
+          ...lookupResult,
+          ...llmResult,
+          contextPreview: lookupResult.contextPreview,
+        };
+      }
+    }
+
+    const replies = rotateReplies(result.replies, variationSeed);
+    const payload = { ...result, replies: normalizeReplyList(replies) };
+
+    cacheSet(cacheKey, payload);
 
     return res.json({
-      replies: result.replies,
-      suggestions: result.replies,
-      intent: result.intent,
-      provider: result.provider || "local",
-      dataSource: result.dataSource || getDataSource(),
-      contextPreview: result.contextPreview || "",
+      replies: payload.replies,
+      suggestions: payload.replies,
+      intent: payload.intent,
+      provider: payload.provider,
+      dataSource: payload.dataSource,
+      contextPreview: payload.contextPreview || "",
+      llm: getGroqStatus(),
     });
   } catch (err) {
     console.warn("smartReplies failed:", err?.message || err);
-    const fallback = language.startsWith("ar")
-      ? ["👍", "تمام", "شكراً"]
-      : ["👍", "Sounds good", "Thanks!"];
     return res.json({
-      replies: fallback,
-      suggestions: fallback,
-      provider: "local",
-      dataSource: "json",
+      replies: [],
+      suggestions: [],
+      provider: "local-index",
+      dataSource: "smart-replies.json",
       contextPreview: "",
     });
   }
@@ -162,4 +178,6 @@ async function smartReplies(req, res) {
 
 module.exports = {
   smartReplies,
+  getEngineStats,
+  getGroqStatus,
 };

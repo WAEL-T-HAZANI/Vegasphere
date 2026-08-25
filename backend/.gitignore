@@ -16,9 +16,18 @@ npm-debug.log*
 # Coverage / test output
 coverage/
 
-# AI dataset build cache + generated DB (rebuild with npm run ai:build-premium)
+# AI index build cache
 scripts/.cache/
-# Full phrase map kept locally; repo ships translations.json.gz (under GitLab 100MB limit)
+.cache/
+
+# Generated AI indexes (ship .json.gz; plain .json is local build output)
+data/ai/*.json
+!data/ai/seed-smart-replies.json
+!data/ai/seed-translate.json
+!data/ai/curated-phrases.json
+!data/ai/*.json.gz
+
+# Legacy removed — do not re-add
 data/translations.json
 data/vega-dict.db
 data/vega-dict.db-*

@@ -154,23 +154,14 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 async function start() {
   console.log(getMailStatusLine());
 
-  const fs = require("fs");
-  const { ensureVegaDict, DB_PATH } = require("./scripts/ensure-vega-dict.js");
-  const hasLocalDict = (() => {
-    try {
-      return fs.existsSync(DB_PATH) && fs.statSync(DB_PATH).size >= 1024 * 1024;
-    } catch {
-      return false;
-    }
-  })();
+  const { loadAiIndexes } = require("./services/ai/index-loader.js");
+  loadAiIndexes();
 
-  if (hasLocalDict) {
-    const dictResult = await ensureVegaDict();
-    if (dictResult.ok) {
-      const mb = ((dictResult.bytes || 0) / 1024 / 1024).toFixed(1);
-      const at = dictResult.path ? ` @ ${dictResult.path}` : "";
-      console.log(`[ai] vega-dict.db ready (${dictResult.source}, ${mb} MB${at})`);
-    }
+  if (String(process.env.AI_NEURAL_TRANSLATE || "1").trim() !== "0") {
+    const { warmNeuralModels } = require("./services/ai/neural-translate.js");
+    warmNeuralModels().catch((err) => {
+      console.warn("[ai-neural] background warm-up:", err?.message || err);
+    });
   }
 
   await connectDB();
@@ -183,31 +174,6 @@ async function start() {
   server.listen(PORT, () => {
     console.log(`🚀 Server started at http://localhost:${PORT}`);
   });
-
-  if (!hasLocalDict) {
-    ensureVegaDict()
-      .then((dictResult) => {
-        if (dictResult.ok) {
-          const mb = ((dictResult.bytes || 0) / 1024 / 1024).toFixed(1);
-          const at = dictResult.path ? ` @ ${dictResult.path}` : "";
-          console.log(`[ai] vega-dict.db ready (${dictResult.source}, ${mb} MB${at})`);
-          try {
-            const dictStore = require("./services/dict-store.js");
-            dictStore.close();
-            dictStore.init();
-          } catch {
-            /* ignore */
-          }
-        } else {
-          console.warn(
-            `[ai] vega-dict.db not loaded (${dictResult.source}) — using JSON fallbacks. ${dictResult.message || ""}`.trim(),
-          );
-        }
-      })
-      .catch((err) => {
-        console.warn(`[ai] vega-dict.db background load failed: ${err?.message || err}`);
-      });
-  }
 }
 
 start().catch((error) => {
