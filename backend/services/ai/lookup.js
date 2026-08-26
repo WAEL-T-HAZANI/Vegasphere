@@ -1,6 +1,8 @@
 const {
   normalizeWhitespace,
   normalizeLookupKey,
+  normalizeSmartReplyKey,
+  smartReplyKeyVariants,
   prepareTranslateInput,
   detectScript,
   wordCount,
@@ -11,6 +13,7 @@ const {
   getTranslateMaps,
   getAiIndexStats,
 } = require("./index-loader.js");
+const { applyToneToReplies } = require("./tone.js");
 
 const MAX_REPLY_LEN = 280;
 const MAX_LOOKUP_KEY_CHARS = 120;
@@ -39,6 +42,62 @@ function getLastIncomingMessage(messages) {
     if (text) return text;
   }
   return "";
+}
+
+function getRecentIncomingMessages(messages, limit = 3) {
+  const list = Array.isArray(messages) ? messages : [];
+  const out = [];
+  for (let i = list.length - 1; i >= 0 && out.length < limit; i -= 1) {
+    const item = list[i];
+    if (isMeSender(item?.sender || item?.role)) continue;
+    const text = normalizeWhitespace(item?.text || item?.content);
+    if (text) out.push(text);
+  }
+  return out;
+}
+
+function levenshtein(a, b) {
+  const left = String(a || "");
+  const right = String(b || "");
+  if (left === right) return 0;
+  if (!left.length) return right.length;
+  if (!right.length) return left.length;
+
+  const rows = [];
+  for (let i = 0; i <= right.length; i += 1) rows[i] = [i];
+  for (let j = 0; j <= left.length; j += 1) rows[0][j] = j;
+
+  for (let i = 1; i <= right.length; i += 1) {
+    for (let j = 1; j <= left.length; j += 1) {
+      const cost = right[i - 1] === left[j - 1] ? 0 : 1;
+      rows[i][j] = Math.min(
+        rows[i - 1][j] + 1,
+        rows[i][j - 1] + 1,
+        rows[i - 1][j - 1] + cost,
+      );
+    }
+  }
+  return rows[right.length][left.length];
+}
+
+function fuzzyPickRepliesFromKey(map, key, limit = 3) {
+  if (!key || key.length < 4 || key.length > 28 || wordCount(key) > 5) return [];
+
+  let bestKey = null;
+  let bestDist = 3;
+
+  for (const candidate of map.keys()) {
+    if (candidate.length < 4 || candidate.length > 28) continue;
+    if (Math.abs(candidate.length - key.length) > 2) continue;
+    const dist = levenshtein(key, candidate);
+    if (dist > 0 && dist < bestDist) {
+      bestDist = dist;
+      bestKey = candidate;
+    }
+  }
+
+  if (!bestKey) return [];
+  return (map.get(bestKey) || []).slice(0, limit);
 }
 
 function pickRepliesFromKey(map, key, limit = 3) {
@@ -81,7 +140,7 @@ function pickRepliesFromKey(map, key, limit = 3) {
     }
   }
 
-  return [];
+  return fuzzyPickRepliesFromKey(map, key, limit);
 }
 
 function pickReplies(map, key, limit = 3) {
@@ -89,7 +148,7 @@ function pickReplies(map, key, limit = 3) {
     key,
     ...String(key)
       .split(/[.!?؟]+/)
-      .map((part) => normalizeLookupKey(part))
+      .map((part) => normalizeSmartReplyKey(part))
       .filter(Boolean),
   ];
   const seen = new Set();
@@ -102,31 +161,68 @@ function pickReplies(map, key, limit = 3) {
   return [];
 }
 
-function lookupSmartReplies({ messages = [], language = "en", tone = "default" }) {
-  void tone;
+function pickRepliesWithVariants(map, text, limit = 3) {
+  const variants = smartReplyKeyVariants(text);
+  for (const key of variants) {
+    const hit = pickReplies(map, key, limit);
+    if (hit.length) return { hit, key };
+  }
+  return { hit: [], key: variants[0] || "" };
+}
+
+function lookupSmartReplies({
+  messages = [],
+  language = "en",
+  tone = "default",
+  variationSeed = 0,
+} = {}) {
   const entries = getSmartReplyEntries();
-  const lastIncoming = getLastIncomingMessage(messages);
-  if (!lastIncoming || !entries.size) {
+  const recentIncoming = getRecentIncomingMessages(messages, 3);
+  if (!recentIncoming.length || !entries.size) {
     return {
       replies: [],
       intent: null,
       contextPreview: "",
       provider: "local-index",
       dataSource: "smart-replies.json",
+      lookupWeak: false,
     };
   }
 
-  const key = normalizeLookupKey(lastIncoming).slice(0, MAX_LOOKUP_KEY_CHARS);
-  const replies = pickReplies(entries, key, 3)
-    .map((line) => normalizeWhitespace(line).slice(0, MAX_REPLY_LEN))
-    .filter(Boolean);
+  let hit = [];
+  let key = "";
+  let matchedText = recentIncoming[0];
+
+  for (const incoming of recentIncoming) {
+    const picked = pickRepliesWithVariants(entries, incoming, 3);
+    if (picked.hit.length) {
+      hit = picked.hit;
+      key = picked.key;
+      matchedText = incoming;
+      break;
+    }
+  }
+
+  const replies = applyToneToReplies(
+    hit
+      .map((line) => normalizeWhitespace(line).slice(0, MAX_REPLY_LEN))
+      .filter(Boolean),
+    tone,
+    language,
+    variationSeed,
+  );
+
+  const lookupWeak =
+    replies.length > 0 &&
+    (wordCount(key) >= 6 || wordCount(normalizeSmartReplyKey(matchedText)) >= 6);
 
   return {
     replies,
     intent: replies.length ? "lookup" : null,
-    contextPreview: lastIncoming,
+    contextPreview: matchedText,
     provider: "local-index",
     dataSource: "smart-replies.json",
+    lookupWeak,
   };
 }
 
@@ -361,4 +457,5 @@ module.exports = {
   getSupportedLanguages,
   getEngineStats,
   getLastIncomingMessage,
+  getRecentIncomingMessages,
 };

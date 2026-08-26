@@ -3,6 +3,7 @@
  * Set GROQ_API_KEY in backend/.env to enable.
  */
 const axios = require("axios");
+const { buildConversationHint } = require("./context.js");
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const DEFAULT_MODEL = String(process.env.GROQ_MODEL || "openai/gpt-oss-20b").trim();
@@ -34,18 +35,18 @@ function getTranslateMode() {
   return parseMode("AI_LLM_TRANSLATE", "fallback");
 }
 
-function shouldUseGroqSmartReplies({ lookupHit }) {
+function shouldUseGroqSmartReplies({ lookupHit, needsBoost = false }) {
   const mode = getSmartReplyMode();
   if (mode === "off" || !isGroqConfigured()) return false;
   if (mode === "always") return true;
-  return !lookupHit;
+  return !lookupHit || needsBoost;
 }
 
-function shouldUseGroqTranslate({ lookupStrong }) {
+function shouldUseGroqTranslate({ lookupStrong, needsGroq = false }) {
   const mode = getTranslateMode();
   if (mode === "off" || !isGroqConfigured()) return false;
   if (mode === "always") return true;
-  return !lookupStrong;
+  return !lookupStrong || needsGroq;
 }
 
 async function callGroqChat({
@@ -239,7 +240,40 @@ function parseRepliesFromContent(content) {
   return [];
 }
 
-async function generateSmartRepliesLlm({ messages = [], language = "en", tone = "default" }) {
+const SMART_REPLY_EXAMPLES = {
+  en: {
+    default:
+      "Them: Did you fix the bug?\nSure, pushing now\nAlmost done\nNeed one more hour",
+    friendly:
+      "Them: Long day today\nHang in there 😊\nWant to talk?\nRest up tonight",
+    formal:
+      "Them: Can we meet tomorrow?\nYes, that works for me.\nPlease share the time.\nI am available after work.",
+    short: "Them: On my way?\nAlmost there\n5 min\nYes",
+    funny:
+      "Them: I forgot again\nClassic move 😄\nThird time's the charm\nI'll remind you",
+  },
+  ar: {
+    default:
+      "Them: وصلت؟\nلسا بالطريق\nقرب أوصل\n5 دقايق",
+    friendly:
+      "Them: يوم طويل\nتحمّل 😊\nبدك نحكي؟\nارتاح شوي",
+    formal:
+      "Them: هل يمكننا الاجتماع غداً؟\nنعم، يناسبني.\nيرجى تحديد الوقت.\nأنا متاح بعد الدوام.",
+    short: "Them: وينك؟\nبالطريق\n5 دقايق\nأيوه",
+    funny:
+      "Them: نسيت تاني\nكل مرة 😄\nالمرة الثالثة\nبذكرك",
+  },
+};
+
+async function generateSmartRepliesLlm({
+  messages = [],
+  language = "en",
+  tone = "default",
+  subject = "",
+  conversationKind = "",
+  intent = null,
+  lookupHints = [],
+} = {}) {
   const conversation = messages
     .slice(-16)
     .map((item) => `${item.sender}: ${item.text}`)
@@ -247,24 +281,37 @@ async function generateSmartRepliesLlm({ messages = [], language = "en", tone = 
 
   if (!conversation.trim()) return null;
 
-  const langHint = String(language || "en").toLowerCase().startsWith("ar")
-    ? "Arabic"
-    : "English";
+  const isAr = String(language || "en").toLowerCase().startsWith("ar");
+  const langHint = isAr ? "Arabic" : "English";
   const toneHint = TONE_HINTS[tone] || TONE_HINTS.default;
+  const contextHint = buildConversationHint({ subject, conversationKind, intent });
+  const examples =
+    SMART_REPLY_EXAMPLES[isAr ? "ar" : "en"][tone] ||
+    SMART_REPLY_EXAMPLES[isAr ? "ar" : "en"].default;
+  const hints = normalizeReplyList(lookupHints);
+  const hintLine = hints.length
+    ? `Optional starter ideas (improve or replace, do not copy blindly): ${hints.join(" | ")}`
+    : "";
 
   const system = [
     "You are a smart-reply assistant for a messaging app.",
     "Write exactly 3 very short reply options the user could send next.",
     `Language: ${langHint}. Tone: ${toneHint}.`,
+    contextHint,
+    hintLine,
     `Each reply MUST be under ${MAX_SMART_REPLY_CHARS} characters — short chat bubbles, not paragraphs.`,
+    "Match the conversation context. Do not repeat the other person's message.",
     "Return exactly 3 lines. One reply per line. No numbering, bullets, labels, JSON, or reasoning.",
-    "Put the 3 replies in your answer text only.",
-  ].join(" ");
+    "Example format:",
+    examples,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   try {
     const content = await callGroqChat({
       system,
-      user: `Conversation:\n${conversation}\n\nSuggest 3 short replies.`,
+      user: `Conversation:\n${conversation}\n\nSuggest 3 short replies the user ("me") could send next.`,
       maxTokens: 1024,
       temperature: 0.55,
       jsonMode: false,
@@ -295,25 +342,39 @@ const LANG_NAMES = {
   ar: "Arabic",
 };
 
-async function translateWithGroqLlm({ text, sourceLanguage, targetLanguage }) {
+async function translateWithGroqLlm({
+  text,
+  sourceLanguage,
+  targetLanguage,
+  mixedLanguage = false,
+} = {}) {
   const trimmed = String(text || "").trim();
   if (!trimmed) return null;
 
   const src = String(sourceLanguage || "en").split("-")[0].toLowerCase();
   const tgt = String(targetLanguage || "ar").split("-")[0].toLowerCase();
-  if (src !== "en" && src !== "ar") return null;
+  if (src !== "en" && src !== "ar" && src !== "auto") return null;
   if (tgt !== "en" && tgt !== "ar") return null;
-  if (src === tgt) return null;
+  if (src === tgt && src !== "auto") return null;
 
-  const srcName = LANG_NAMES[src] || src;
+  const srcName =
+    src === "auto" ? "auto-detected language" : LANG_NAMES[src] || src;
   const tgtName = LANG_NAMES[tgt] || tgt;
 
   const system = [
     "You are a professional translator for chat messages.",
     `Translate from ${srcName} to ${tgtName}.`,
+    mixedLanguage
+      ? "The message may mix English and Arabic or Arabizi — translate the full meaning naturally."
+      : "",
     "Return ONLY the translation — no quotes, labels, or explanation.",
-    "Keep emojis and names unchanged. Match natural chat tone.",
-  ].join(" ");
+    "Keep emojis, usernames, and URLs unchanged. Match natural chat tone.",
+    tgt === "ar"
+      ? "Use modern conversational Arabic suitable for texting."
+      : "Use natural conversational English suitable for texting.",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   try {
     const content = await callGroqChat({

@@ -91,13 +91,35 @@ function expandContractions(text) {
 }
 
 function prepareTranslateInput(text) {
-  return expandContractions(normalizeWhitespace(text));
+  return expandContractions(expandChatSlang(normalizeWhitespace(text)));
+}
+
+const LATIN_ARABIC_LEXICON = new Set([
+  "shukran", "shukran ktir", "marhaba", "yalla", "inshallah", "inshallah",
+  "mashallah", "wallah", "habibi", "habibti", "keefak", "kifak", "kifak",
+  "afwan", "afwan", "ma3lesh", "ma3leish", "khalas", "yalla bye", "shu",
+  "shoo", "wen", "wain", "wayn", "leish", "layish", "shlon", "shlonek",
+  "ahlan", "salam", "salam alaikum", "assalamu alaikum", "insha allah",
+  "mabrook", "yalla im coming", "habibi", "tayeb", "yalla", "khallas",
+  "shukran jazeelan", "marhaba", "ahlan wa sahlan", "keef halak", "keef halik",
+]);
+
+function looksLikeArabizi(text) {
+  const prepared = normalizeLookupKey(expandChatSlang(String(text || "")));
+  if (!prepared) return false;
+  if (LATIN_ARABIC_LEXICON.has(prepared)) return true;
+  for (const word of prepared.split(/\s+/)) {
+    if (LATIN_ARABIC_LEXICON.has(word)) return true;
+  }
+  if (/[3578]/.test(prepared) && /[a-z]/i.test(prepared)) return true;
+  return false;
 }
 
 function detectScript(text) {
   const value = String(text || "");
   const hasAr = ARABIC_RE.test(value);
   const hasEn = LATIN_RE.test(value);
+  if (looksLikeArabizi(value)) return "ar";
   if (hasAr && !hasEn) return "ar";
   if (hasEn && !hasAr) return "en";
   if (hasAr && hasEn) return "mixed";
@@ -113,14 +135,72 @@ function isMeSender(sender) {
   return ["me", "user", "assistant"].includes(role);
 }
 
+function expandChatSlang(text) {
+  let out = String(text || "").toLowerCase();
+  const rules = [
+    [/\bu\b/g, "you"],
+    [/\bur\b/g, "your"],
+    [/\br\b/g, "are"],
+    [/\bplz\b/g, "please"],
+    [/\bpls\b/g, "please"],
+    [/\bthx\b/g, "thanks"],
+    [/\bty\b/g, "thank you"],
+    [/\bnp\b/g, "no problem"],
+    [/\bbrb\b/g, "be right back"],
+    [/\bomg\b/g, "oh my god"],
+    [/\bidk\b/g, "i do not know"],
+    [/\btbh\b/g, "to be honest"],
+    [/\bbtw\b/g, "by the way"],
+    [/\bfyi\b/g, "for your information"],
+    [/\bimo\b/g, "in my opinion"],
+    [/\bomw\b/g, "on my way"],
+    [/\blmk\b/g, "let me know"],
+    [/\bnvm\b/g, "never mind"],
+    [/\bttyl\b/g, "talk to you later"],
+    [/\bgtg\b/g, "got to go"],
+    [/\bcya\b/g, "see you"],
+    [/\bwya\b/g, "where you at"],
+    [/\bwyd\b/g, "what you doing"],
+    [/\bhru\b/g, "how are you"],
+    [/\bsry\b/g, "sorry"],
+    [/\bgr8\b/g, "great"],
+    [/\b2moro\b/g, "tomorrow"],
+    [/\b2day\b/g, "today"],
+    [/\b2nite\b/g, "tonight"],
+  ];
+  for (const [rx, rep] of rules) {
+    out = out.replace(rx, rep);
+  }
+  return normalizeWhitespace(out);
+}
+
+function normalizeSmartReplyKey(value) {
+  return normalizeLookupKey(expandContractions(expandChatSlang(value)));
+}
+
+function smartReplyKeyVariants(value) {
+  const raw = normalizeWhitespace(value);
+  const variants = new Set();
+  variants.add(normalizeSmartReplyKey(raw));
+  variants.add(normalizeLookupKey(raw));
+  variants.add(normalizeSmartReplyKey(raw.replace(/[.!?؟]+$/g, "")));
+  variants.add(normalizeLookupKey(raw.replace(/[.!?؟]+$/g, "")));
+  return [...variants].filter(Boolean);
+}
+
 module.exports = {
   normalizeWhitespace,
   normalizeKey,
   normalizeLookupKey,
+  normalizeSmartReplyKey,
+  smartReplyKeyVariants,
   expandContractions,
+  expandChatSlang,
   prepareTranslateInput,
   detectScript,
   wordCount,
   isMeSender,
+  looksLikeArabizi,
+  foldArabizi,
   ARABIC_RE,
 };

@@ -13,7 +13,9 @@ const axios = require("axios");
 
 const OUT_DIR = path.join(__dirname, "..", "data", "ai");
 const SEED_REPLIES = path.join(OUT_DIR, "seed-smart-replies.json");
+const SEED_UNIVERSITY_REPLIES = path.join(OUT_DIR, "seed-university-replies.json");
 const SEED_TRANSLATE = path.join(OUT_DIR, "seed-translate.json");
+const SEED_UNIVERSITY_TRANSLATE = path.join(OUT_DIR, "seed-university-translate.json");
 const CURATED_PHRASES = path.join(OUT_DIR, "curated-phrases.json");
 const HF_ROWS = "https://datasets-server.huggingface.co/rows";
 const SKIP_HF = String(process.env.SKIP_HF || "").trim() === "1";
@@ -273,7 +275,15 @@ async function buildSmartReplies() {
     console.log(`[build-ai] merged seed-smart-replies (${replyMap.size} keys so far)`);
   }
 
-  const sources = seed ? ["seed-smart-replies.json"] : [];
+  const uniSeed = readJsonIfExists(SEED_UNIVERSITY_REPLIES);
+  if (uniSeed) {
+    mergeReplySeed(replyMap, uniSeed);
+    console.log(`[build-ai] merged seed-university-replies (${replyMap.size} keys so far)`);
+  }
+
+  const sources = [];
+  if (seed) sources.push("seed-smart-replies.json");
+  if (uniSeed) sources.push("seed-university-replies.json");
 
   if (!SKIP_HF) {
     const { rows, source } = await fetchDailyDialog();
@@ -355,6 +365,21 @@ async function buildTranslate() {
     console.log(
       `[build-ai] merged seed-translate (${Object.keys(seed.words_en_to_ar || {}).length} curated words, ${Object.keys(seed.words_en_to_ar_ext || {}).length} extended, ${Object.keys(seed.phrases_en_to_ar || {}).length} phrases)`,
     );
+  }
+
+  const uniTranslate = readJsonIfExists(SEED_UNIVERSITY_TRANSLATE);
+  if (uniTranslate) {
+    mergeTranslateSeed(
+      phrasesEn,
+      phrasesAr,
+      wordsEn,
+      wordsAr,
+      wordsEnExt,
+      wordsArExt,
+      uniTranslate,
+    );
+    sources.push("seed-university-translate.json");
+    console.log("[build-ai] merged seed-university-translate");
   }
 
   if (!SKIP_HF) {

@@ -24,6 +24,8 @@ scripts/.cache/
 data/ai/*.json
 !data/ai/seed-smart-replies.json
 !data/ai/seed-translate.json
+!data/ai/seed-university-replies.json
+!data/ai/seed-university-translate.json
 !data/ai/curated-phrases.json
 !data/ai/*.json.gz
 

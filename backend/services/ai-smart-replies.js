@@ -9,6 +9,8 @@ const {
   getGroqStatus,
   normalizeReplyList,
 } = require("./ai/groq-llm.js");
+const { messageNeedsLlmBoost, detectConversationIntent } = require("./ai/context.js");
+const { mergeReplyLists } = require("./ai/merge-replies.js");
 
 const AI_SMART_REPLY_CACHE_MS = Math.max(
   0,
@@ -81,6 +83,8 @@ async function smartReplies(req, res) {
     0,
     Math.min(9999, Number(body.variationSeed) || 0),
   );
+  const subject = String(body.subject || "").trim().slice(0, 120);
+  const conversationKind = String(body.conversationKind || "").trim().toLowerCase();
 
   let trimmedMessages = [];
 
@@ -109,7 +113,14 @@ async function smartReplies(req, res) {
     .map((item) => `${item.sender}: ${item.text}`)
     .join("\n");
 
-  const cacheKey = [language, tone, conversation, variationSeed].join("::");
+  const cacheKey = [
+    language,
+    tone,
+    subject,
+    conversationKind,
+    conversation,
+    variationSeed,
+  ].join("::");
 
   if (!regenerate) {
     const cached = cacheGet(cacheKey);
@@ -131,20 +142,44 @@ async function smartReplies(req, res) {
       messages: trimmedMessages,
       language,
       tone,
+      variationSeed,
+    });
+
+    const lookupHit = lookupResult.replies.length > 0;
+    const needsBoost = messageNeedsLlmBoost({
+      messages: trimmedMessages,
+      lookupHit,
+      lookupWeak: lookupResult.lookupWeak,
+    });
+    const intent = detectConversationIntent({
+      messages: trimmedMessages,
+      subject,
     });
 
     let result = lookupResult;
 
-    if (shouldUseGroqSmartReplies({ lookupHit: lookupResult.replies.length > 0 })) {
+    if (
+      shouldUseGroqSmartReplies({ lookupHit, needsBoost })
+    ) {
       const llmResult = await generateSmartRepliesLlm({
         messages: trimmedMessages,
         language,
         tone,
+        subject,
+        conversationKind,
+        intent,
+        lookupHints: lookupHit ? lookupResult.replies : [],
       });
       if (llmResult?.replies?.length) {
+        const mergedReplies =
+          lookupHit && needsBoost
+            ? mergeReplyLists(llmResult.replies, lookupResult.replies, 3)
+            : llmResult.replies;
         result = {
           ...lookupResult,
           ...llmResult,
+          replies: mergedReplies,
+          intent: intent || llmResult.intent,
           contextPreview: lookupResult.contextPreview,
         };
       }
