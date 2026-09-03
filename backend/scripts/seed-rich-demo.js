@@ -1,13 +1,9 @@
 /**
- * Wipe Atlas/local DB and seed bilingual demo data.
+ * Wipe DB and seed bilingual demo data.
  *
- * Belmo on-demand command:
- *   node scripts/seed-rich-demo.js
- *
- * Local with Atlas URI:
- *   set MONGO_URI=mongodb+srv://...
- *   set MONGO_DB_NAME=Vegasphere
- *   node scripts/seed-rich-demo.js
+ * Belmo: auto-runs on deploy when PUBLIC_API_URL contains onbelmo.uk.
+ * Manual: node scripts/seed-rich-demo.js
+ * Disable auto-seed on Belmo: SEED_DEMO_ON_START=0
  */
 require("dotenv").config({
   path: require("path").resolve(__dirname, "..", ".env"),
@@ -183,25 +179,35 @@ async function seed(users) {
   }]);
 }
 
-async function main() {
-  console.log("Target DB:", process.env.MONGO_DB_NAME || "(from URI)");
-  await connectDB();
-  console.log("Wiping...");
+async function runSeedRichDemo() {
+  console.log("[seed] Target DB:", process.env.MONGO_DB_NAME || "(from URI)");
+  console.log("[seed] Wiping...");
   await wipe();
-  console.log("Seeding users...");
+  console.log("[seed] Seeding users...");
   const users = await createUsers();
-  console.log("Seeding chats...");
+  console.log("[seed] Seeding chats...");
   await seed(users);
-  console.log("Done. Login: ahmed@demo.vegasphere.test /", SEED_PASSWORD);
-  console.log("Counts:", {
+  const counts = {
     users: await User.countDocuments(),
     conversations: await Conversation.countDocuments(),
     messages: await Message.countDocuments(),
-  });
+  };
+  console.log("[seed] Done. Login: ahmed@demo.vegasphere.test /", SEED_PASSWORD);
+  console.log("[seed] Counts:", counts);
+  return counts;
+}
+
+async function main() {
+  await connectDB();
+  await runSeedRichDemo();
   process.exit(0);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
+
+module.exports = { runSeedRichDemo, SEED_PASSWORD };
