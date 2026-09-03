@@ -165,21 +165,6 @@ async function start() {
   }
 
   await connectDB();
-
-  const shouldSeedDemo =
-    process.env.SEED_DEMO_ON_START === "1" ||
-    (process.env.SEED_DEMO_ON_START !== "0" &&
-      String(process.env.PUBLIC_API_URL || "").includes("onbelmo.uk"));
-  if (shouldSeedDemo) {
-    try {
-      const { runSeedRichDemo } = require("./scripts/seed-rich-demo.js");
-      await runSeedRichDemo();
-    } catch (error) {
-      console.error("[seed] Demo seed failed:", error.message);
-      process.exit(1);
-    }
-  }
-
   await warmUpSmtp();
   if (!schedulersStarted) {
     startSchedulers();

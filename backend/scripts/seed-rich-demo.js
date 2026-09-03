@@ -1,9 +1,6 @@
 /**
- * Wipe DB and seed bilingual demo data.
- *
- * Belmo: auto-runs on deploy when PUBLIC_API_URL contains onbelmo.uk.
- * Manual: node scripts/seed-rich-demo.js
- * Disable auto-seed on Belmo: SEED_DEMO_ON_START=0
+ * Wipe DB and seed bilingual demo data (manual / one-off only).
+ * Run: node scripts/seed-rich-demo.js
  */
 require("dotenv").config({
   path: require("path").resolve(__dirname, "..", ".env"),
