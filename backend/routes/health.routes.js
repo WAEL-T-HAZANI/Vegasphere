@@ -102,23 +102,4 @@ router.get("/ready", async (req, res) => {
   return ok(res, data);
 });
 
-router.post("/admin/seed-demo", async (req, res, next) => {
-  try {
-    const secret = String(
-      process.env.SEED_ADMIN_SECRET || process.env.JWT_SECRET || "",
-    ).trim();
-    const provided = String(
-      req.headers["x-seed-secret"] || req.body?.secret || "",
-    ).trim();
-    if (!secret || provided !== secret) {
-      return res.status(403).json({ success: false, message: "Forbidden" });
-    }
-    const { runSeedRichDemo } = require("../services/seed-rich-demo.service.js");
-    const result = await runSeedRichDemo();
-    return ok(res, result, { message: "Database seeded with demo data" });
-  } catch (error) {
-    next(error);
-  }
-});
-
 module.exports = router;
